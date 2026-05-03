@@ -11,3 +11,4 @@ coverage/
 *.tmp
 .cache/
 ~$*.docx
+scripts/__pycache__/
