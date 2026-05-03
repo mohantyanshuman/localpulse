@@ -4,9 +4,9 @@ node_modules
 .gitignore
 .gcloudignore
 .dockerignore
-*.docx
 *.md
 !README.md
+~$*.docx
 .env*
 *.log
 .DS_Store

@@ -12,6 +12,7 @@ COPY package.json ./
 COPY server.js ./
 COPY data ./data
 COPY public ./public
+COPY ["CAPSTONE PROJECT REPORT.docx", "./CAPSTONE PROJECT REPORT.docx"]
 RUN addgroup -S app && adduser -S app -G app && chown -R app:app /app
 USER app
 EXPOSE 8080

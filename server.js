@@ -148,6 +148,20 @@ app.get('/voice', sendPage('voice.html'));
 app.get('/pitch', sendPage('pitch.html'));
 app.get('/report', sendPage('report.html'));
 
+// Downloadable capstone report (Word docx)
+app.get(['/download/report.docx', '/report.docx'], (_req, res) => {
+  const file = path.join(__dirname, 'CAPSTONE PROJECT REPORT.docx');
+  fs.stat(file, (err, st) => {
+    if (err) return res.status(404).send('Report file not found.');
+    res.set('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    res.set('Content-Disposition', 'attachment; filename="CAPSTONE PROJECT REPORT - LocalPulse - Anshuman Mohanty - GF202217744.docx"');
+    res.set('Cache-Control', 'public, max-age=300, must-revalidate');
+    res.set('Content-Length', String(st.size));
+    res.set('X-Content-Type-Options', 'nosniff');
+    fs.createReadStream(file).pipe(res);
+  });
+});
+
 // 404
 app.use((req, res) => {
   if (req.path.startsWith('/api/')) return res.status(404).json({ error: { code: 'not_found', message: 'Unknown endpoint' } });

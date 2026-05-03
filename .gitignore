@@ -12,3 +12,4 @@ coverage/
 .cache/
 ~$*.docx
 scripts/__pycache__/
+.claude/
