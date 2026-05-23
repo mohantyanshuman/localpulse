@@ -122,4 +122,4 @@ async function loadSnapshot() {
   try { return JSON.parse(decFields(r.fields).json); } catch { return null; }
 }
 
-module.exports = { addReport, listReports, updateReport, savePushSub, deletePushSub, listPushSubs, saveSnapshot, loadSnapshot };
+module.exports = { addReport, listReports, updateReport, addAid, listAid, savePushSub, deletePushSub, listPushSubs, saveSnapshot, loadSnapshot };
