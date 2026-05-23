@@ -25,8 +25,14 @@ It's all real, all free-tier (you pay only a few cents/day of Gemini if you opt 
 5. **Decision Support brain** — risk level + ranked recommendations, **spatially honest** (area-wide hazards vs localized incidents; `?lat&lng` for "near me") and **time-decayed** (one-time events fade; only *current* incidents count — no fear-mongering).
 6. **Real relief points** — hospitals, police, community centres, schools from **OpenStreetMap**, with directions.
 7. **Two-way community reporting** — residents submit (with live geolocation); reports **persist to Firestore** and appear on the shared map in seconds.
-8. **Web Push alerts** — subscribe to be notified on a genuine *district-wide* escalation or a *verified* high-severity report (never for one far-off incident).
-9. **Multilingual voice assistant** + **offline PWA** (installable, works on bad connections).
+8. **Locality-scoped Web Push** — verified localized emergencies notify only subscribers *near* the event; whole-community push reserved for genuine district-wide escalation.
+9. **Ask LocalPulse** — conversational RAG assistant answering free-form questions strictly from the live fused data, in any of the 5 languages.
+10. **Mutual-aid board** — residents post needs / offers / "I'm safe"; an engine **auto-matches needs to the nearest offer** by resource category and proximity.
+11. **Cross-source early-warning** — a fresh event corroborated by many independent feeds is flagged *emerging* before any single official confirmation.
+12. **Predictive nowcast** — forward 24–48h hazard guidance from forecast rain on terrain + river-discharge trend (advisory, never inflates current risk).
+13. **Multilingual voice assistant** + **offline PWA** (installable, works on bad connections).
+
+**Anti-fear-mongering by design:** source items older than a few days are dropped at ingest; a one-time event's influence **decays** (half-life 12h) and stale events leave "act-now" advice; risk is **spatially scoped** (a far-off incident doesn't read as town-wide). See **[PATENT.md](PATENT.md)** for prior-art analysis and how these mechanisms differentiate LocalPulse.
 
 **Cost discipline:** Gemini runs only on a scheduled ingest (a few calls/day) plus per-report verification (daily-capped); the 40+ feeds and all hazard data are free and processed by rules. Cold starts reload the last good result from **Firestore** instead of spending the model budget. Every feed degrades gracefully, so the app is never blank.
 
