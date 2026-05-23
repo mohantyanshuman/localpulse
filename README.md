@@ -18,15 +18,17 @@ During local emergencies — floods, fires, power outages — information is sca
 
 It's all real, all free-tier (you pay only a few cents/day of Gemini if you opt in):
 
-1. **Live incident feed** — pulls local **Google News**, then **Gemini Flash-Lite** filters noise, classifies (road/shelter/power/water/medical/rumour) + severity, **geolocates** the place, and **translates into 5 languages** (en/hi/pa/ta/bn).
-2. **Real hazard awareness** — live weather + derived warnings (**Open-Meteo**), recent earthquakes (**USGS**), and **official NDMA Sachet** government alerts, region-filtered.
-3. **Decision Support brain** — a town **risk level** (ok/elevated/high/severe) + ranked **recommendations** computed from incidents + hazards + facilities (explainable, noise-robust).
-4. **Real relief points** — hospitals, police, community centres, schools near the town from **OpenStreetMap**, with directions.
-5. **Two-way community reporting** — residents submit reports that **persist to Firestore** and appear on the shared map within seconds (flagged until verified).
-6. **Multilingual voice assistant** — answers grounded in the live data, in the caller's language (browser Web Speech today; Twilio + Whisper telephony is roadmap).
-7. **Offline PWA** — installable, cache-first shell + last-known data for bad connections.
+1. **40+ live data sources** — Google News geo/topic queries across every Himachal district + direct RSS from ~20 national/regional/Hindi outlets, plus weather, air-quality, flood, seismic, satellite and official-alert APIs. All free, no key. Breadth drives **corroboration**: an event seen across many independent feeds earns high trust; lone-source noise stays low.
+2. **AI processing** — **Gemini Flash-Lite** filters noise, classifies (road/shelter/power/water/medical/rumour) + severity, **geolocates**, and **translates into 5 languages** (en/hi/pa/ta/bn).
+3. **Agentic verification** — every citizen report is cross-checked by a Gemini agent doing **real Google web search**; verdict (corroborated / unverified / contradicted) + confidence. Debunked claims are excluded from risk, so misinformation never scares anyone.
+4. **Real hazard awareness** — weather + warnings (**Open-Meteo**), **air quality / AQI**, **river-discharge/flood** (GloFAS), earthquakes (**USGS**), **NASA EONET** events, and **official NDMA Sachet + GDACS** alerts, strictly region-filtered.
+5. **Decision Support brain** — risk level + ranked recommendations, **spatially honest** (area-wide hazards vs localized incidents; `?lat&lng` for "near me") and **time-decayed** (one-time events fade; only *current* incidents count — no fear-mongering).
+6. **Real relief points** — hospitals, police, community centres, schools from **OpenStreetMap**, with directions.
+7. **Two-way community reporting** — residents submit (with live geolocation); reports **persist to Firestore** and appear on the shared map in seconds.
+8. **Web Push alerts** — subscribe to be notified on a genuine *district-wide* escalation or a *verified* high-severity report (never for one far-off incident).
+9. **Multilingual voice assistant** + **offline PWA** (installable, works on bad connections).
 
-**Cost discipline:** Gemini runs only on a scheduled ingest (a few calls/day); cold starts reload the last good result from **Firestore** instead of spending the model budget. Every feed degrades gracefully to seed data, so the app is never blank.
+**Cost discipline:** Gemini runs only on a scheduled ingest (a few calls/day) plus per-report verification (daily-capped); the 40+ feeds and all hazard data are free and processed by rules. Cold starts reload the last good result from **Firestore** instead of spending the model budget. Every feed degrades gracefully, so the app is never blank.
 
 ### Live data & keys (all optional, all free-tier)
 
