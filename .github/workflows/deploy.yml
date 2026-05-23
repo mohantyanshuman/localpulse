@@ -65,11 +65,16 @@ jobs:
             --concurrency=80 --timeout=60 \
             --quiet
 
+      # Note: external /healthz is shadowed by the Google Front End and returns a
+      # Google 404 before reaching the container, so we verify via /version and /,
+      # which pass through. The container's own Docker HEALTHCHECK still uses /healthz
+      # on localhost, where it works.
       - name: Verify deployment
         run: |
           URL=$(gcloud run services describe "$SERVICE" \
             --project="$PROJECT_ID" --region="$REGION" \
             --format='value(status.url)')
           echo "Deployed service URL: $URL"
-          echo "Health check:"; curl -fsS "$URL/healthz"; echo
-          echo "Version:";      curl -fsS "$URL/version"; echo
+          echo "Version:"; curl -fsS "$URL/version"; echo
+          curl -fsS -o /dev/null "$URL/" && echo "Root page OK"
+          echo "Production domain:"; curl -fsS "https://localpulse.dmj.one/version"; echo
