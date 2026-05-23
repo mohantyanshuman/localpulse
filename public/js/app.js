@@ -265,6 +265,13 @@
       const body = { category: fd.get('category'), message: String(fd.get('message') || '').trim(), lang: state.lang };
       if (!body.message) { status.dataset.state = 'err'; status.textContent = 'Please describe what is happening.'; return; }
       status.dataset.state = ''; status.textContent = 'Sending…';
+      // Best-effort: pin the report at the resident's real location (4s budget).
+      if (navigator.geolocation) {
+        try {
+          const pos = await new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, { timeout: 4000, maximumAge: 60000 }));
+          body.lat = pos.coords.latitude; body.lng = pos.coords.longitude;
+        } catch (_) { /* no location — server defaults to town centre */ }
+      }
       try {
         const r = await fetchJson('/api/report', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
         status.textContent = 'Thanks. Reference: ' + r.id + '. Responders see verified reports within 60s.';
