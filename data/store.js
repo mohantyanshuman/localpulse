@@ -8,11 +8,23 @@ const seed = require('./incidents');
 
 const state = {
   liveIncidents: [], // normalized incident objects from real sources
+  facilities: [], // real relief points/facilities from OpenStreetMap
   lastIngestTs: 0, // epoch ms of the last successful ingest
   lastSummaryBullets: null, // { en: [..] } overall status summary, if produced
   sourcesIngested: 0, // count of raw items seen in the last ingest (for the ticker)
   mode: 'seed' // 'seed' until the first live ingest lands
 };
+
+function setFacilities(list) {
+  if (Array.isArray(list) && list.length) state.facilities = list;
+}
+
+// Real OSM facilities if we have them; otherwise the seed shelters mapped to the
+// same shape so /api/shelters and the UI keep working.
+function getFacilities() {
+  if (state.facilities.length) return state.facilities;
+  return seed.shelters.map((s) => ({ id: s.id, name: s.name, kind: 'shelter', lat: s.lat, lng: s.lng, phone: null }));
+}
 
 function setLive(incidents, meta = {}) {
   state.liveIncidents = Array.isArray(incidents) ? incidents : [];
@@ -49,4 +61,4 @@ function meta() {
   };
 }
 
-module.exports = { setLive, getIncidents, getSummary, meta, BASE: seed.BASE };
+module.exports = { setLive, getIncidents, getSummary, setFacilities, getFacilities, meta, BASE: seed.BASE };

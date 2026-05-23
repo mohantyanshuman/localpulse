@@ -6,9 +6,8 @@ const crypto = require('crypto');
 const express = require('express');
 const compression = require('compression');
 
-const { shelters } = require('./data/incidents');
 const { dict, SUPPORTED, DEFAULT_LANG, pickLang } = require('./data/i18n');
-const { respond, classify } = require('./data/intents');
+const { respond, classify, noData } = require('./data/intents');
 const store = require('./data/store');
 const { runIngest } = require('./services/ingest');
 
@@ -83,8 +82,9 @@ app.get('/api/incidents', (req, res) => {
 });
 
 app.get('/api/shelters', (req, res) => {
-  res.set('Cache-Control', 'public, max-age=10, stale-while-revalidate=60');
-  res.json({ count: shelters.length, items: shelters, ts: Date.now() });
+  res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+  const items = store.getFacilities();
+  res.json({ count: items.length, items, ts: Date.now() });
 });
 
 app.get('/api/summary', (req, res) => {
@@ -113,9 +113,23 @@ app.post('/api/report', (req, res) => {
 });
 
 app.post('/api/voice/intent', (req, res) => {
-  const lang = pickLang(req);
   const { text = '' } = req.body || {};
-  const out = respond(text, lang);
+  const lang = (req.body && SUPPORTED.includes(req.body.lang)) ? req.body.lang : pickLang(req);
+  const out = respond(text, lang); // { intent, response, lang } — localized base reply
+  // Ground the reply in live data (free, no LLM call).
+  const incTitles = (cat) => store.getIncidents().filter(i => i.category === cat).slice(0, 2).map(i => (i.title[lang] || i.title.en));
+  const facNames = (kinds) => {
+    const fac = store.getFacilities();
+    let pick = fac.filter(f => kinds.includes(f.kind));
+    if (!pick.length) pick = fac; // any nearby relief facility is better than nothing
+    return pick.slice(0, 2).map(f => f.name + (f.phone ? ` (${f.phone})` : ''));
+  };
+  let extra = [];
+  if (out.intent === 'road' || out.intent === 'power' || out.intent === 'water') extra = incTitles(out.intent);
+  else if (out.intent === 'medical') extra = facNames(['hospital', 'clinic']);
+  else if (out.intent === 'shelter') extra = facNames(['shelter', 'community_centre', 'school']);
+  if (extra.length) { out.response += ' ' + extra.join('; ') + '.'; out.live = extra; }
+  else if (out.intent !== 'emergency' && out.intent !== 'fallback') { out.response = (noData[lang] || noData.en); }
   res.json(out);
 });
 
@@ -132,9 +146,8 @@ app.get('/api/pulse', (req, res) => {
     const evt = {
       n, ts: Date.now(),
       activeIncidents: store.getIncidents().length,
-      sheltersOpen: shelters.length,
-      voiceCalls: 12 + Math.floor(Math.random() * 6),
-      sourcesIngested: m.sourcesIngested || (1240 + Math.floor(Math.random() * 40)),
+      sheltersOpen: store.getFacilities().length,
+      sourcesIngested: m.sourcesIngested || 0,
       mode: m.mode
     };
     res.write(`event: pulse\ndata: ${JSON.stringify(evt)}\n\n`);

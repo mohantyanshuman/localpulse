@@ -3,6 +3,22 @@
 All notable changes to LocalPulse are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); grouped by date.
 
+## 2026-05-24 (later)
+
+### Added
+- **Real relief points** from OpenStreetMap (Overpass, free, no key): live
+  hospitals, clinics, police, community centres and schools near the town, with
+  directions links. Replaces the mock shelters (`services/facilities.js`).
+- **Voice bot grounded in live data**: keyword intent → generic localized
+  lead-in → real incidents/facilities appended (5 languages, no per-call LLM
+  cost). Honors the caller's language from the request body.
+
+### Removed / Fixed
+- Mock shelter capacity/occupancy; mock canned voice specifics (NH-5 Kandaghat,
+  capacity 220, etc.) replaced with generic localized templates + live data.
+- Fake "Voice calls / hr" KPI replaced with a real "Languages" counter; the
+  "Sources scanned" KPI now reflects the real fetched-item count.
+
 ## 2026-05-24
 
 ### Changed

@@ -110,7 +110,7 @@
       const d = document.createElement('div');
       const t = document.createElement('strong'); t.textContent = s.name; d.appendChild(t);
       d.appendChild(document.createElement('br'));
-      d.appendChild(document.createTextNode(s.occupied + ' / ' + s.capacity + ' occupied'));
+      d.appendChild(document.createTextNode(kindLabel(s.kind) + (s.phone ? ' · ' + s.phone : '')));
       m.bindPopup(d).addTo(state.map);
       state.markers.push(m);
     });
@@ -174,24 +174,32 @@
     state.summary.bullets.forEach(b => ul.appendChild(el('li', null, b)));
   }
 
+  const KINDS = {
+    hospital: { en: 'Hospital', hi: 'अस्पताल', pa: 'ਹਸਪਤਾਲ', ta: 'மருத்துவமனை', bn: 'হাসপাতাল' },
+    clinic: { en: 'Clinic', hi: 'क्लिनिक', pa: 'ਕਲੀਨਿਕ', ta: 'மருத்துவ மையம்', bn: 'ক্লিনিক' },
+    police: { en: 'Police', hi: 'पुलिस', pa: 'ਪੁਲਿਸ', ta: 'காவல்', bn: 'পুলিশ' },
+    community_centre: { en: 'Community centre', hi: 'सामुदायिक केंद्र', pa: 'ਕਮਿਊਨਿਟੀ ਸੈਂਟਰ', ta: 'சமூக மையம்', bn: 'কমিউনিটি কেন্দ্র' },
+    school: { en: 'School', hi: 'विद्यालय', pa: 'ਸਕੂਲ', ta: 'பள்ளி', bn: 'বিদ্যালয়' },
+    shelter: { en: 'Shelter', hi: 'आश्रय', pa: 'ਆਸ਼ਰਯ', ta: 'தங்குமிடம்', bn: 'আশ্রয়' }
+  };
+  function kindLabel(k) { return (KINDS[k] && KINDS[k][state.lang]) || (KINDS[k] && KINDS[k].en) || k; }
+
   function renderShelters() {
     const grid = document.getElementById('shelter-grid');
     if (!grid) return;
     clear(grid);
     state.shelters.forEach(s => {
-      const pct = Math.round((s.occupied / s.capacity) * 100);
-      const card = el('article', { class: 'shelter', 'data-full': pct >= 95 ? '1' : '0' });
+      const card = el('article', { class: 'shelter', 'data-kind': s.kind });
       card.appendChild(el('h3', null, s.name));
-      card.appendChild(el('div', { class: 'muted small' }, s.occupied + ' / ' + s.capacity + ' occupied'));
-      const occ = el('div', { class: 'occ' });
-      const bar = el('div', { class: 'occ-bar' });
-      bar.appendChild(el('div', { class: 'occ-fill', style: 'width:' + pct + '%' }));
-      occ.appendChild(bar);
-      occ.appendChild(el('span', null, pct + '%'));
-      card.appendChild(occ);
       const am = el('div', { class: 'amen' });
-      s.amenities.forEach(a => am.appendChild(el('span', null, a)));
+      am.appendChild(el('span', { 'data-cat': s.kind }, kindLabel(s.kind)));
       card.appendChild(am);
+      if (s.phone) {
+        const tel = el('a', { class: 'muted small', href: 'tel:' + s.phone }, '☎ ' + s.phone);
+        card.appendChild(tel);
+      }
+      const dir = el('a', { class: 'muted small', href: 'https://www.openstreetmap.org/?mlat=' + s.lat + '&mlon=' + s.lng + '#map=17/' + s.lat + '/' + s.lng, target: '_blank', rel: 'noopener' }, 'Directions');
+      card.appendChild(dir);
       grid.appendChild(card);
     });
   }
@@ -241,11 +249,10 @@
         const d = JSON.parse(e.data);
         setKpi('kpi-incidents', d.activeIncidents);
         setKpi('kpi-shelters', d.sheltersOpen);
-        setKpi('kpi-voice', d.voiceCalls);
-        setKpi('kpi-sources', d.sourcesIngested.toLocaleString());
+        if (typeof d.sourcesIngested === 'number') setKpi('kpi-sources', d.sourcesIngested.toLocaleString());
         setStatus('online');
         if (stream) {
-          const line = '[' + new Date(d.ts).toLocaleTimeString() + '] inc=' + d.activeIncidents + ' sh=' + d.sheltersOpen + ' vc=' + d.voiceCalls + ' src=' + d.sourcesIngested + '\n';
+          const line = '[' + new Date(d.ts).toLocaleTimeString() + '] inc=' + d.activeIncidents + ' facilities=' + d.sheltersOpen + ' sources=' + d.sourcesIngested + ' mode=' + (d.mode || '') + '\n';
           stream.textContent = (line + stream.textContent).slice(0, 4000);
         }
       } catch (_) {}
@@ -274,8 +281,8 @@
       setStatus('online');
       setKpi('kpi-incidents', state.incidents.length);
       setKpi('kpi-shelters', state.shelters.length);
-      setKpi('kpi-voice', '14');
-      setKpi('kpi-sources', '1,247');
+      setKpi('kpi-langs', String(LANGS.length));
+      // kpi-sources is filled by the live pulse stream with the real count.
     } catch (e) { setStatus('offline'); }
   }
 

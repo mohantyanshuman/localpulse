@@ -77,7 +77,7 @@
   <section class="kpi-strip" id="kpi-strip" aria-label="Live counters">
     <div class="kpi"><div class="kpi-num" id="kpi-incidents">—</div><div class="kpi-label" data-i18n="incidents">Incidents</div></div>
     <div class="kpi"><div class="kpi-num" id="kpi-shelters">—</div><div class="kpi-label" data-i18n="shelters">Shelters</div></div>
-    <div class="kpi"><div class="kpi-num" id="kpi-voice">—</div><div class="kpi-label">Voice calls / hr</div></div>
+    <div class="kpi"><div class="kpi-num" id="kpi-langs">—</div><div class="kpi-label">Languages</div></div>
     <div class="kpi"><div class="kpi-num" id="kpi-sources">—</div><div class="kpi-label">Sources scanned</div></div>
   </section>
 
@@ -104,7 +104,7 @@
         <span class="badge">AI</span>
       </header>
       <ul class="summary-list" id="summary-list" aria-live="polite"></ul>
-      <p class="muted small">Pipeline: ingest → dedupe → classify → cluster → summarise. MLP uses curated mock; production swaps in Twitter / Reddit feeds + LLM summariser.</p>
+      <p class="muted small">Pipeline: ingest → dedupe → classify → cluster → summarise. Live: Google News + Gemini Flash-Lite, refreshed a few times daily (cost-capped). Add Reddit/X keys for more sources.</p>
     </article>
   </section>
 
@@ -118,8 +118,9 @@
 
   <section class="card">
     <header class="card-head">
-      <h2 data-i18n="shelters">Open shelters</h2>
+      <h2 data-i18n="shelters">Relief points</h2>
     </header>
+    <p class="muted small">Real hospitals, police stations, community centres &amp; schools near you, live from OpenStreetMap.</p>
     <div class="shelter-grid" id="shelter-grid"></div>
   </section>
 
@@ -152,7 +153,7 @@
     LocalPulse · capstone by <strong>Anshuman Mohanty</strong> (GF202217744) · B.Tech CSE Cloud Computing · Shoolini University · Mentor: Mr. Ashish.
   </div>
   <div>
-    <a href="/pitch">Pitch deck</a> · <a href="/report">Project report</a> · <a href="/healthz">Health</a>
+    <a href="/pitch">Pitch deck</a> · <a href="/report">Project report</a> · <a href="/version">Status</a>
   </div>
 </footer>
 

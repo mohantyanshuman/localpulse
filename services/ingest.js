@@ -6,6 +6,7 @@
 const crypto = require('crypto');
 const sources = require('./sources');
 const brain = require('./brain');
+const facilitiesSvc = require('./facilities');
 const store = require('../data/store');
 const { BASE } = require('../data/incidents');
 
@@ -76,8 +77,11 @@ async function runIngest({ force = false, useLLM = true } = {}) {
   }
   running = true;
   try {
+    // Refresh real facilities (free, OSM) independent of news availability.
+    try { store.setFacilities(await facilitiesSvc.fetchFacilities()); } catch { /* keep previous */ }
+
     const raw = await sources.fetchAll();
-    if (!raw.length) return { ingested: 0, fetched: 0, note: 'no source items' };
+    if (!raw.length) return { ingested: 0, fetched: 0, facilities: store.getFacilities().length, note: 'no source items' };
 
     const deduped = dedupe(raw).slice(0, MAX_ITEMS);
     const { items, bullets } = await brain.classifyBatch(deduped, useLLM);
