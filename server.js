@@ -207,10 +207,11 @@ app.use((err, req, res, _next) => {
 
 const server = app.listen(PORT, () => {
   process.stdout.write(JSON.stringify({ severity: 'NOTICE', ts: new Date().toISOString(), msg: 'LocalPulse listening', port: PORT, rev: REV, node: process.version }) + '\n');
-  // Warm up live data on boot (non-blocking). Free sources only; Gemini runs
-  // only if GEMINI_API_KEY is set. Failures fall back to seed data silently.
+  // Warm up live data on boot (non-blocking) using the FREE heuristic only — a
+  // cold start must never spend the Gemini budget. The scheduled /tasks/ingest
+  // is the only path that calls Gemini (the daily cap = its cron frequency).
   if (process.env.INGEST_ON_BOOT !== '0') {
-    runIngest({ force: true })
+    runIngest({ force: true, useLLM: false })
       .then((r) => process.stdout.write(JSON.stringify({ severity: 'INFO', kind: 'ingest-boot', ...r, ts: Date.now() }) + '\n'))
       .catch(() => {});
   }

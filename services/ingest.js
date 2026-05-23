@@ -39,15 +39,21 @@ function dedupe(items) {
 }
 
 function toIncident(x) {
-  const co = jitterCoord(x.url || x.cleanTitle || x.title);
+  // Real coordinates from the LLM when available; otherwise approximate near base.
+  const co = (typeof x.lat === 'number' && typeof x.lng === 'number')
+    ? { lat: x.lat, lng: x.lng }
+    : jitterCoord(x.url || x.title);
   const cluster = x.cluster || 1;
   const trust = x.category === 'rumor' ? 0.12 : Math.min(0.55 + cluster * 0.1, 0.95);
+  const title = x.titleI18n || { en: x.title };
+  const summary = x.summaryI18n || { en: x.summary || x.title };
   return {
     id: 'live-' + crypto.createHash('md5').update(x.url || x.title).digest('hex').slice(0, 8),
     category: x.category,
     severity: x.severity || 'low',
-    title: { en: x.cleanTitle || x.title },
-    summary: { en: x.summary || x.title },
+    title,
+    summary,
+    place: x.place,
     lat: co.lat,
     lng: co.lng,
     sources: cluster,
@@ -59,8 +65,10 @@ function toIncident(x) {
   };
 }
 
-// force=true bypasses the cooldown (used by the boot warm-up).
-async function runIngest({ force = false } = {}) {
+// force=true bypasses the cooldown. useLLM=false forces the free heuristic
+// (the boot warm-up uses this so cold starts never make a paid Gemini call;
+// only the scheduled /tasks/ingest spends the daily Gemini budget).
+async function runIngest({ force = false, useLLM = true } = {}) {
   if (running) return { skipped: 'already-running' };
   const sinceMs = Date.now() - store.meta().lastIngestTs;
   if (!force && store.meta().lastIngestTs && sinceMs < MIN_INTERVAL_MS) {
@@ -72,7 +80,7 @@ async function runIngest({ force = false } = {}) {
     if (!raw.length) return { ingested: 0, fetched: 0, note: 'no source items' };
 
     const deduped = dedupe(raw).slice(0, MAX_ITEMS);
-    const { items, bullets } = await brain.classifyBatch(deduped);
+    const { items, bullets } = await brain.classifyBatch(deduped, useLLM);
 
     const incidents = items
       .filter((x) => x.category)
@@ -82,10 +90,11 @@ async function runIngest({ force = false } = {}) {
 
     store.setLive(incidents, {
       sourcesIngested: raw.length,
-      summaryBullets: bullets && bullets.length ? { en: bullets } : null
+      // bullets is a {lang: [..]} object from the brain; store as-is.
+      summaryBullets: bullets && bullets.en && bullets.en.length ? bullets : null
     });
 
-    return { ingested: incidents.length, fetched: raw.length, llm: brain.hasLLM() };
+    return { ingested: incidents.length, fetched: raw.length, llm: useLLM && brain.hasLLM() };
   } catch (err) {
     return { error: err.message };
   } finally {
