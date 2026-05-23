@@ -14,12 +14,19 @@ Capstone project — **Anshuman Mohanty** (GF202217744), B.Tech CSE Cloud Comput
 
 ## What it is
 
-During local emergencies — floods, fires, power outages — information on social media is scattered, full of rumours, and hard to act on. Small towns can't afford smart-city software. **LocalPulse** is a lightweight, mobile-first dashboard for residents and emergency responders, with two AI features:
+During local emergencies — floods, fires, power outages — information is scattered, full of rumours, and hard to act on. Small towns can't afford smart-city software. **LocalPulse** is a lightweight, mobile-first **decision support system** for residents and responders that fuses real live data into a single risk picture with clear, actionable advice.
 
-1. **AI social-media summary** — an NLP agent ingests local Twitter / X and Reddit threads, filters noise, classifies posts (roads, shelters, power, water, medical), clusters duplicates, scores trust, and returns a one-glance "Status Summary".
-2. **Multilingual voice helpline** — a Twilio + Whisper phone line so elderly residents without smartphones can call in their own language (Hindi, Punjabi, Tamil, Bengali, English) to report issues or get updates.
+It's all real, all free-tier (you pay only a few cents/day of Gemini if you opt in):
 
-**Live ingestion is real.** A few times a day (Cloud Scheduler → token-guarded `/tasks/ingest`) the server pulls public Google News items for the town and uses **Gemini Flash-Lite** to filter noise, classify into category + severity, geocode the place, and translate into all five languages — served at `/api/incidents` and `/api/summary`. **Relief points** (`/api/shelters`) are real hospitals, police, community centres and schools near the town from **OpenStreetMap** (free, no key). The **voice bot** answers from this live data in the caller's language. Cold-start warm-ups use a **free keyword heuristic** (no Gemini spend); only the scheduled ingest spends the (capped) Gemini budget. If anything fails it falls back to seed data so the app is never blank. No persistence yet (in-memory, scale-to-zero, `max-instances=1` for a consistent store); Firestore is the durability upgrade (also enables persisting user reports). Voice telephony stays roadmap (production: Twilio + Whisper).
+1. **Live incident feed** — pulls local **Google News**, then **Gemini Flash-Lite** filters noise, classifies (road/shelter/power/water/medical/rumour) + severity, **geolocates** the place, and **translates into 5 languages** (en/hi/pa/ta/bn).
+2. **Real hazard awareness** — live weather + derived warnings (**Open-Meteo**), recent earthquakes (**USGS**), and **official NDMA Sachet** government alerts, region-filtered.
+3. **Decision Support brain** — a town **risk level** (ok/elevated/high/severe) + ranked **recommendations** computed from incidents + hazards + facilities (explainable, noise-robust).
+4. **Real relief points** — hospitals, police, community centres, schools near the town from **OpenStreetMap**, with directions.
+5. **Two-way community reporting** — residents submit reports that **persist to Firestore** and appear on the shared map within seconds (flagged until verified).
+6. **Multilingual voice assistant** — answers grounded in the live data, in the caller's language (browser Web Speech today; Twilio + Whisper telephony is roadmap).
+7. **Offline PWA** — installable, cache-first shell + last-known data for bad connections.
+
+**Cost discipline:** Gemini runs only on a scheduled ingest (a few calls/day); cold starts reload the last good result from **Firestore** instead of spending the model budget. Every feed degrades gracefully to seed data, so the app is never blank.
 
 ### Live data & keys (all optional, all free-tier)
 
@@ -53,6 +60,9 @@ gcloud run services update localpulse --region=asia-east1 \
 | `/api/incidents` | JSON, accepts `?lang=` and `?category=` |
 | `/api/shelters` | JSON |
 | `/api/summary` | AI summary, accepts `?lang=` |
+| `/api/hazards` | Live weather, earthquakes, official NDMA alerts |
+| `/api/dss` | Decision support: risk level + recommendations |
+| `/api/reports` | Community-submitted reports |
 | `/api/voice/intent` | POST `{text, lang}` → `{intent, response}` |
 | `/api/pulse` | Server-Sent Events stream |
 | `/healthz` `/readyz` `/version` | Ops |
