@@ -11,6 +11,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY package.json ./
 COPY server.js ./
 COPY data ./data
+COPY services ./services
 COPY public ./public
 COPY ["CAPSTONE PROJECT REPORT.docx", "./CAPSTONE PROJECT REPORT.docx"]
 RUN addgroup -S app && adduser -S app -G app && chown -R app:app /app

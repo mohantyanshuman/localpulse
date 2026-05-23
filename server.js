@@ -6,9 +6,11 @@ const crypto = require('crypto');
 const express = require('express');
 const compression = require('compression');
 
-const { incidents, shelters, summary } = require('./data/incidents');
+const { shelters } = require('./data/incidents');
 const { dict, SUPPORTED, DEFAULT_LANG, pickLang } = require('./data/i18n');
 const { respond, classify } = require('./data/intents');
+const store = require('./data/store');
+const { runIngest } = require('./services/ingest');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -65,13 +67,14 @@ app.get('/version', (_req, res) => res.json({ name: 'localpulse', version: '1.0.
 app.get('/api/incidents', (req, res) => {
   const lang = pickLang(req);
   const { category } = req.query;
-  let out = incidents.map(i => ({
+  let out = store.getIncidents().map(i => ({
     id: i.id, category: i.category, severity: i.severity,
     title: i.title[lang] || i.title.en,
     summary: i.summary[lang] || i.summary.en,
     lat: i.lat, lng: i.lng,
     sources: i.sources, verified: i.verified, trust: i.trust,
-    updatedAt: i.updatedAt
+    updatedAt: i.updatedAt,
+    url: i.url || undefined
   }));
   if (category) out = out.filter(i => i.category === category);
   out.sort((a, b) => b.updatedAt - a.updatedAt);
@@ -87,7 +90,13 @@ app.get('/api/shelters', (req, res) => {
 app.get('/api/summary', (req, res) => {
   const lang = pickLang(req);
   res.set('Cache-Control', 'public, max-age=10, stale-while-revalidate=60');
-  res.json(summary(lang));
+  res.json(store.getSummary(lang));
+});
+
+// Ingestion status — handy for verifying live vs seed mode (passes the GFE).
+app.get('/api/status', (_req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json({ ...store.meta(), llm: !!process.env.GEMINI_API_KEY, ts: Date.now() });
 });
 
 app.get('/api/i18n', (req, res) => {
@@ -119,17 +128,38 @@ app.get('/api/pulse', (req, res) => {
   let n = 0;
   const tick = setInterval(() => {
     n += 1;
+    const m = store.meta();
     const evt = {
       n, ts: Date.now(),
-      activeIncidents: incidents.length,
+      activeIncidents: store.getIncidents().length,
       sheltersOpen: shelters.length,
       voiceCalls: 12 + Math.floor(Math.random() * 6),
-      sourcesIngested: 1240 + Math.floor(Math.random() * 40)
+      sourcesIngested: m.sourcesIngested || (1240 + Math.floor(Math.random() * 40)),
+      mode: m.mode
     };
     res.write(`event: pulse\ndata: ${JSON.stringify(evt)}\n\n`);
     if (n > 600) { clearInterval(tick); res.end(); }
   }, 5000);
   req.on('close', () => clearInterval(tick));
+});
+
+// --- ingestion trigger (called by Cloud Scheduler). Token-guarded so nobody
+// can spend your Gemini quota. Disabled (503) until INGEST_TOKEN is set.
+const ingestAuthorized = (req) => {
+  const tok = process.env.INGEST_TOKEN;
+  if (!tok) return false;
+  const got = String(req.get('X-Ingest-Token') || req.query.token || '');
+  const a = Buffer.from(got);
+  const b = Buffer.from(tok);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+};
+app.all(['/tasks/ingest'], async (req, res) => {
+  if (!process.env.INGEST_TOKEN) return res.status(503).json({ error: { code: 'ingest_disabled', message: 'Set INGEST_TOKEN to enable ingestion.' } });
+  if (!ingestAuthorized(req)) return res.status(403).json({ error: { code: 'forbidden', message: 'Bad or missing ingest token.' } });
+  const force = req.query.force === '1';
+  const result = await runIngest({ force });
+  process.stdout.write(JSON.stringify({ severity: 'INFO', kind: 'ingest', ...result, ts: Date.now() }) + '\n');
+  res.json({ ok: !result.error, ...result, ...store.meta() });
 });
 
 // --- static + page routes
@@ -177,6 +207,13 @@ app.use((err, req, res, _next) => {
 
 const server = app.listen(PORT, () => {
   process.stdout.write(JSON.stringify({ severity: 'NOTICE', ts: new Date().toISOString(), msg: 'LocalPulse listening', port: PORT, rev: REV, node: process.version }) + '\n');
+  // Warm up live data on boot (non-blocking). Free sources only; Gemini runs
+  // only if GEMINI_API_KEY is set. Failures fall back to seed data silently.
+  if (process.env.INGEST_ON_BOOT !== '0') {
+    runIngest({ force: true })
+      .then((r) => process.stdout.write(JSON.stringify({ severity: 'INFO', kind: 'ingest-boot', ...r, ts: Date.now() }) + '\n'))
+      .catch(() => {});
+  }
 });
 
 const shutdown = (sig) => () => {
