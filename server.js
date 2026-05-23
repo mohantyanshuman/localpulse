@@ -99,6 +99,18 @@ app.get('/api/status', (_req, res) => {
   res.json({ ...store.meta(), llm: !!process.env.GEMINI_API_KEY, ts: Date.now() });
 });
 
+// Real-world hazards: weather, earthquakes, official NDMA alerts.
+app.get('/api/hazards', (req, res) => {
+  res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+  res.json(store.getHazards() || { weather: null, quakes: [], alerts: [], ts: Date.now() });
+});
+
+// Decision Support: town risk level + actionable recommendations.
+app.get('/api/dss', (req, res) => {
+  res.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=120');
+  res.json(store.getAssessment() || { level: 'ok', score: 0, headline: 'Starting up — fetching live data.', recommendations: [], generatedAt: Date.now() });
+});
+
 app.get('/api/i18n', (req, res) => {
   res.set('Cache-Control', 'public, max-age=300');
   res.json({ supported: SUPPORTED, default: DEFAULT_LANG, dict });

@@ -3,6 +3,20 @@
 All notable changes to LocalPulse are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); grouped by date.
 
+## 2026-05-24 (DSS)
+
+### Added
+- **Real-world hazard awareness** (`services/hazards.js`, all free/no-key):
+  Open-Meteo live weather + 2-day forecast → derived warnings (rain, snow,
+  storm, heat, cold, wind); USGS earthquakes within 350 km; **official NDMA
+  Sachet CAP alerts** (IMD/SDMA) filtered to Himachal. New `GET /api/hazards`.
+- **Decision Support brain** (`services/dss.js`): computes a town RISK LEVEL
+  (ok/elevated/high/severe) and ranked **actionable recommendations** from
+  incidents + hazards + facilities. Robust to duplicate-headline noise (scores
+  by distinct category-severity signals). Rule-based and explainable.
+  New `GET /api/dss`. Surfaced as a colour-coded banner on the dashboard with
+  localized risk level + headline.
+
 ## 2026-05-24 (later)
 
 ### Added

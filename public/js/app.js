@@ -204,6 +204,42 @@
     });
   }
 
+  const DSS_LABEL = {
+    ok: { en: 'All clear', hi: 'सामान्य', pa: 'ਸਭ ਠੀਕ', ta: 'பாதுகாப்பு', bn: 'সব ঠিক' },
+    elevated: { en: 'Elevated', hi: 'सतर्क', pa: 'ਸਾਵਧਾਨ', ta: 'எச்சரிக்கை', bn: 'সতর্ক' },
+    high: { en: 'High risk', hi: 'उच्च जोखिम', pa: 'ਉੱਚ ਜੋਖਮ', ta: 'அதிக ஆபத்து', bn: 'উচ্চ ঝুঁকি' },
+    severe: { en: 'Severe', hi: 'गंभीर', pa: 'ਗੰਭੀਰ', ta: 'கடுமை', bn: 'গুরুতর' }
+  };
+  const DSS_HEADLINE = {
+    ok: { en: 'No major hazards right now. Stay aware and keep your phone charged.', hi: 'अभी कोई बड़ा खतरा नहीं। सतर्क रहें और फोन चार्ज रखें।', pa: 'ਹੁਣੇ ਕੋਈ ਵੱਡਾ ਖ਼ਤਰਾ ਨਹੀਂ। ਸਾਵਧਾਨ ਰਹੋ ਤੇ ਫ਼ੋਨ ਚਾਰਜ ਰੱਖੋ।', ta: 'இப்போது பெரிய ஆபத்து இல்லை. விழிப்புடன் இருங்கள், போனை சார்ஜ் செய்யுங்கள்.', bn: 'এখন বড় কোনো বিপদ নেই। সতর্ক থাকুন, ফোন চার্জ রাখুন।' },
+    elevated: { en: 'Elevated risk. Monitor updates and avoid affected areas.', hi: 'जोखिम बढ़ा है। अपडेट देखें और प्रभावित क्षेत्रों से बचें।', pa: 'ਜੋਖਮ ਵਧਿਆ ਹੈ। ਅਪਡੇਟ ਵੇਖੋ ਤੇ ਪ੍ਰਭਾਵਿਤ ਖੇਤਰਾਂ ਤੋਂ ਬਚੋ।', ta: 'ஆபத்து அதிகரித்துள்ளது. புதுப்பிப்புகளைப் பாருங்கள், பாதிக்கப்பட்ட பகுதிகளைத் தவிர்க்கவும்.', bn: 'ঝুঁকি বেড়েছে। আপডেট দেখুন, ক্ষতিগ্রস্ত এলাকা এড়িয়ে চলুন।' },
+    high: { en: 'High risk. Follow advisories and avoid non-essential travel.', hi: 'उच्च जोखिम। सलाह मानें और गैर-जरूरी यात्रा से बचें।', pa: 'ਉੱਚ ਜੋਖਮ। ਸਲਾਹ ਮੰਨੋ ਤੇ ਗੈਰ-ਜ਼ਰੂਰੀ ਸਫ਼ਰ ਤੋਂ ਬਚੋ।', ta: 'அதிக ஆபத்து. அறிவுறுத்தல்களைப் பின்பற்றுங்கள், தேவையற்ற பயணத்தைத் தவிர்க்கவும்.', bn: 'উচ্চ ঝুঁকি। নির্দেশিকা মানুন, অপ্রয়োজনীয় ভ্রমণ এড়িয়ে চলুন।' },
+    severe: { en: 'Severe. Act on official instructions immediately; move to safety.', hi: 'गंभीर। आधिकारिक निर्देशों का तुरंत पालन करें; सुरक्षित स्थान पर जाएँ।', pa: 'ਗੰਭੀਰ। ਅਧਿਕਾਰਤ ਹਦਾਇਤਾਂ ਤੁਰੰਤ ਮੰਨੋ; ਸੁਰੱਖਿਅਤ ਥਾਂ ਜਾਓ।', ta: 'கடுமை. அதிகாரப்பூர்வ அறிவுறுத்தல்களை உடனே பின்பற்றுங்கள்; பாதுகாப்பான இடத்துக்கு செல்லுங்கள்.', bn: 'গুরুতর। সরকারি নির্দেশ এখনই মানুন; নিরাপদ স্থানে যান।' }
+  };
+  function renderDss(d) {
+    const panel = document.getElementById('dss-panel');
+    if (!panel || !d || !d.level) return;
+    const L = (m) => (m[d.level] && (m[d.level][state.lang] || m[d.level].en)) || '';
+    panel.setAttribute('data-level', d.level);
+    panel.hidden = false;
+    const lvl = document.getElementById('dss-level');
+    if (lvl) { lvl.setAttribute('data-level', d.level); lvl.textContent = L(DSS_LABEL); }
+    const hl = document.getElementById('dss-headline');
+    if (hl) hl.textContent = L(DSS_HEADLINE) || d.headline || '';
+    const wx = document.getElementById('dss-weather');
+    if (wx) wx.textContent = d.weather ? `${d.weather.condition}, ${Math.round(d.weather.tempC)}°C` + (d.weather.precipTomorrowMm ? ` · rain ${d.weather.precipTomorrowMm}mm expected` : '') : '';
+    const ul = document.getElementById('dss-recs');
+    if (ul) {
+      clear(ul);
+      (d.recommendations || []).forEach(r => {
+        const li = el('li', { 'data-level': r.level || 'low' });
+        if (r.link) { li.appendChild(document.createTextNode(r.text + ' ')); li.appendChild(el('a', { href: r.link, target: '_blank', rel: 'noopener' }, 'details')); }
+        else li.appendChild(document.createTextNode(r.text));
+        ul.appendChild(li);
+      });
+    }
+  }
+
   function setKpi(id, v) { const e = document.getElementById(id); if (e) e.textContent = v; }
 
   function bindFilters() {
@@ -262,11 +298,12 @@
 
   async function reload() {
     try {
-      const [d, s, i, sh] = await Promise.all([
+      const [d, s, i, sh, dss] = await Promise.all([
         fetchJson('/api/i18n'),
         fetchJson('/api/summary?lang=' + state.lang),
         fetchJson('/api/incidents?lang=' + state.lang),
-        fetchJson('/api/shelters')
+        fetchJson('/api/shelters'),
+        fetchJson('/api/dss').catch(() => null)
       ]);
       state.dict = d.dict[state.lang] || d.dict.en;
       state.summary = s;
@@ -274,6 +311,7 @@
       state.shelters = sh.items;
       window.LP_state = state;
       applyI18n();
+      if (dss) renderDss(dss);
       renderSummary();
       renderIncidents();
       renderShelters();

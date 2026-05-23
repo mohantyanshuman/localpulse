@@ -9,11 +9,18 @@ const seed = require('./incidents');
 const state = {
   liveIncidents: [], // normalized incident objects from real sources
   facilities: [], // real relief points/facilities from OpenStreetMap
+  hazards: null, // { weather, quakes, alerts } from real-world feeds
+  assessment: null, // DSS output: { level, score, recommendations, ... }
   lastIngestTs: 0, // epoch ms of the last successful ingest
   lastSummaryBullets: null, // { en: [..] } overall status summary, if produced
   sourcesIngested: 0, // count of raw items seen in the last ingest (for the ticker)
   mode: 'seed' // 'seed' until the first live ingest lands
 };
+
+function setHazards(h) { if (h) state.hazards = h; }
+function getHazards() { return state.hazards; }
+function setAssessment(a) { if (a) state.assessment = a; }
+function getAssessment() { return state.assessment; }
 
 function setFacilities(list) {
   if (Array.isArray(list) && list.length) state.facilities = list;
@@ -61,4 +68,4 @@ function meta() {
   };
 }
 
-module.exports = { setLive, getIncidents, getSummary, setFacilities, getFacilities, meta, BASE: seed.BASE };
+module.exports = { setLive, getIncidents, getSummary, setFacilities, getFacilities, setHazards, getHazards, setAssessment, getAssessment, meta, BASE: seed.BASE };

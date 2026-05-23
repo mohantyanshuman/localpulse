@@ -7,8 +7,15 @@ const crypto = require('crypto');
 const sources = require('./sources');
 const brain = require('./brain');
 const facilitiesSvc = require('./facilities');
+const hazardsSvc = require('./hazards');
+const dss = require('./dss');
 const store = require('../data/store');
 const { BASE } = require('../data/incidents');
+
+// Recompute the DSS assessment from whatever live data the store currently holds.
+function refreshAssessment() {
+  try { store.setAssessment(dss.assess(store.getIncidents(), store.getHazards() || {}, store.getFacilities())); } catch { /* keep previous */ }
+}
 
 const MIN_INTERVAL_MS = Number(process.env.INGEST_MIN_INTERVAL_MS || 5 * 60 * 1000);
 const MAX_ITEMS = Number(process.env.INGEST_MAX_ITEMS || 40);
@@ -77,11 +84,12 @@ async function runIngest({ force = false, useLLM = true } = {}) {
   }
   running = true;
   try {
-    // Refresh real facilities (free, OSM) independent of news availability.
+    // Refresh real facilities + real-world hazards (all free, no Gemini).
     try { store.setFacilities(await facilitiesSvc.fetchFacilities()); } catch { /* keep previous */ }
+    try { store.setHazards(await hazardsSvc.fetchHazards()); } catch { /* keep previous */ }
 
     const raw = await sources.fetchAll();
-    if (!raw.length) return { ingested: 0, fetched: 0, facilities: store.getFacilities().length, note: 'no source items' };
+    if (!raw.length) { refreshAssessment(); return { ingested: 0, fetched: 0, facilities: store.getFacilities().length, note: 'no source items' }; }
 
     const deduped = dedupe(raw).slice(0, MAX_ITEMS);
     const { items, bullets } = await brain.classifyBatch(deduped, useLLM);
@@ -97,6 +105,7 @@ async function runIngest({ force = false, useLLM = true } = {}) {
       // bullets is a {lang: [..]} object from the brain; store as-is.
       summaryBullets: bullets && bullets.en && bullets.en.length ? bullets : null
     });
+    refreshAssessment();
 
     return { ingested: incidents.length, fetched: raw.length, llm: useLLM && brain.hasLLM() };
   } catch (err) {
