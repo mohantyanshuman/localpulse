@@ -1,0 +1,126 @@
+- generic [active] [ref=e1]:
+  - link "Skip to content" [ref=e2] [cursor=pointer]:
+    - /url: "#main"
+  - banner [ref=e3]:
+    - link "LocalPulse home" [ref=e4] [cursor=pointer]:
+      - /url: /
+      - generic [ref=e8]: LocalPulse
+    - navigation "Primary" [ref=e9]:
+      - link "Dashboard" [ref=e10] [cursor=pointer]:
+        - /url: /
+      - link "Responder" [ref=e11] [cursor=pointer]:
+        - /url: /responder
+      - link "Voice" [ref=e12] [cursor=pointer]:
+        - /url: /voice
+      - link "Pitch" [ref=e13] [cursor=pointer]:
+        - /url: /pitch
+      - link "Report" [ref=e14] [cursor=pointer]:
+        - /url: /report
+    - generic [ref=e15]:
+      - generic [ref=e18]: Live
+      - generic "Language" [ref=e19]:
+        - combobox "Language" [ref=e20]:
+          - option "English" [selected]
+          - option "हिन्दी"
+          - option "ਪੰਜਾਬੀ"
+          - option "தமிழ்"
+          - option "বাংলা"
+      - button "Toggle theme" [ref=e21] [cursor=pointer]:
+        - img [ref=e22]
+  - main [ref=e24]:
+    - generic [ref=e25]:
+      - heading "LocalPulse Verified status for your town." [level=1] [ref=e26]:
+        - text: LocalPulse
+        - generic [ref=e27]: Verified status for your town.
+      - generic [ref=e28]:
+        - link "Report an issue" [ref=e29] [cursor=pointer]:
+          - /url: "#report-form"
+          - img [ref=e30]
+          - generic [ref=e32]: Report an issue
+        - link "Voice line" [ref=e33] [cursor=pointer]:
+          - /url: /voice
+          - img [ref=e34]
+          - generic [ref=e36]: Voice line
+      - paragraph [ref=e37]: No login. No tracking. Data stays in India.
+    - region "Live counters" [ref=e38]:
+      - generic [ref=e39]:
+        - generic [ref=e40]: —
+        - generic [ref=e41]: Incidents
+      - generic [ref=e42]:
+        - generic [ref=e43]: —
+        - generic [ref=e44]: Shelters
+      - generic [ref=e45]:
+        - generic [ref=e46]: —
+        - generic [ref=e47]: Languages
+      - generic [ref=e48]:
+        - generic [ref=e49]: —
+        - generic [ref=e50]: Sources scanned
+    - generic [ref=e51]:
+      - article [ref=e52]:
+        - generic [ref=e53]:
+          - heading "Live map" [level=2] [ref=e54]
+          - tablist "Filter incidents by category" [ref=e55]:
+            - tab "All" [ref=e56] [cursor=pointer]
+            - tab "Roads" [ref=e57] [cursor=pointer]
+            - tab "Shelter" [ref=e58] [cursor=pointer]
+            - tab "Power" [ref=e59] [cursor=pointer]
+            - tab "Water" [ref=e60] [cursor=pointer]
+            - tab "Medical" [ref=e61] [cursor=pointer]
+            - tab "Rumor flagged" [ref=e62] [cursor=pointer]
+        - generic "Map of incidents" [ref=e63]:
+          - generic:
+            - generic [ref=e64]:
+              - button "Zoom in" [ref=e65] [cursor=pointer]: +
+              - button "Zoom out" [ref=e66] [cursor=pointer]: −
+            - generic [ref=e67]:
+              - link "Leaflet" [ref=e68] [cursor=pointer]:
+                - /url: https://leafletjs.com
+                - img [ref=e69]
+                - text: Leaflet
+              - text: "| © OpenStreetMap"
+      - article [ref=e73]:
+        - generic [ref=e74]:
+          - heading "Last hour summary" [level=2] [ref=e75]
+          - generic [ref=e76]: AI
+        - list
+        - paragraph [ref=e77]: "Pipeline: ingest → dedupe → classify → cluster → summarise. Live: Google News + Gemini Flash-Lite, refreshed a few times daily (cost-capped). Add Reddit/X keys for more sources."
+    - generic [ref=e78]:
+      - generic [ref=e79]:
+        - heading "Incidents" [level=2] [ref=e80]
+        - generic [ref=e81]: —
+      - list
+    - generic [ref=e82]:
+      - heading "Relief points" [level=2] [ref=e84]
+      - paragraph [ref=e85]: Real hospitals, police stations, community centres & schools near you, live from OpenStreetMap.
+    - generic [ref=e86]:
+      - heading "Report an issue" [level=2] [ref=e88]
+      - generic [ref=e89]:
+        - generic [ref=e90]:
+          - generic [ref=e91]: Category
+          - combobox "Category" [ref=e92]:
+            - option "Roads" [selected]
+            - option "Shelter"
+            - option "Power"
+            - option "Water"
+            - option "Medical"
+            - option "Other"
+        - generic [ref=e93]:
+          - generic [ref=e94]: What's happening?
+          - textbox "What's happening?" [ref=e95]:
+            - /placeholder: Short, specific description. Include nearest landmark.
+        - button "Send" [ref=e96] [cursor=pointer]
+        - status [ref=e97]
+  - contentinfo [ref=e98]:
+    - generic [ref=e99]:
+      - text: LocalPulse · capstone by
+      - strong [ref=e100]: Anshuman Mohanty
+      - text: "(GF202217744) · B.Tech CSE Cloud Computing · Shoolini University · Mentor: Mr. Ashish."
+    - generic [ref=e101]:
+      - link "Pitch deck" [ref=e102] [cursor=pointer]:
+        - /url: /pitch
+      - text: ·
+      - link "Project report" [ref=e103] [cursor=pointer]:
+        - /url: /report
+      - text: ·
+      - link "Status" [ref=e104] [cursor=pointer]:
+        - /url: /version

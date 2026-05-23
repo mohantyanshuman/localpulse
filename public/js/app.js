@@ -155,6 +155,7 @@
       main.appendChild(el('p', { class: 'incident-summary' }, i.summary));
       const meta = el('div', { class: 'incident-meta' });
       meta.appendChild(el('span', { class: 'cat-tag', 'data-cat': i.category }, catLabel(i.category)));
+      if (i.src === 'community') meta.appendChild(el('span', { class: 'cat-tag', 'data-cat': 'rumor', title: 'Submitted by a resident, not yet verified' }, 'community'));
       meta.appendChild(el('span', null, i.verified + '/' + i.sources + ' verified'));
       const tb = el('span', { class: 'trust-bar', title: 'trust ' + Math.round(i.trust * 100) + '%' });
       tb.appendChild(el('span', { style: 'width:' + Math.round(i.trust * 100) + '%' }));

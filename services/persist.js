@@ -1,0 +1,85 @@
+// LocalPulse — Firestore persistence over REST (dependency-free).
+// Auth uses the Cloud Run metadata server access token (the runtime service
+// account has roles/datastore.user). Two uses:
+//   1. Community reports — residents' submissions, durable + visible to all.
+//   2. Snapshot — the last good (LLM) ingest, so a cold start reloads real
+//      multilingual data instantly without spending the Gemini budget.
+// Every call degrades to null/[]/false if Firestore or the token is unavailable
+// (e.g. local dev), so the app never breaks.
+
+const PROJECT = process.env.GCP_PROJECT || process.env.GOOGLE_CLOUD_PROJECT || 'dmjone';
+const BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents`;
+
+let tok = { value: null, exp: 0 };
+async function token() {
+  if (tok.value && Date.now() < tok.exp) return tok.value;
+  try {
+    const r = await fetch('http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token', { headers: { 'Metadata-Flavor': 'Google' } });
+    if (!r.ok) return null;
+    const j = await r.json();
+    tok = { value: j.access_token, exp: Date.now() + ((j.expires_in || 3600) - 60) * 1000 };
+    return tok.value;
+  } catch { return null; }
+}
+
+// --- Firestore typed-value encoding/decoding
+function enc(v) {
+  if (v === null || v === undefined) return { nullValue: null };
+  if (typeof v === 'boolean') return { booleanValue: v };
+  if (typeof v === 'number') return Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v };
+  if (Array.isArray(v)) return { arrayValue: { values: v.map(enc) } };
+  if (typeof v === 'object') return { mapValue: { fields: encFields(v) } };
+  return { stringValue: String(v) };
+}
+function encFields(o) { const f = {}; for (const k in o) f[k] = enc(o[k]); return f; }
+function dec(v) {
+  if (!v) return null;
+  if ('stringValue' in v) return v.stringValue;
+  if ('integerValue' in v) return Number(v.integerValue);
+  if ('doubleValue' in v) return v.doubleValue;
+  if ('booleanValue' in v) return v.booleanValue;
+  if ('nullValue' in v) return null;
+  if ('arrayValue' in v) return (v.arrayValue.values || []).map(dec);
+  if ('mapValue' in v) return decFields(v.mapValue.fields || {});
+  return null;
+}
+function decFields(f) { const o = {}; for (const k in f) o[k] = dec(f[k]); return o; }
+
+async function req(method, path, body) {
+  const t = await token();
+  if (!t) return null;
+  try {
+    const r = await fetch(BASE + path, {
+      method,
+      headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' },
+      body: body ? JSON.stringify(body) : undefined
+    });
+    if (!r.ok) return null;
+    return await r.json();
+  } catch { return null; }
+}
+
+// --- Community reports
+async function addReport(rep) {
+  const doc = await req('POST', '/reports', { fields: encFields(rep) });
+  return doc ? (doc.name || '').split('/').pop() : null;
+}
+async function listReports(limit = 40) {
+  const body = { structuredQuery: { from: [{ collectionId: 'reports' }], orderBy: [{ field: { fieldPath: 'createdAt' }, direction: 'DESCENDING' }], limit } };
+  const rows = await req('POST', ':runQuery', body);
+  if (!Array.isArray(rows)) return [];
+  return rows.filter((r) => r.document).map((r) => ({ id: r.document.name.split('/').pop(), ...decFields(r.document.fields || {}) }));
+}
+
+// --- Snapshot of the last good ingest (stored as one JSON string field)
+async function saveSnapshot(obj) {
+  const r = await req('PATCH', '/state/latest', { fields: encFields({ json: JSON.stringify(obj), updatedAt: Date.now() }) });
+  return !!r;
+}
+async function loadSnapshot() {
+  const r = await req('GET', '/state/latest');
+  if (!r || !r.fields) return null;
+  try { return JSON.parse(decFields(r.fields).json); } catch { return null; }
+}
+
+module.exports = { addReport, listReports, saveSnapshot, loadSnapshot };

@@ -9,8 +9,35 @@ const brain = require('./brain');
 const facilitiesSvc = require('./facilities');
 const hazardsSvc = require('./hazards');
 const dss = require('./dss');
+const persist = require('./persist');
 const store = require('../data/store');
 const { BASE } = require('../data/incidents');
+
+// Map a persisted community report to the incident shape used everywhere.
+function reportToIncident(r) {
+  const msg = String(r.message || '').trim();
+  return {
+    id: 'cr-' + String(r.id || crypto.randomBytes(4).toString('hex')).slice(0, 10),
+    category: r.category || 'other',
+    severity: r.severity || 'low',
+    title: { en: msg.slice(0, 80) || 'Community report' },
+    summary: { en: msg || 'Community report' },
+    lat: typeof r.lat === 'number' ? r.lat : BASE.lat,
+    lng: typeof r.lng === 'number' ? r.lng : BASE.lng,
+    sources: 1, verified: 0, trust: 0.3,
+    updatedAt: r.createdAt || Date.now(),
+    src: 'community'
+  };
+}
+
+// Pull recent (48h) community reports from Firestore into the store.
+async function loadCommunityReports() {
+  try {
+    const cutoff = Date.now() - 48 * 3600 * 1000;
+    const reps = (await persist.listReports(50)).filter((r) => (r.createdAt || 0) >= cutoff);
+    store.setCommunityReports(reps.map(reportToIncident));
+  } catch { /* leave as-is */ }
+}
 
 // Recompute the DSS assessment from whatever live data the store currently holds.
 function refreshAssessment() {
@@ -84,9 +111,10 @@ async function runIngest({ force = false, useLLM = true } = {}) {
   }
   running = true;
   try {
-    // Refresh real facilities + real-world hazards (all free, no Gemini).
+    // Refresh real facilities + real-world hazards + community reports (free).
     try { store.setFacilities(await facilitiesSvc.fetchFacilities()); } catch { /* keep previous */ }
     try { store.setHazards(await hazardsSvc.fetchHazards()); } catch { /* keep previous */ }
+    await loadCommunityReports();
 
     const raw = await sources.fetchAll();
     if (!raw.length) { refreshAssessment(); return { ingested: 0, fetched: 0, facilities: store.getFacilities().length, note: 'no source items' }; }
@@ -106,6 +134,9 @@ async function runIngest({ force = false, useLLM = true } = {}) {
       summaryBullets: bullets && bullets.en && bullets.en.length ? bullets : null
     });
     refreshAssessment();
+    // Persist the good (LLM) snapshot so cold starts reload it without spending
+    // the Gemini budget. Heuristic ingests don't overwrite the good snapshot.
+    if (useLLM && brain.hasLLM()) { try { await persist.saveSnapshot(store.snapshot()); } catch { /* best effort */ } }
 
     return { ingested: incidents.length, fetched: raw.length, llm: useLLM && brain.hasLLM() };
   } catch (err) {
@@ -115,4 +146,4 @@ async function runIngest({ force = false, useLLM = true } = {}) {
   }
 }
 
-module.exports = { runIngest };
+module.exports = { runIngest, reportToIncident, loadCommunityReports };

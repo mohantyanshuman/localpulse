@@ -8,6 +8,7 @@ const seed = require('./incidents');
 
 const state = {
   liveIncidents: [], // normalized incident objects from real sources
+  communityReports: [], // resident submissions (incident shape, src='community')
   facilities: [], // real relief points/facilities from OpenStreetMap
   hazards: null, // { weather, quakes, alerts } from real-world feeds
   assessment: null, // DSS output: { level, score, recommendations, ... }
@@ -16,6 +17,26 @@ const state = {
   sourcesIngested: 0, // count of raw items seen in the last ingest (for the ticker)
   mode: 'seed' // 'seed' until the first live ingest lands
 };
+
+function setCommunityReports(list) { state.communityReports = Array.isArray(list) ? list.slice(0, 50) : []; }
+function addCommunityReport(inc) { if (inc) state.communityReports = [inc, ...state.communityReports].slice(0, 50); }
+
+// Full state to persist, and a way to restore it on a cold start.
+function snapshot() {
+  return { liveIncidents: state.liveIncidents, facilities: state.facilities, hazards: state.hazards, assessment: state.assessment, lastSummaryBullets: state.lastSummaryBullets, sourcesIngested: state.sourcesIngested, lastIngestTs: state.lastIngestTs };
+}
+function restoreSnapshot(s) {
+  if (!s || typeof s !== 'object') return false;
+  if (Array.isArray(s.liveIncidents)) state.liveIncidents = s.liveIncidents;
+  if (Array.isArray(s.facilities)) state.facilities = s.facilities;
+  if (s.hazards) state.hazards = s.hazards;
+  if (s.assessment) state.assessment = s.assessment;
+  if (s.lastSummaryBullets) state.lastSummaryBullets = s.lastSummaryBullets;
+  if (typeof s.sourcesIngested === 'number') state.sourcesIngested = s.sourcesIngested;
+  if (typeof s.lastIngestTs === 'number') state.lastIngestTs = s.lastIngestTs;
+  state.mode = state.liveIncidents.length ? 'live' : 'seed';
+  return true;
+}
 
 function setHazards(h) { if (h) state.hazards = h; }
 function getHazards() { return state.hazards; }
@@ -41,9 +62,10 @@ function setLive(incidents, meta = {}) {
   if (meta.summaryBullets) state.lastSummaryBullets = meta.summaryBullets;
 }
 
-// Live data if we have any; otherwise the seed incidents.
+// Community reports first (most immediate), then live (or seed) incidents.
 function getIncidents() {
-  return state.liveIncidents.length ? state.liveIncidents : seed.incidents;
+  const base = state.liveIncidents.length ? state.liveIncidents : seed.incidents;
+  return state.communityReports.length ? [...state.communityReports, ...base] : base;
 }
 
 // Mirror the seed summary() shape exactly so the frontend needs no changes.
@@ -68,4 +90,4 @@ function meta() {
   };
 }
 
-module.exports = { setLive, getIncidents, getSummary, setFacilities, getFacilities, setHazards, getHazards, setAssessment, getAssessment, meta, BASE: seed.BASE };
+module.exports = { setLive, getIncidents, getSummary, setFacilities, getFacilities, setHazards, getHazards, setAssessment, getAssessment, setCommunityReports, addCommunityReport, snapshot, restoreSnapshot, meta, BASE: seed.BASE };

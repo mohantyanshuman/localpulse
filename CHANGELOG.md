@@ -3,6 +3,17 @@
 All notable changes to LocalPulse are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); grouped by date.
 
+## 2026-05-24 (community + persistence)
+
+### Added
+- **Two-way community reporting** (`services/persist.js`, Firestore over REST):
+  resident submissions are persisted and immediately appear on the map/feed for
+  everyone (flagged "community", low trust until verified). New `GET /api/reports`.
+- **Cold-start persistence**: the last good (LLM) ingest is snapshotted to
+  Firestore and reloaded on boot, so restarts show real multilingual data
+  instantly without spending the Gemini budget. Heuristic warm-up only when no
+  snapshot exists.
+
 ## 2026-05-24 (DSS)
 
 ### Added

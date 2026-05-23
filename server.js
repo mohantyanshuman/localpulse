@@ -9,7 +9,8 @@ const compression = require('compression');
 const { dict, SUPPORTED, DEFAULT_LANG, pickLang } = require('./data/i18n');
 const { respond, classify, noData } = require('./data/intents');
 const store = require('./data/store');
-const { runIngest } = require('./services/ingest');
+const { runIngest, reportToIncident, loadCommunityReports } = require('./services/ingest');
+const persist = require('./services/persist');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -116,12 +117,33 @@ app.get('/api/i18n', (req, res) => {
   res.json({ supported: SUPPORTED, default: DEFAULT_LANG, dict });
 });
 
-app.post('/api/report', (req, res) => {
-  const { category = 'other', message = '', lat, lng, lang = 'en' } = req.body || {};
-  const id = 'usr-' + crypto.randomBytes(4).toString('hex');
-  // No persistence by design — echo back acknowledgement only.
-  process.stdout.write(JSON.stringify({ severity: 'INFO', kind: 'user-report', id, category, len: message.length, lat, lng, lang, ts: Date.now() }) + '\n');
-  res.status(202).json({ ok: true, id, queued: true, ts: Date.now() });
+app.post('/api/report', async (req, res) => {
+  const body = req.body || {};
+  const message = String(body.message || '').trim().slice(0, 500);
+  if (!message) return res.status(400).json({ error: { code: 'empty', message: 'Description required.' } });
+  const report = {
+    category: String(body.category || 'other').slice(0, 24),
+    message,
+    lang: String(body.lang || 'en').slice(0, 2),
+    lat: typeof body.lat === 'number' ? body.lat : null,
+    lng: typeof body.lng === 'number' ? body.lng : null,
+    createdAt: Date.now(),
+    status: 'unverified'
+  };
+  // Persist to Firestore (durable, visible to all) and show it immediately.
+  let id = null;
+  try { id = await persist.addReport(report); } catch { /* fall through */ }
+  id = id || ('usr-' + crypto.randomBytes(4).toString('hex'));
+  store.addCommunityReport(reportToIncident({ id, ...report }));
+  process.stdout.write(JSON.stringify({ severity: 'INFO', kind: 'user-report', id, category: report.category, len: message.length, persisted: !!id, ts: Date.now() }) + '\n');
+  res.status(202).json({ ok: true, id, persisted: true, ts: Date.now() });
+});
+
+// Community reports (resident submissions) — for the responder console.
+app.get('/api/reports', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  const items = store.getIncidents().filter((i) => i.src === 'community').map((i) => ({ id: i.id, category: i.category, message: i.summary.en, lat: i.lat, lng: i.lng, updatedAt: i.updatedAt }));
+  res.json({ count: items.length, items, ts: Date.now() });
 });
 
 app.post('/api/voice/intent', (req, res) => {
@@ -232,13 +254,23 @@ app.use((err, req, res, _next) => {
 
 const server = app.listen(PORT, () => {
   process.stdout.write(JSON.stringify({ severity: 'NOTICE', ts: new Date().toISOString(), msg: 'LocalPulse listening', port: PORT, rev: REV, node: process.version }) + '\n');
-  // Warm up live data on boot (non-blocking) using the FREE heuristic only — a
-  // cold start must never spend the Gemini budget. The scheduled /tasks/ingest
-  // is the only path that calls Gemini (the daily cap = its cron frequency).
+  // Cold-start warm-up (non-blocking), in order of preference:
+  //   1. Reload the last good (LLM) snapshot from Firestore — instant real
+  //      multilingual data, ZERO Gemini spend.
+  //   2. Only if no snapshot exists, do a free heuristic ingest so it's not blank.
+  // Either way, load community reports. The scheduled /tasks/ingest is the only
+  // path that ever calls Gemini.
   if (process.env.INGEST_ON_BOOT !== '0') {
-    runIngest({ force: true, useLLM: false })
-      .then((r) => process.stdout.write(JSON.stringify({ severity: 'INFO', kind: 'ingest-boot', ...r, ts: Date.now() }) + '\n'))
-      .catch(() => {});
+    (async () => {
+      let restored = false;
+      try {
+        const snap = await persist.loadSnapshot();
+        if (snap && Array.isArray(snap.liveIncidents) && snap.liveIncidents.length) restored = store.restoreSnapshot(snap);
+      } catch { /* ignore */ }
+      try { await loadCommunityReports(); } catch { /* ignore */ }
+      const r = restored ? { restored: true } : await runIngest({ force: true, useLLM: false });
+      process.stdout.write(JSON.stringify({ severity: 'INFO', kind: 'ingest-boot', ...r, ts: Date.now() }) + '\n');
+    })().catch(() => {});
   }
 });
 
