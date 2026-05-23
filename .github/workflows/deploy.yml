@@ -1,0 +1,75 @@
+name: Deploy to Cloud Run
+
+# Auto-deploy on every push to main. Manual runs allowed via the Actions tab.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Never run two deploys at once; let an in-flight deploy finish before the next.
+concurrency:
+  group: deploy-cloud-run
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write # required to mint the OIDC token for Workload Identity Federation
+
+env:
+  PROJECT_ID: dmjone
+  REGION: asia-east1
+  SERVICE: localpulse
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Regenerate the report from content.py so a content edit always propagates.
+      # Output paths are anchored to the repo root inside the scripts.
+      - name: Build report (HTML + DOCX)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          python scripts/build_html.py
+          python scripts/build_docx.py
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.DEPLOY_SA }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      # Cloud Build builds the Dockerfile and deploys. Cloud Run keeps the previous
+      # healthy revision if the new container fails to start, so a bad build can't
+      # take the live site down.
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy "$SERVICE" \
+            --source=. \
+            --project="$PROJECT_ID" \
+            --region="$REGION" \
+            --allow-unauthenticated \
+            --min-instances=0 --max-instances=2 \
+            --cpu=1 --memory=512Mi \
+            --concurrency=80 --timeout=60 \
+            --quiet
+
+      - name: Verify deployment
+        run: |
+          URL=$(gcloud run services describe "$SERVICE" \
+            --project="$PROJECT_ID" --region="$REGION" \
+            --format='value(status.url)')
+          echo "Deployed service URL: $URL"
+          echo "Health check:"; curl -fsS "$URL/healthz"; echo
+          echo "Version:";      curl -fsS "$URL/version"; echo
