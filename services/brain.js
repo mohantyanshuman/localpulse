@@ -122,33 +122,22 @@ function heuristicClassify(items) {
   return { items: out, bullets: langObj(enBullets) };
 }
 
+// Phase 1: fast, reliable ENGLISH-ONLY classification + geocoding. Small output,
+// so it doesn't truncate or time out — this is the critical path.
 async function llmClassify(items) {
-  const compact = items.slice(0, MAX_LLM_ITEMS).map((it, i) => ({ i, source: it.source, title: it.title, text: (it.text || '').slice(0, 280) }));
+  const compact = items.slice(0, MAX_LLM_ITEMS).map((it, i) => ({ i, source: it.source, title: it.title, text: (it.text || '').slice(0, 240) }));
   const region = process.env.LOCATION_QUERY || 'Solan, Himachal Pradesh';
   const prompt = [
     `You are an emergency-information triage system for ${region}, India.`,
     'For each public post/news item, decide if it is a local emergency or civic disruption. Return STRICT JSON only:',
-    '{"items":[{"i":<index>,"relevant":<bool>,"category":"road|shelter|power|water|medical|rumor","severity":"high|medium|low|info",' +
-      '"lat":<number>,"lng":<number>,"place":"<specific place name>",' +
-      '"title":{"en":"","hi":"","pa":"","ta":"","bn":""},"summary":{"en":"","hi":"","pa":"","ta":"","bn":""}}],' +
-      '"bullets":{"en":[],"hi":[],"pa":[],"ta":[],"bn":[]}}',
-    'Rules:',
-    '- relevant=false for anything not a local emergency/civic disruption.',
-    '- category=rumor when the item debunks or spreads an unverified claim.',
-    '- lat/lng: best-estimate decimal coordinates of the specific place named in the item (use your geographic knowledge of the region). If unknown, use the region centre.',
-    '- title: factual, <=80 chars. summary: one factual sentence. Provide BOTH translated naturally into all five languages (en, hi=Hindi, pa=Punjabi, ta=Tamil, bn=Bengali).',
-    '- bullets: <=6 short overall status bullets, translated into all five languages.',
+    '{"items":[{"i":<index>,"relevant":<bool>,"category":"road|shelter|power|water|medical|rumor","severity":"high|medium|low|info","lat":<number>,"lng":<number>,"place":"<place>","title":"<factual en title <=80 chars>","summary":"<one factual en sentence>"}],"bullets":["<=6 short en status bullets"]}',
+    '- relevant=false for anything not a local emergency/civic disruption. category=rumor when debunking/unverified.',
+    '- lat/lng: decimal coordinates of the specific place named (use your geographic knowledge); if unknown use the region centre.',
     `INPUT: ${JSON.stringify(compact)}`
   ].join('\n');
 
-  const j = await geminiJson(prompt);
+  const j = await geminiJson(prompt, 30000);
   if (!j || !Array.isArray(j.items)) return null;
-
-  const norm = (obj, fallback) => {
-    const o = {};
-    for (const l of LANGS) o[l] = (obj && typeof obj[l] === 'string' && obj[l].trim()) ? obj[l].trim() : (obj?.en || fallback);
-    return o;
-  };
 
   const out = [];
   for (const r of j.items) {
@@ -157,7 +146,6 @@ async function llmClassify(items) {
     if (!base) continue;
     const category = CATEGORIES.includes(r.category) ? r.category : heuristicCategory(`${base.title} ${base.text}`);
     if (!category) continue;
-    const titleI18n = norm(r.title, clean(base.title));
     out.push({
       ...base,
       category,
@@ -165,15 +153,37 @@ async function llmClassify(items) {
       lat: validCoord(r.lat, r.lng) ? r.lat : undefined,
       lng: validCoord(r.lat, r.lng) ? r.lng : undefined,
       place: typeof r.place === 'string' ? r.place : undefined,
-      titleI18n,
-      summaryI18n: norm(r.summary, base.text || base.title)
+      titleI18n: langObj(clean(r.title || base.title)),
+      summaryI18n: langObj((r.summary || base.text || base.title).slice(0, 200))
     });
   }
-
-  const bullets = {};
-  for (const l of LANGS) bullets[l] = Array.isArray(j.bullets?.[l]) ? j.bullets[l].filter((b) => typeof b === 'string').slice(0, 6) : [];
-  if (!bullets.en.length && j.bullets && Array.isArray(j.bullets)) bullets.en = j.bullets.slice(0, 6);
+  const bullets = langObj(Array.isArray(j.bullets) ? j.bullets.filter((b) => typeof b === 'string').slice(0, 6) : []);
   return { items: out, bullets };
+}
+
+// Phase 2: best-effort translation of the kept en strings into hi/pa/ta/bn.
+// Small input, so fast and reliable; on any failure the en text remains.
+async function llmTranslate(result) {
+  const targets = LANGS.filter((l) => l !== 'en');
+  const strings = [];
+  result.items.forEach((it) => { strings.push(it.titleI18n.en, it.summaryI18n.en); });
+  result.bullets.en.forEach((b) => strings.push(b));
+  if (!strings.length) return result;
+  const prompt = [
+    'Translate each English string into Hindi(hi), Punjabi(pa), Tamil(ta), Bengali(bn). Keep the same order and count.',
+    'Return STRICT JSON {"hi":["..."],"pa":["..."],"ta":["..."],"bn":["..."]} — each array exactly the input length.',
+    `INPUT (${strings.length} strings): ${JSON.stringify(strings)}`
+  ].join('\n');
+  const j = await geminiJson(prompt, 35000);
+  if (!j) return result;
+  for (const l of targets) {
+    const arr = Array.isArray(j[l]) ? j[l] : null;
+    if (!arr || arr.length < strings.length) continue;
+    let k = 0;
+    result.items.forEach((it) => { if (arr[k]) it.titleI18n[l] = arr[k]; k++; if (arr[k]) it.summaryI18n[l] = arr[k]; k++; });
+    result.bullets[l] = result.bullets.en.map((_, bi) => arr[k + bi] || result.bullets.en[bi]);
+  }
+  return result;
 }
 
 // Returns { items:[...{titleI18n, summaryI18n, lat?, lng?}], bullets:{lang:[...]} }.
@@ -182,8 +192,10 @@ async function llmClassify(items) {
 async function classifyBatch(items, useLLM = true) {
   if (!items.length) return { items: [], bullets: langObj([]) };
   if (useLLM && hasLLM()) {
-    const llm = await llmClassify(items);
-    if (llm && llm.items.length) return llm;
+    const llm = await llmClassify(items); // phase 1 (en) — reliable
+    if (llm && llm.items.length) {
+      try { return await llmTranslate(llm); } catch { return llm; } // phase 2 (translate) — best-effort
+    }
   }
   return heuristicClassify(items);
 }

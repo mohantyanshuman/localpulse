@@ -13,3 +13,8 @@ coverage/
 ~$*.docx
 scripts/__pycache__/
 .claude/
+
+# local tooling artifacts
+.playwright-mcp/
+localpulse-dss.png
+sachet_tmp.xml
