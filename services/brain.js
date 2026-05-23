@@ -8,7 +8,9 @@
 //   - Heuristic : with no key, keyword rules classify real fetched items for
 //                 free. Lower quality, zero cost, still real data.
 
-const MODEL = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
+// Auto-updating alias: always the latest Flash-Lite (cheapest/fastest tier),
+// so new model generations are picked up without a code change.
+const MODEL = process.env.GEMINI_MODEL || 'gemini-flash-lite-latest';
 const CATEGORIES = ['road', 'shelter', 'power', 'water', 'medical', 'rumor'];
 
 function hasLLM() {
