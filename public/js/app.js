@@ -233,7 +233,7 @@
     const hl = document.getElementById('dss-headline');
     if (hl) hl.textContent = d.headline || L(DSS_HEADLINE) || ''; // server's dynamic, location-honest headline
     const wx = document.getElementById('dss-weather');
-    if (wx) wx.textContent = d.weather ? `${d.weather.condition}, ${Math.round(d.weather.tempC)}°C` + (d.weather.precipTomorrowMm ? ` · rain ${d.weather.precipTomorrowMm}mm expected` : '') : '';
+    if (wx) wx.textContent = d.weather ? `${d.weather.condition}, ${Math.round(d.weather.tempC)}°C` + (d.weather.precipTomorrowMm ? ` · rain ${d.weather.precipTomorrowMm}mm` : '') + (d.weather.aqi != null ? ` · AQI ${d.weather.aqi}` : '') : '';
     const ul = document.getElementById('dss-recs');
     if (ul) {
       clear(ul);

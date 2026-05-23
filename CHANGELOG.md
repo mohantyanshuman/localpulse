@@ -3,6 +3,27 @@
 All notable changes to LocalPulse are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); grouped by date.
 
+## 2026-05-24 (breadth + freshness + quality)
+
+### Added
+- **40+ free data sources** (`services/sources.js`): Google News geo/topic
+  queries across all Himachal districts + direct RSS from ~20 national/regional
+  outlets (English + Hindi), all free/no-key. Breadth powers corroboration: an
+  event reported by many independent feeds gets a large cluster and high trust;
+  lone-source noise stays low. Authoritative outlets flagged as "verified".
+- **More hazard feeds** (`services/hazards.js`, all free/no-key): air quality
+  (Open-Meteo, AQI shown on the dashboard), river-discharge/flood forecast
+  (Open-Meteo GloFAS, conservative warnings), GDACS major-disaster alerts
+  (strictly region-filtered to avoid false positives), NASA EONET nearby natural
+  events. No extra Gemini cost — structured facts processed by rules.
+
+### Changed
+- **Time-decay (no fear-mongering)**: a one-time event (e.g. a fire that
+  happened) now fades from the risk score — contribution halves every 12h and
+  events older than 36h drop out of "act now" advice. The dashboard counts only
+  *current* incidents; older ones remain as dated history in the feed. When
+  nothing current is happening it honestly says so.
+
 ## 2026-05-24 (agentic + push + spatial)
 
 ### Added

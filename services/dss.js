@@ -53,23 +53,44 @@ function assess(incidents = [], hazards = {}, facilities = [], opts = {}) {
   if (bigQuake) { areaScore += 3; factors.push(`earthquake M${bigQuake.mag}`); recs.push({ kind: 'quake', level: 'high', scope: 'area', text: `Earthquake M${bigQuake.mag} near ${bigQuake.place}. Check buildings for cracks.` }); }
 
   // ---- Incidents: scope to "near you" if location known, else the district ----
-  const withDist = genuine.map((i) => ({ i, km: userLoc ? haversineKm(userLoc, i) : null }));
-  const scoped = userLoc ? withDist.filter((x) => x.km != null && x.km <= R) : withDist;
-  const farCount = userLoc ? withDist.length - scoped.length : 0;
+  // Time-decay: a one-time event (a fire that happened) must stop driving risk as
+  // time passes. Contribution halves every RISK_HALF_LIFE_H hours and stale events
+  // (older than RISK_STALE_H) drop out of "act now" advice entirely.
+  const HALF_LIFE_H = Number(process.env.RISK_HALF_LIFE_H || 12);
+  const STALE_H = Number(process.env.RISK_STALE_H || 36);
+  const now = Date.now();
+  const ageH = (i) => Math.max(0, (now - (i.updatedAt || now)) / 3600000);
+  const recency = (i) => Math.pow(0.5, ageH(i) / HALF_LIFE_H); // 1.0 fresh → decays
 
-  // Distinct category-severity scoring (so 15 headlines about one fire != 15
-  // emergencies). District view is capped so one corner can't read as severe.
-  const worstByCat = {};
-  for (const x of scoped) { const c = x.i.category; if (!worstByCat[c] || sevRank[x.i.severity] > sevRank[worstByCat[c]]) worstByCat[c] = x.i.severity; }
-  let incidentScore = Object.values(worstByCat).reduce((s, sev) => s + (sevRank[sev] || 0), 0);
+  const withDist = genuine.map((i) => ({ i, km: userLoc ? haversineKm(userLoc, i) : null, age: ageH(i), w: recency(i) }));
+  const scoped = userLoc ? withDist.filter((x) => x.km != null && x.km <= R) : withDist;
+  const active = scoped.filter((x) => x.age <= STALE_H);
+  const farCount = userLoc ? withDist.filter((x) => x.age <= STALE_H).length - active.length : 0;
+
+  // Recency-weighted, distinct-category scoring (so 15 headlines about one fire,
+  // or a fire from 3 days ago, don't read as a present emergency).
+  const bestByCat = {};
+  for (const x of scoped) {
+    const contrib = (sevRank[x.i.severity] || 0) * x.w;
+    if (!(x.i.category in bestByCat) || contrib > bestByCat[x.i.category]) bestByCat[x.i.category] = contrib;
+  }
+  let incidentScore = Object.values(bestByCat).reduce((s, v) => s + v, 0);
   if (!userLoc) incidentScore = Math.min(incidentScore, 6);
 
-  // Targeted advice from the nearest serious incidents, with distance if known.
-  const serious = scoped.filter((x) => x.i.severity === 'high' || x.i.severity === 'medium')
-    .sort((a, b) => (a.km == null ? 1e9 : a.km) - (b.km == null ? 1e9 : b.km)).slice(0, 3);
+  // Advice only from CURRENT, serious incidents (recent + not faded), freshest first.
+  const serious = scoped
+    .filter((x) => (x.i.severity === 'high' || x.i.severity === 'medium') && x.age <= STALE_H && x.w >= 0.25)
+    .sort((a, b) => (b.w - a.w) || ((a.km == null ? 1e9 : a.km) - (b.km == null ? 1e9 : b.km)))
+    .slice(0, 3);
   for (const x of serious) {
     const where = x.km != null ? ` (~${x.km < 1 ? '<1' : Math.round(x.km)} km away)` : (x.i.place ? ` (${x.i.place})` : '');
-    recs.push({ kind: x.i.category, level: x.i.severity, scope: userLoc ? 'local' : 'district', text: `${cap(x.i.category)}: ${titleOf(x.i)}${where}.` });
+    const ago = x.age < 1 ? 'just now' : x.age < 24 ? `${Math.round(x.age)}h ago` : `${Math.round(x.age / 24)}d ago`;
+    recs.push({ kind: x.i.category, level: x.i.severity, scope: userLoc ? 'local' : 'district', text: `${cap(x.i.category)}: ${titleOf(x.i)}${where} — ${ago}.` });
+  }
+
+  // Nearby active natural events (NASA EONET: wildfires, storms) as area context.
+  for (const ev of (Array.isArray(hazards.events) ? hazards.events : []).slice(0, 2)) {
+    if (typeof ev.km === 'number' && ev.km <= 150) { areaScore += 1; recs.push({ kind: 'event', level: 'low', scope: 'area', text: `${ev.category}: ${ev.title} (~${ev.km} km).` }); }
   }
   // Helpful pointers (not alarming): nearest hospital for medical, relief points if area-wide.
   const hospitals = facilities.filter((f) => f.kind === 'hospital').slice(0, 2).map((f) => f.name + (f.phone ? ` (${f.phone})` : ''));
@@ -80,17 +101,19 @@ function assess(incidents = [], hazards = {}, facilities = [], opts = {}) {
   if (score >= 13) level = 'severe'; else if (score >= 7) level = 'high'; else if (score >= 3) level = 'elevated';
   const areaWide = areaScore >= 7 || (!!w && w.warnings.some((x) => x.level === 'high')) || alerts.length > 0 || !!bigQuake;
 
-  // Honest, non-alarmist headline.
+  // Honest, non-alarmist headline — counts only CURRENT (recent) incidents.
+  const activeN = active.length;
   let headline;
   if (userLoc) {
-    if (scoped.length === 0 && areaScore < 3) headline = 'All clear in your area right now. Stay aware.';
-    else if (areaWide) headline = `A district-wide hazard is active. ${scoped.length} incident(s) within ${R} km of you${farCount ? `, ${farCount} elsewhere` : ''}.`;
-    else headline = `${scoped.length} incident(s) within ${R} km of you${farCount ? `; ${farCount} more elsewhere in the district` : ''}.`;
+    if (activeN === 0 && areaScore < 3) headline = 'All clear in your area right now. Stay aware.';
+    else if (areaWide) headline = `A district-wide hazard is active. ${activeN} current incident(s) within ${R} km of you${farCount ? `, ${farCount} elsewhere` : ''}.`;
+    else if (activeN === 0) headline = `No current incidents within ${R} km of you${farCount ? `; ${farCount} elsewhere in the district` : ''}.`;
+    else headline = `${activeN} current incident(s) within ${R} km of you${farCount ? `; ${farCount} more elsewhere` : ''}.`;
   } else {
-    const total = genuine.length;
-    if (total === 0 && areaScore < 3) headline = 'No major hazards across the district right now.';
-    else if (areaWide) headline = `A district-wide hazard is active. ${total} incident(s) being tracked across the district.`;
-    else headline = `${total} active incident(s) across the district — most are localized. Use "near me" for risk at your location.`;
+    if (activeN === 0 && areaScore < 3) headline = 'No major hazards across the district right now.';
+    else if (areaWide) headline = `A district-wide hazard is active. ${activeN} current incident(s) across the district.`;
+    else if (activeN === 0) headline = 'No current incidents — recent events have passed. Stay aware.';
+    else headline = `${activeN} current incident(s) across the district — most are localized. Use "near me" for risk at your location.`;
   }
 
   if (!recs.length) recs.push({ kind: 'info', level: 'low', text: 'No active hazards. Save 112 for emergencies and keep essentials ready.' });
@@ -105,11 +128,12 @@ function assess(incidents = [], hazards = {}, facilities = [], opts = {}) {
     headline,
     scope: userLoc ? 'local' : 'district',
     radiusKm: R,
-    nearby: userLoc ? scoped.length : null,
-    districtCount: genuine.length,
+    nearby: userLoc ? active.length : null,
+    districtCount: active.length,
+    tracked: genuine.length,
     farCount,
     factors,
-    weather: w ? { tempC: w.tempC, condition: w.condition, precipTodayMm: w.precipTodayMm, precipTomorrowMm: w.precipTomorrowMm } : null,
+    weather: w ? { tempC: w.tempC, condition: w.condition, precipTodayMm: w.precipTodayMm, precipTomorrowMm: w.precipTomorrowMm, aqi: hazards.airQuality ? hazards.airQuality.aqi : undefined } : null,
     officialAlerts: alerts.length,
     recommendations: recs.slice(0, 8),
     generatedAt: Date.now()
