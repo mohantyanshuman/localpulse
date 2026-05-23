@@ -3,6 +3,15 @@
 All notable changes to LocalPulse are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); grouped by date.
 
+## 2026-05-24 (offline + responder)
+
+### Added
+- **Offline PWA** (`public/sw.js`): cache-first shell + network-first API with
+  cache fallback, so the dashboard still shows last-known status on bad/no
+  internet. Registered on dashboard, responder and voice pages.
+- **Responder console** now shows the same DSS risk banner (level + headline +
+  official alerts + recommendations) and community reports merge into its feed.
+
 ## 2026-05-24 (community + persistence)
 
 ### Added

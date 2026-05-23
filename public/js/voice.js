@@ -120,4 +120,6 @@
   }
 
   capUser.textContent = 'Press the orange button below and speak. Or tap a suggestion on the right.';
+
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(function () {});
 })();

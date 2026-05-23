@@ -342,6 +342,7 @@
     bindForm();
     bindPulse();
     reload();
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
