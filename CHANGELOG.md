@@ -3,6 +3,26 @@
 All notable changes to LocalPulse are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); grouped by date.
 
+## 2026-05-24 (agentic + push + spatial)
+
+### Added
+- **Agentic verification** (`services/verify.js`): every citizen report is
+  cross-checked by a Gemini model using the **Google Search tool** (real web
+  search) and assigned a verdict (corroborated / unverified / contradicted),
+  severity and confidence. Debunked reports are flagged "disputed" and excluded
+  from risk — stops misinformation from scaring anyone. Daily-capped.
+- **Web Push alerts** (`services/push.js`, VAPID): residents subscribe ("Get
+  alerts") and are notified on a genuine district-wide escalation or a
+  corroborated high-severity report. Subscriptions in Firestore; dead ones pruned.
+
+### Changed
+- **Spatially honest DSS**: a town is large, so a single localized incident no
+  longer reads as town-wide risk. Area-wide hazards (weather, official alerts,
+  big quakes) drive the shared level; point incidents are shown with distance and
+  only raise *your* risk when near *you*. New `?lat&lng` on `/api/dss` gives a
+  personalized "near me" view; default is an honest district overview. Push fires
+  only for genuine area-wide escalations, never for one far-off incident.
+
 ## 2026-05-24 (offline + responder)
 
 ### Added

@@ -20,6 +20,16 @@ const state = {
 
 function setCommunityReports(list) { state.communityReports = Array.isArray(list) ? list.slice(0, 50) : []; }
 function addCommunityReport(inc) { if (inc) state.communityReports = [inc, ...state.communityReports].slice(0, 50); }
+// Apply an agentic verification verdict to a community report (matched by id).
+function updateCommunityReport(crId, patch) {
+  const r = state.communityReports.find((x) => x.id === crId);
+  if (!r) return false;
+  if (patch.severity) r.severity = patch.severity;
+  if (typeof patch.trust === 'number') r.trust = patch.trust;
+  if (patch.status) r.status = patch.status;
+  if (patch.note) r.note = patch.note;
+  return true;
+}
 
 // Full state to persist, and a way to restore it on a cold start.
 function snapshot() {
@@ -90,4 +100,4 @@ function meta() {
   };
 }
 
-module.exports = { setLive, getIncidents, getSummary, setFacilities, getFacilities, setHazards, getHazards, setAssessment, getAssessment, setCommunityReports, addCommunityReport, snapshot, restoreSnapshot, meta, BASE: seed.BASE };
+module.exports = { setLive, getIncidents, getSummary, setFacilities, getFacilities, setHazards, getHazards, setAssessment, getAssessment, setCommunityReports, addCommunityReport, updateCommunityReport, snapshot, restoreSnapshot, meta, BASE: seed.BASE };

@@ -10,6 +10,7 @@ const facilitiesSvc = require('./facilities');
 const hazardsSvc = require('./hazards');
 const dss = require('./dss');
 const persist = require('./persist');
+const push = require('./push');
 const store = require('../data/store');
 const { BASE } = require('../data/incidents');
 
@@ -39,9 +40,24 @@ async function loadCommunityReports() {
   } catch { /* leave as-is */ }
 }
 
-// Recompute the DSS assessment from whatever live data the store currently holds.
+// Recompute the DSS assessment; alert subscribers when risk RISES into high/severe.
+const LEVEL_RANK = { ok: 0, elevated: 1, high: 2, severe: 3 };
+let lastLevel = null; // null until primed by the first assessment (no push on boot)
 function refreshAssessment() {
-  try { store.setAssessment(dss.assess(store.getIncidents(), store.getHazards() || {}, store.getFacilities())); } catch { /* keep previous */ }
+  try {
+    const a = dss.assess(store.getIncidents(), store.getHazards() || {}, store.getFacilities());
+    store.setAssessment(a);
+    if (a) {
+      // Only alert everyone for a genuine DISTRICT-WIDE escalation (severe weather,
+      // official alert, large quake). A single localized incident must not blast
+      // the whole town — that would just scare people who are nowhere near it.
+      if (lastLevel !== null && LEVEL_RANK[a.level] > LEVEL_RANK[lastLevel] && LEVEL_RANK[a.level] >= 2 && a.areaWide) {
+        push.sendToAll({ title: `LocalPulse: ${a.level === 'severe' ? 'Severe' : 'High'} risk in your district`, body: a.headline, url: '/', tag: 'lp-risk' })
+          .then((r) => process.stdout.write(JSON.stringify({ severity: 'NOTICE', kind: 'push-risk', level: a.level, ...r, ts: Date.now() }) + '\n')).catch(() => {});
+      }
+      lastLevel = a.level;
+    }
+  } catch { /* keep previous */ }
 }
 
 const MIN_INTERVAL_MS = Number(process.env.INGEST_MIN_INTERVAL_MS || 5 * 60 * 1000);

@@ -155,11 +155,16 @@
       main.appendChild(el('p', { class: 'incident-summary' }, i.summary));
       const meta = el('div', { class: 'incident-meta' });
       meta.appendChild(el('span', { class: 'cat-tag', 'data-cat': i.category }, catLabel(i.category)));
-      if (i.src === 'community') meta.appendChild(el('span', { class: 'cat-tag', 'data-cat': 'rumor', title: 'Submitted by a resident, not yet verified' }, 'community'));
+      if (i.src === 'community') {
+        const st = i.status === 'corroborated' ? { t: '✓ verified', c: 'shelter' } : i.status === 'contradicted' ? { t: '✗ disputed', c: 'rumor' } : { t: 'community', c: 'water' };
+        meta.appendChild(el('span', { class: 'cat-tag', 'data-cat': st.c, title: i.note || 'Resident report' }, st.t));
+      }
       meta.appendChild(el('span', null, i.verified + '/' + i.sources + ' verified'));
       const tb = el('span', { class: 'trust-bar', title: 'trust ' + Math.round(i.trust * 100) + '%' });
       tb.appendChild(el('span', { style: 'width:' + Math.round(i.trust * 100) + '%' }));
       meta.appendChild(tb);
+      const dk = distKm(i);
+      if (dk != null) meta.appendChild(el('span', { title: 'Distance from you' }, '~' + (dk < 1 ? '<1' : Math.round(dk)) + ' km'));
       meta.appendChild(el('span', null, formatAgo(i.updatedAt) + ' ago'));
       main.appendChild(meta);
       li.appendChild(main);
@@ -226,7 +231,7 @@
     const lvl = document.getElementById('dss-level');
     if (lvl) { lvl.setAttribute('data-level', d.level); lvl.textContent = L(DSS_LABEL); }
     const hl = document.getElementById('dss-headline');
-    if (hl) hl.textContent = L(DSS_HEADLINE) || d.headline || '';
+    if (hl) hl.textContent = d.headline || L(DSS_HEADLINE) || ''; // server's dynamic, location-honest headline
     const wx = document.getElementById('dss-weather');
     if (wx) wx.textContent = d.weather ? `${d.weather.condition}, ${Math.round(d.weather.tempC)}°C` + (d.weather.precipTomorrowMm ? ` · rain ${d.weather.precipTomorrowMm}mm expected` : '') : '';
     const ul = document.getElementById('dss-recs');
@@ -242,6 +247,61 @@
   }
 
   function setKpi(id, v) { const e = document.getElementById(id); if (e) e.textContent = v; }
+
+  // --- Web push: subscribe to risk + verified-emergency alerts
+  function urlB64ToUint8(b) {
+    const pad = '='.repeat((4 - b.length % 4) % 4);
+    const raw = atob((b + pad).replace(/-/g, '+').replace(/_/g, '/'));
+    return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+  }
+  async function enableAlerts(btn) {
+    const label = btn.querySelector('span') || btn;
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) { label.textContent = 'Alerts unsupported'; return; }
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      if ((await Notification.requestPermission()) !== 'granted') { label.textContent = 'Alerts blocked'; return; }
+      const meta = await (await fetch('/api/push/key')).json();
+      if (!meta.enabled || !meta.key) { label.textContent = 'Alerts unavailable'; return; }
+      const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToUint8(meta.key) });
+      const r = await fetch('/api/push/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(sub) });
+      const j = await r.json();
+      try { localStorage.setItem('lp.pushid', j.id || '1'); } catch (_) {}
+      label.textContent = '✓ Alerts on'; btn.disabled = true;
+    } catch (_) { label.textContent = 'Alerts failed'; }
+  }
+  function bindAlerts() {
+    const btn = document.getElementById('enable-alerts');
+    if (!btn) return;
+    let on = false; try { on = !!localStorage.getItem('lp.pushid'); } catch (_) {}
+    if (on) { const l = btn.querySelector('span') || btn; l.textContent = '✓ Alerts on'; btn.disabled = true; }
+    btn.addEventListener('click', () => enableAlerts(btn));
+  }
+
+  // Personalize the risk panel to the user's location (incidents scoped to a radius).
+  function bindNearMe() {
+    const btn = document.getElementById('dss-nearme');
+    if (!btn || !navigator.geolocation) { if (btn) btn.style.display = 'none'; return; }
+    btn.addEventListener('click', () => {
+      btn.textContent = '📍 Locating…';
+      navigator.geolocation.getCurrentPosition(async (pos) => {
+        try {
+          state.userLoc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          const d = await fetchJson('/api/dss?lat=' + state.userLoc.lat + '&lng=' + state.userLoc.lng);
+          renderDss(d);
+          renderIncidents();
+          btn.textContent = '📍 Your area';
+        } catch (_) { btn.textContent = '📍 Near me'; }
+      }, () => { btn.textContent = '📍 Near me'; }, { timeout: 6000, maximumAge: 60000 });
+    });
+  }
+  // Distance from the user to an incident, if location is known.
+  function distKm(i) {
+    if (!state.userLoc || typeof i.lat !== 'number') return null;
+    const R = 6371, tr = (x) => x * Math.PI / 180;
+    const dLat = tr(i.lat - state.userLoc.lat), dLng = tr(i.lng - state.userLoc.lng);
+    const s = Math.sin(dLat / 2) ** 2 + Math.cos(tr(state.userLoc.lat)) * Math.cos(tr(i.lat)) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(s));
+  }
 
   function bindFilters() {
     document.querySelectorAll('.chip[data-filter]').forEach(btn => {
@@ -348,6 +408,8 @@
     bindFilters();
     bindForm();
     bindPulse();
+    bindAlerts();
+    bindNearMe();
     reload();
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
   }

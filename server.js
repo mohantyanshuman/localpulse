@@ -11,6 +11,9 @@ const { respond, classify, noData } = require('./data/intents');
 const store = require('./data/store');
 const { runIngest, reportToIncident, loadCommunityReports } = require('./services/ingest');
 const persist = require('./services/persist');
+const push = require('./services/push');
+const { verifyReport } = require('./services/verify');
+const dss = require('./services/dss');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -74,7 +77,10 @@ app.get('/api/incidents', (req, res) => {
     lat: i.lat, lng: i.lng,
     sources: i.sources, verified: i.verified, trust: i.trust,
     updatedAt: i.updatedAt,
-    url: i.url || undefined
+    url: i.url || undefined,
+    src: i.src || undefined,
+    status: i.status || undefined,
+    note: i.note || undefined
   }));
   if (category) out = out.filter(i => i.category === category);
   out.sort((a, b) => b.updatedAt - a.updatedAt);
@@ -106,8 +112,14 @@ app.get('/api/hazards', (req, res) => {
   res.json(store.getHazards() || { weather: null, quakes: [], alerts: [], ts: Date.now() });
 });
 
-// Decision Support: town risk level + actionable recommendations.
+// Decision Support: risk + recommendations. With ?lat&lng it is personalized to
+// the user's location (incidents scoped to a radius); otherwise a district view.
 app.get('/api/dss', (req, res) => {
+  const lat = parseFloat(req.query.lat), lng = parseFloat(req.query.lng);
+  if (Number.isFinite(lat) && Number.isFinite(lng)) {
+    res.set('Cache-Control', 'no-store');
+    return res.json(dss.assess(store.getIncidents(), store.getHazards() || {}, store.getFacilities(), { userLoc: { lat, lng } }));
+  }
   res.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=120');
   res.json(store.getAssessment() || { level: 'ok', score: 0, headline: 'Starting up — fetching live data.', recommendations: [], generatedAt: Date.now() });
 });
@@ -134,9 +146,42 @@ app.post('/api/report', async (req, res) => {
   let id = null;
   try { id = await persist.addReport(report); } catch { /* fall through */ }
   id = id || ('usr-' + crypto.randomBytes(4).toString('hex'));
+  const crId = 'cr-' + String(id).slice(0, 10);
   store.addCommunityReport(reportToIncident({ id, ...report }));
   process.stdout.write(JSON.stringify({ severity: 'INFO', kind: 'user-report', id, category: report.category, len: message.length, persisted: !!id, ts: Date.now() }) + '\n');
-  res.status(202).json({ ok: true, id, persisted: true, ts: Date.now() });
+  res.status(202).json({ ok: true, id, persisted: true, verifying: !!process.env.GEMINI_API_KEY, ts: Date.now() });
+
+  // Agentic verification (non-blocking): cross-check against live web search.
+  verifyReport(report).then((v) => {
+    if (!v) return;
+    const trust = v.verdict === 'corroborated' ? Math.max(0.6, v.confidence) : v.verdict === 'contradicted' ? 0.05 : 0.3;
+    store.updateCommunityReport(crId, { severity: v.severity, trust, status: v.verdict, note: v.note });
+    persist.updateReport(id, { status: v.verdict, severity: v.severity, confidence: v.confidence, note: v.note }).catch(() => {});
+    process.stdout.write(JSON.stringify({ severity: 'INFO', kind: 'report-verified', id, verdict: v.verdict, sev: v.severity, conf: v.confidence, ts: Date.now() }) + '\n');
+    // Escalate: a corroborated high-severity citizen report alerts the community.
+    if (v.verdict === 'corroborated' && v.severity === 'high') {
+      push.sendToAll({ title: 'Verified emergency in your district', body: report.message.slice(0, 120) + ' (verified against live sources)', url: '/', tag: 'lp-report' })
+        .then((r) => process.stdout.write(JSON.stringify({ severity: 'NOTICE', kind: 'push-report', ...r, ts: Date.now() }) + '\n')).catch(() => {});
+    }
+  }).catch(() => {});
+});
+
+// --- Web Push: subscribe to alerts (risk escalation + verified emergencies)
+app.get('/api/push/key', (_req, res) => {
+  res.set('Cache-Control', 'public, max-age=3600');
+  res.json({ key: push.publicKey(), enabled: push.hasVapid() });
+});
+app.post('/api/push/subscribe', async (req, res) => {
+  const sub = req.body || {};
+  if (!sub.endpoint) return res.status(400).json({ error: { code: 'bad_sub', message: 'Missing endpoint.' } });
+  let id = null;
+  try { id = await persist.savePushSub(sub); } catch { /* ignore */ }
+  res.json({ ok: !!id, id });
+});
+app.post('/api/push/unsubscribe', async (req, res) => {
+  const { id } = req.body || {};
+  try { if (id) await persist.deletePushSub(id); } catch { /* ignore */ }
+  res.json({ ok: true });
 });
 
 // Community reports (resident submissions) — for the responder console.

@@ -71,6 +71,29 @@ async function listReports(limit = 40) {
   return rows.filter((r) => r.document).map((r) => ({ id: r.document.name.split('/').pop(), ...decFields(r.document.fields || {}) }));
 }
 
+// --- Update fields on an existing report (verification verdict)
+async function updateReport(id, fields) {
+  if (!id) return false;
+  const mask = Object.keys(fields).map((k) => `updateMask.fieldPaths=${encodeURIComponent(k)}`).join('&');
+  const r = await req('PATCH', `/reports/${id}?${mask}`, { fields: encFields(fields) });
+  return !!r;
+}
+
+// --- Web-push subscriptions (doc id = sha256 of endpoint, so upserts dedupe)
+const crypto = require('crypto');
+async function savePushSub(sub) {
+  if (!sub || !sub.endpoint) return null;
+  const id = crypto.createHash('sha256').update(sub.endpoint).digest('hex').slice(0, 40);
+  const r = await req('PATCH', `/pushsubs/${id}`, { fields: encFields({ endpoint: sub.endpoint, p256dh: sub.keys?.p256dh || '', auth: sub.keys?.auth || '', createdAt: Date.now() }) });
+  return r ? id : null;
+}
+async function deletePushSub(id) { if (id) await req('DELETE', `/pushsubs/${id}`); }
+async function listPushSubs(limit = 500) {
+  const r = await req('GET', `/pushsubs?pageSize=${limit}`);
+  if (!r || !Array.isArray(r.documents)) return [];
+  return r.documents.map((d) => ({ id: d.name.split('/').pop(), ...decFields(d.fields || {}) }));
+}
+
 // --- Snapshot of the last good ingest (stored as one JSON string field)
 async function saveSnapshot(obj) {
   const r = await req('PATCH', '/state/latest', { fields: encFields({ json: JSON.stringify(obj), updatedAt: Date.now() }) });
@@ -82,4 +105,4 @@ async function loadSnapshot() {
   try { return JSON.parse(decFields(r.fields).json); } catch { return null; }
 }
 
-module.exports = { addReport, listReports, saveSnapshot, loadSnapshot };
+module.exports = { addReport, listReports, updateReport, savePushSub, deletePushSub, listPushSubs, saveSnapshot, loadSnapshot };

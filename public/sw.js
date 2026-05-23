@@ -12,6 +12,24 @@ self.addEventListener('activate', (e) => {
   e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
 });
 
+// Push: show the notification the server sent.
+self.addEventListener('push', (e) => {
+  let data = { title: 'LocalPulse', body: 'New alert', url: '/' };
+  try { if (e.data) data = Object.assign(data, e.data.json()); } catch (_) { /* keep default */ }
+  e.waitUntil(self.registration.showNotification(data.title, {
+    body: data.body, tag: data.tag || 'lp', renotify: true,
+    icon: '/favicon.svg', badge: '/favicon.svg', data: { url: data.url || '/' }
+  }));
+});
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  const url = (e.notification.data && e.notification.data.url) || '/';
+  e.waitUntil(clients.matchAll({ type: 'window' }).then((ws) => {
+    for (const w of ws) { if ('focus' in w) { w.navigate(url); return w.focus(); } }
+    return clients.openWindow(url);
+  }));
+});
+
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;
