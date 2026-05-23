@@ -133,9 +133,14 @@ async function runIngest({ force = false, useLLM = true } = {}) {
     await loadCommunityReports();
 
     const raw = await sources.fetchAll();
-    if (!raw.length) { refreshAssessment(); return { ingested: 0, fetched: 0, facilities: store.getFacilities().length, note: 'no source items' }; }
+    // Freshness filter: drop articles older than a few days so re-surfaced
+    // past-monsoon coverage can't masquerade as a current emergency. This is the
+    // first line of defence against stale-event fear-mongering (decay is the second).
+    const MAX_AGE = Number(process.env.SOURCE_MAX_AGE_DAYS || 5) * 864e5;
+    const fresh = raw.filter((x) => !x.publishedAt || (Date.now() - x.publishedAt) <= MAX_AGE);
+    if (!fresh.length) { refreshAssessment(); return { ingested: 0, fetched: raw.length, fresh: 0, facilities: store.getFacilities().length, note: 'no fresh items' }; }
 
-    const deduped = dedupe(raw).slice(0, MAX_ITEMS);
+    const deduped = dedupe(fresh).slice(0, MAX_ITEMS);
     const { items, bullets } = await brain.classifyBatch(deduped, useLLM);
 
     const incidents = items
