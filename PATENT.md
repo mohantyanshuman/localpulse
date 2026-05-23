@@ -20,6 +20,10 @@ Community-scale crisis/civic decision support for resource-constrained towns: in
 | **US9438619 / US9747640** — Crowdsourced trustworthiness indicators | Entity trust scores from crowdsourced attributes | Generic reputation; not crisis-specific, no hazard fusion, no spatial risk |
 | **US20230091292** — Validating crowdsourced field reports | User-credibility model with **age-decay of submissions** | Decay applied to *user credibility*; LocalPulse decays the **risk contribution of events themselves** (spatiotemporal), a different mechanism and purpose |
 | Research (BERT/LLM disaster tweet classifiers) | Classify disaster text | Academic classifiers; no end-to-end DSS, verification loop, scoped alerting, or mutual-aid |
+| **US7629891** — Personal safety check-in & follow-up | Check-in timer; auto-generates a missing-person report after ~30h of no check-in | A *timer* on one user; LocalPulse **matches missing-person posts against community "I'm safe" beacons** for reunification |
+| NLM **People Locator** / face-matching research | Photo + metadata missing-person registry | Standalone registry; not integrated with a live DSS, safe-beacon matching, or multilingual community feed |
+| Utility **Priority Service Registers**; ArcGIS evacuation-priority studies | Opt-in lists of vulnerable people for utilities/GIS planning | Static utility/planning lists; LocalPulse keeps a **privacy-coarsened, live registry surfaced to responders during an event, scoped to the active hazard** |
+| Social-media **syndromic surveillance** research (CLI clusters) | Detect symptom spikes from social posts | Academic, single-signal; LocalPulse fuses it into the DSS as a **post-disaster outbreak early-warning** alongside verified incidents |
 
 **Conclusion:** No reviewed art combines (a) agentic LLM **web-search** verification of citizen reports, (b) heterogeneous **40+ free-feed fusion** (news + weather + air + flood + seismic + satellite + official CAP), (c) **spatially-scoped + temporally-decayed** risk that is explicitly *anti-over-alerting*, and (d) **locality-scoped** notification + **demand–supply mutual-aid matching** + **RAG situational assistant**.
 
@@ -34,6 +38,12 @@ Community-scale crisis/civic decision support for resource-constrained towns: in
 8. **Mutual-aid demand–supply matching** — auto-matches resident *needs* to nearest *offers* by resource category and proximity; plus an "I'm safe" beacon.
 9. **RAG situational assistant** — free-form multilingual Q&A answered strictly from the live fused situational context.
 10. **Resource-constrained operability** — multilingual (5 languages), offline PWA, free data + capped LLM, scale-to-zero — designed for low-end devices and poor connectivity.
+11. **Vulnerable-person priority registry (no-one-left-behind)** — privacy-coarsened, opt-in registry of residents needing assisted evacuation, surfaced to responders **as live aggregate clusters during an active hazard**, integrated with the spatiotemporal risk — not a static utility list.
+12. **Post-disaster syndromic early-warning** — detects clusters of symptom mentions across the fused community + news stream and raises a hedged public-health/water-safety signal, integrated into the same DSS and corroboration loop.
+13. **Missing-persons reunification by safe-beacon matching** — missing-person posts are matched against community "I'm safe" check-ins (and reports) to reunite families, rather than a check-in timer or standalone photo registry.
+14. **Inclusive accessibility** — one-tap spoken status (TTS) in five languages and a large-text mode, so low-literacy, elderly and low-vision residents are served first-class.
+
+**Combined-system novelty:** the patent rests on the *integration* — a single platform that fuses 40+ heterogeneous free feeds, verifies citizen input with an autonomous web-searching agent, computes spatiotemporally-honest risk, and closes the loop with locality-scoped alerting, mutual-aid matching, a vulnerable-person registry, outbreak early-warning and missing-person reunification, operable offline and multilingually on free infrastructure. No single prior reference teaches this combination.
 
 ## 4. Draft independent claim (apparatus)
 > A system for community decision support comprising one or more processors configured to:
@@ -44,7 +54,7 @@ Community-scale crisis/civic decision support for resource-constrained towns: in
 > (e) compute a risk assessment that (i) separates area-wide hazards from localized incidents using a per-recipient geographic radius and (ii) applies a temporal-decay function to the contribution of each event such that the influence of a one-time event diminishes over time; and
 > (f) dispatch a notification to a subscriber conditioned on the subscriber's location being within a radius of a localized verified event, or on an area-wide escalation.
 
-**Representative dependent claims:** corroboration-velocity "emerging" flag (5); predictive nowcast advisory excluded from current risk (7); demand–supply matching by category and proximity (8); RAG assistant grounded solely in fused context (9); operation on free-tier serverless infrastructure with a capped language-model call budget and snapshot-on-coldstart (cost mechanism).
+**Representative dependent claims:** corroboration-velocity "emerging" flag (5); predictive nowcast advisory excluded from current risk (7); demand–supply matching by category and proximity (8); RAG assistant grounded solely in fused context (9); a privacy-coarsened vulnerable-person registry surfaced as live aggregate clusters scoped to an active hazard (11); syndromic-cluster outbreak early-warning over the fused stream (12); missing-person reunification by matching against community safe-beacons (13); spoken multilingual status output and large-text accessibility mode (14); operation on free-tier serverless infrastructure with a capped language-model budget and snapshot-on-coldstart (cost mechanism).
 
 ## 5. Method claim (summary)
 A computer-implemented method performing steps (a)–(f) above, wherein the temporal-decay function halves an event's risk contribution every configurable interval and removes events older than a staleness threshold from action guidance; and wherein verification (d) is gated by a per-period budget.

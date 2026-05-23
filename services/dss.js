@@ -10,6 +10,8 @@
 // the risk score, so debunked claims never scare anyone. Rule-based and
 // explainable: a DSS must justify its advice.
 
+const health = require('./health');
+
 const LEVELS = ['ok', 'elevated', 'high', 'severe'];
 
 function titleOf(i, lang = 'en') {
@@ -140,6 +142,10 @@ function assess(incidents = [], hazards = {}, facilities = [], opts = {}) {
     if (forecast.trend !== 'stable') recs.push({ kind: 'forecast', level: forecast.trend === 'rising' ? 'high' : 'medium', scope: 'forecast', text: `Next 48h: ${forecast.text}` });
   }
 
+  // ---- Post-disaster syndromic early-warning (water/vector-borne outbreaks).
+  const outbreaks = health.detectOutbreaks(genuine);
+  for (const o of outbreaks) recs.push({ kind: 'health', level: 'medium', scope: 'area', text: `Possible ${o.syndrome} cluster: ${o.count} reports in recent days. Authorities should check water/sanitation. Boil drinking water as a precaution.` });
+
   if (!recs.length) recs.push({ kind: 'info', level: 'low', text: 'No active hazards. Save 112 for emergencies and keep essentials ready.' });
 
   return {
@@ -160,6 +166,7 @@ function assess(incidents = [], hazards = {}, facilities = [], opts = {}) {
     weather: w ? { tempC: w.tempC, condition: w.condition, precipTodayMm: w.precipTodayMm, precipTomorrowMm: w.precipTomorrowMm, aqi: hazards.airQuality ? hazards.airQuality.aqi : undefined } : null,
     forecast,
     emerging,
+    outbreaks,
     officialAlerts: alerts.length,
     recommendations: recs.slice(0, 8),
     generatedAt: Date.now()

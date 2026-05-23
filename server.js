@@ -211,6 +211,59 @@ app.get('/api/aid', async (_req, res) => {
   res.json({ count: items.length, items: aid.enrich(items), ts: Date.now() });
 });
 
+// --- Vulnerable-person priority registry (no-one-left-behind).
+// Privacy: coordinates coarsened to ~1 km; the GET returns only aggregate counts
+// and coarse clusters — never names, notes or contacts.
+const VULN_NEEDS = ['mobility', 'elderly', 'infant', 'medical', 'oxygen', 'hearing', 'vision', 'pregnant'];
+app.post('/api/vulnerable', async (req, res) => {
+  const b = req.body || {};
+  const needs = (Array.isArray(b.needs) ? b.needs : []).filter((n) => VULN_NEEDS.includes(n)).slice(0, 6);
+  if (!needs.length) return res.status(400).json({ error: { code: 'no_needs', message: 'Select at least one need.' } });
+  const item = {
+    needs, note: String(b.note || '').slice(0, 160), contact: String(b.contact || '').slice(0, 40),
+    lat: typeof b.lat === 'number' ? Math.round(b.lat * 100) / 100 : null,
+    lng: typeof b.lng === 'number' ? Math.round(b.lng * 100) / 100 : null,
+    createdAt: Date.now()
+  };
+  let id = null;
+  try { id = await persist.addVulnerable(item); } catch { /* ignore */ }
+  res.status(202).json({ ok: true, id });
+});
+app.get('/api/vulnerable', async (_req, res) => {
+  res.set('Cache-Control', 'no-store');
+  let items = [];
+  try { const cutoff = Date.now() - 7 * 864e5; items = (await persist.listVulnerable(300)).filter((v) => (v.createdAt || 0) >= cutoff); } catch { /* none */ }
+  const byNeed = {}; const clusters = {};
+  for (const v of items) {
+    (v.needs || []).forEach((n) => { byNeed[n] = (byNeed[n] || 0) + 1; });
+    if (typeof v.lat === 'number') { const k = v.lat.toFixed(2) + ',' + v.lng.toFixed(2); clusters[k] = (clusters[k] || 0) + 1; }
+  }
+  res.json({ total: items.length, byNeed, clusters: Object.entries(clusters).map(([k, n]) => { const p = k.split(',').map(Number); return { lat: p[0], lng: p[1], count: n }; }), ts: Date.now() });
+});
+
+// --- Missing-persons reunification: matched against "I'm safe" beacons.
+app.post('/api/missing', async (req, res) => {
+  const b = req.body || {};
+  const name = String(b.name || '').trim().slice(0, 80);
+  if (!name) return res.status(400).json({ error: { code: 'no_name', message: 'Name is required.' } });
+  const item = { name, lastSeen: String(b.lastSeen || '').slice(0, 120), note: String(b.note || '').slice(0, 200), contact: String(b.contact || '').slice(0, 40), createdAt: Date.now() };
+  let id = null;
+  try { id = await persist.addMissing(item); } catch { /* ignore */ }
+  res.status(202).json({ ok: true, id });
+});
+app.get('/api/missing', async (_req, res) => {
+  res.set('Cache-Control', 'no-store');
+  let missing = []; let safe = [];
+  try { const cutoff = Date.now() - 7 * 864e5; missing = (await persist.listMissing(100)).filter((m) => (m.createdAt || 0) >= cutoff); } catch { /* none */ }
+  try { safe = (await persist.listAid(60)).filter((a) => a.kind === 'safe' && a.name); } catch { /* none */ }
+  const items = missing.map((m) => {
+    const nm = m.name.toLowerCase();
+    const hit = safe.find((s) => { const sn = String(s.name || '').toLowerCase(); return sn && (sn.includes(nm) || nm.includes(sn)); });
+    return { name: m.name, lastSeen: m.lastSeen, note: m.note, contact: m.contact, createdAt: m.createdAt, safe: hit ? { when: hit.createdAt } : null };
+  });
+  res.json({ count: items.length, items, ts: Date.now() });
+});
+
 // --- Web Push: subscribe to alerts (risk escalation + verified emergencies)
 app.get('/api/push/key', (_req, res) => {
   res.set('Cache-Control', 'public, max-age=3600');

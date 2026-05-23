@@ -477,6 +477,20 @@ a:hover { text-decoration: underline; }
 .aid-tag[data-kind="safe"] { background: var(--info); }
 .aid-match { margin-top: 4px; color: var(--success); font-weight: 500; }
 
+/* Safety & care */
+.care-grid { display: grid; grid-template-columns: 1fr; gap: 22px; }
+@media (min-width: 800px) { .care-grid { grid-template-columns: 1fr 1fr; } }
+.care-h { font-size: 15px; margin: 0 0 4px; }
+.vuln-needs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; margin: 8px 0; }
+.vuln-needs label { display: flex; gap: 7px; align-items: center; font-size: 14px; }
+#care input[type="text"], #care input:not([type]) { width: 100%; padding: 9px 12px; margin: 6px 0; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-card); color: var(--fg); font-size: 14px; }
+#missing-list { margin-top: 12px; }
+
+/* Accessibility: larger-text mode for low-literacy / low-vision users */
+body.big-text { font-size: 19px; }
+body.big-text .incident-title, body.big-text .dss-headline, body.big-text .dss-recs li { font-size: 1.12em; }
+body.big-text .muted.small, body.big-text .small { font-size: 14px; }
+
 /* print: hide chrome */
 @media print {
   .appbar, .appfoot, .filters, .hero-actions, .form-card, .phone-controls { display: none !important; }

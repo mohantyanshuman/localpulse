@@ -225,6 +225,7 @@
   function renderDss(d) {
     const panel = document.getElementById('dss-panel');
     if (!panel || !d || !d.level) return;
+    state.dss = d;
     const L = (m) => (m[d.level] && (m[d.level][state.lang] || m[d.level].en)) || '';
     panel.setAttribute('data-level', d.level);
     panel.hidden = false;
@@ -455,6 +456,73 @@
     } catch (e) { setStatus('offline'); }
   }
 
+  // --- Accessibility: larger text + spoken status (low-literacy, elderly, blind)
+  function bindBigText() {
+    const btn = document.getElementById('bigtext-toggle');
+    if (!btn) return;
+    try { if (localStorage.getItem('lp.big') === '1') document.body.classList.add('big-text'); } catch (_) {}
+    btn.addEventListener('click', () => { const on = document.body.classList.toggle('big-text'); try { localStorage.setItem('lp.big', on ? '1' : '0'); } catch (_) {} });
+  }
+  function bindListen() {
+    const btn = document.getElementById('dss-listen');
+    if (!btn || !('speechSynthesis' in window)) { if (btn) btn.style.display = 'none'; return; }
+    btn.addEventListener('click', () => {
+      const d = state.dss; if (!d) return;
+      const recs = (d.recommendations || []).slice(0, 4).map((r) => r.text).join('. ');
+      const u = new SpeechSynthesisUtterance(((d.headline || '') + '. ' + recs).slice(0, 600));
+      u.lang = { en: 'en-IN', hi: 'hi-IN', pa: 'pa-IN', ta: 'ta-IN', bn: 'bn-IN' }[state.lang] || 'en-IN';
+      try { window.speechSynthesis.cancel(); window.speechSynthesis.speak(u); } catch (_) {}
+    });
+  }
+
+  // --- Vulnerable-person priority registry (no one left behind)
+  function bindVulnerable() {
+    const form = document.getElementById('vuln-form');
+    if (!form) return;
+    const status = document.getElementById('vuln-status');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const needs = [].slice.call(form.querySelectorAll('input[name=needs]:checked')).map((c) => c.value);
+      if (!needs.length) { status.dataset.state = 'err'; status.textContent = 'Select at least one type of help needed.'; return; }
+      status.dataset.state = ''; status.textContent = 'Registering…';
+      const body = { needs: needs, contact: form.contact.value.trim() };
+      if (navigator.geolocation) { try { const pos = await new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, { timeout: 5000, maximumAge: 300000 })); body.lat = pos.coords.latitude; body.lng = pos.coords.longitude; } catch (_) {} }
+      try { await fetchJson('/api/vulnerable', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); status.textContent = 'Registered privately. Responders will prioritise this area.'; form.reset(); }
+      catch (_) { status.dataset.state = 'err'; status.textContent = 'Could not register. Try again.'; }
+    });
+  }
+
+  // --- Missing persons reunification (matched against "I'm safe" check-ins)
+  function renderMissing(items) {
+    const list = document.getElementById('missing-list');
+    if (!list) return;
+    clear(list);
+    items.slice(0, 15).forEach((m) => {
+      const li = el('li', { class: 'aid-item', 'data-kind': m.safe ? 'safe' : 'need' });
+      li.appendChild(el('span', { class: 'aid-tag', 'data-kind': m.safe ? 'safe' : 'need' }, m.safe ? 'SAFE' : 'MISSING'));
+      const b = el('div');
+      b.appendChild(el('div', null, m.name + (m.lastSeen ? ' — last seen ' + m.lastSeen : '')));
+      b.appendChild(el('div', { class: 'muted small' }, (m.safe ? 'Reported safe ✓ · ' : '') + formatAgo(m.createdAt) + ' ago' + (m.contact ? ' · ' + m.contact : '')));
+      li.appendChild(b);
+      list.appendChild(li);
+    });
+  }
+  async function loadMissing() { try { const j = await fetchJson('/api/missing'); renderMissing(j.items || []); } catch (_) {} }
+  function bindMissing() {
+    const form = document.getElementById('missing-form');
+    if (!form) return;
+    const status = document.getElementById('missing-status');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = form.name.value.trim();
+      if (!name) { status.dataset.state = 'err'; status.textContent = 'Enter the person’s name.'; return; }
+      status.dataset.state = ''; status.textContent = 'Posting…';
+      try { await fetchJson('/api/missing', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name, lastSeen: form.lastSeen.value.trim(), contact: form.contact.value.trim() }) }); status.textContent = 'Posted. We will match against "I’m safe" check-ins.'; form.reset(); loadMissing(); }
+      catch (_) { status.dataset.state = 'err'; status.textContent = 'Could not post. Try again.'; }
+    });
+    loadMissing();
+  }
+
   function boot() {
     applyTheme(loadTheme());
     const tb = document.getElementById('theme-toggle');
@@ -475,6 +543,10 @@
     bindNearMe();
     bindAsk();
     bindAid();
+    bindBigText();
+    bindListen();
+    bindVulnerable();
+    bindMissing();
     reload();
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
   }

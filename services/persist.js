@@ -79,6 +79,32 @@ async function updateReport(id, fields) {
   return !!r;
 }
 
+// --- Vulnerable-person priority registry (no-one-left-behind).
+// Privacy-first: coordinates are coarsened to ~1 km before storage and the public
+// API only ever returns aggregate counts + coarse clusters, never precise PII.
+async function addVulnerable(item) {
+  const doc = await req('POST', '/vulnerable', { fields: encFields(item) });
+  return doc ? (doc.name || '').split('/').pop() : null;
+}
+async function listVulnerable(limit = 200) {
+  const body = { structuredQuery: { from: [{ collectionId: 'vulnerable' }], orderBy: [{ field: { fieldPath: 'createdAt' }, direction: 'DESCENDING' }], limit } };
+  const rows = await req('POST', ':runQuery', body);
+  if (!Array.isArray(rows)) return [];
+  return rows.filter((r) => r.document).map((r) => ({ id: r.document.name.split('/').pop(), ...decFields(r.document.fields || {}) }));
+}
+
+// --- Missing-persons board (for family reunification against "I'm safe" beacons)
+async function addMissing(item) {
+  const doc = await req('POST', '/missing', { fields: encFields(item) });
+  return doc ? (doc.name || '').split('/').pop() : null;
+}
+async function listMissing(limit = 100) {
+  const body = { structuredQuery: { from: [{ collectionId: 'missing' }], orderBy: [{ field: { fieldPath: 'createdAt' }, direction: 'DESCENDING' }], limit } };
+  const rows = await req('POST', ':runQuery', body);
+  if (!Array.isArray(rows)) return [];
+  return rows.filter((r) => r.document).map((r) => ({ id: r.document.name.split('/').pop(), ...decFields(r.document.fields || {}) }));
+}
+
 // --- Mutual-aid board: residents requesting/offering help, or marking "I'm safe"
 async function addAid(item) {
   const doc = await req('POST', '/aid', { fields: encFields(item) });
@@ -122,4 +148,4 @@ async function loadSnapshot() {
   try { return JSON.parse(decFields(r.fields).json); } catch { return null; }
 }
 
-module.exports = { addReport, listReports, updateReport, addAid, listAid, savePushSub, deletePushSub, listPushSubs, saveSnapshot, loadSnapshot };
+module.exports = { addReport, listReports, updateReport, addAid, listAid, addVulnerable, listVulnerable, addMissing, listMissing, savePushSub, deletePushSub, listPushSubs, saveSnapshot, loadSnapshot };

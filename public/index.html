@@ -49,6 +49,7 @@
         <option value="bn">বাংলা</option>
       </select>
     </label>
+    <button class="btn btn-ghost" id="bigtext-toggle" aria-label="Toggle large text" title="Larger text">A+</button>
     <button class="btn btn-ghost theme-toggle" id="theme-toggle" aria-label="Toggle theme">
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
     </button>
@@ -86,6 +87,7 @@
         <span class="dss-weather muted small" id="dss-weather"></span>
       </div>
       <button class="btn btn-ghost" id="dss-nearme" type="button" title="Show risk for your location">📍 Near me</button>
+      <button class="btn btn-ghost" id="dss-listen" type="button" title="Listen to the status">🔊 Listen</button>
     </div>
     <ul class="dss-recs" id="dss-recs"></ul>
   </section>
@@ -170,6 +172,43 @@
       <p class="form-status" id="aid-status" role="status" aria-live="polite"></p>
     </form>
     <ul class="aid-list" id="aid-list"></ul>
+  </section>
+
+  <section class="card" id="care">
+    <header class="card-head"><h2>Safety &amp; care</h2><span class="muted small">no one left behind</span></header>
+    <div class="care-grid">
+      <div>
+        <h3 class="care-h">Register someone who needs help to evacuate</h3>
+        <p class="muted small">Private &amp; anonymous — only an approximate area and the type of help are shared with responders, so the most vulnerable are reached first.</p>
+        <form id="vuln-form" novalidate>
+          <div class="vuln-needs">
+            <label><input type="checkbox" name="needs" value="mobility"> Mobility / wheelchair</label>
+            <label><input type="checkbox" name="needs" value="elderly"> Elderly, alone</label>
+            <label><input type="checkbox" name="needs" value="infant"> Infant / small child</label>
+            <label><input type="checkbox" name="needs" value="medical"> Medical-dependent</label>
+            <label><input type="checkbox" name="needs" value="oxygen"> Oxygen / dialysis</label>
+            <label><input type="checkbox" name="needs" value="hearing"> Deaf / hard of hearing</label>
+            <label><input type="checkbox" name="needs" value="vision"> Blind / low vision</label>
+            <label><input type="checkbox" name="needs" value="pregnant"> Pregnant</label>
+          </div>
+          <input name="contact" maxlength="40" placeholder="Phone (optional, for responders)" autocomplete="off">
+          <button class="btn btn-primary" type="submit">Register need</button>
+          <p class="form-status" id="vuln-status" role="status" aria-live="polite"></p>
+        </form>
+      </div>
+      <div>
+        <h3 class="care-h">Report or find a missing person</h3>
+        <p class="muted small">We match names against "I'm safe" check-ins to reunite families.</p>
+        <form id="missing-form" novalidate>
+          <input name="name" maxlength="80" placeholder="Person's name" autocomplete="off" required>
+          <input name="lastSeen" maxlength="120" placeholder="Last seen where?" autocomplete="off">
+          <input name="contact" maxlength="40" placeholder="Your phone (so they can reach you)" autocomplete="off">
+          <button class="btn btn-secondary" type="submit">Post missing person</button>
+          <p class="form-status" id="missing-status" role="status" aria-live="polite"></p>
+        </form>
+        <ul class="aid-list" id="missing-list"></ul>
+      </div>
+    </div>
   </section>
 
   <section class="card form-card" id="report-form">

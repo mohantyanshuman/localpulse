@@ -3,6 +3,25 @@
 All notable changes to LocalPulse are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); grouped by date.
 
+## 2026-05-24 (humanity differentiators)
+
+### Added
+- **Vulnerable-person priority registry** (no-one-left-behind): privacy-coarsened,
+  anonymous opt-in registry of residents needing assisted evacuation (mobility,
+  elderly, infant, medical, oxygen, hearing, vision, pregnant); public API exposes
+  only aggregate counts + ~1 km clusters. `/api/vulnerable`.
+- **Post-disaster syndromic early-warning** (`services/health.js`): detects
+  clusters of symptom mentions (water-borne, vector-borne, respiratory) across the
+  fused community + news stream and raises a hedged public-health/water-safety
+  signal in the DSS.
+- **Missing-persons reunification**: post a missing person; matched against
+  community "I'm safe" check-ins to reunite families. `/api/missing`.
+- **Inclusive accessibility**: one-tap spoken status (TTS) in five languages and a
+  large-text mode for low-literacy, elderly and low-vision residents.
+- **PATENT.md** extended with prior art (US7629891, People Locator, Priority
+  Service Registers, syndromic-surveillance research) and dependent claims for the
+  new differentiators.
+
 ## 2026-05-24 (differentiators + patent)
 
 ### Added
