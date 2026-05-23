@@ -79,12 +79,29 @@ async function updateReport(id, fields) {
   return !!r;
 }
 
+// --- Mutual-aid board: residents requesting/offering help, or marking "I'm safe"
+async function addAid(item) {
+  const doc = await req('POST', '/aid', { fields: encFields(item) });
+  return doc ? (doc.name || '').split('/').pop() : null;
+}
+async function listAid(limit = 40) {
+  const body = { structuredQuery: { from: [{ collectionId: 'aid' }], orderBy: [{ field: { fieldPath: 'createdAt' }, direction: 'DESCENDING' }], limit } };
+  const rows = await req('POST', ':runQuery', body);
+  if (!Array.isArray(rows)) return [];
+  return rows.filter((r) => r.document).map((r) => ({ id: r.document.name.split('/').pop(), ...decFields(r.document.fields || {}) }));
+}
+
 // --- Web-push subscriptions (doc id = sha256 of endpoint, so upserts dedupe)
 const crypto = require('crypto');
 async function savePushSub(sub) {
   if (!sub || !sub.endpoint) return null;
   const id = crypto.createHash('sha256').update(sub.endpoint).digest('hex').slice(0, 40);
-  const r = await req('PATCH', `/pushsubs/${id}`, { fields: encFields({ endpoint: sub.endpoint, p256dh: sub.keys?.p256dh || '', auth: sub.keys?.auth || '', createdAt: Date.now() }) });
+  const r = await req('PATCH', `/pushsubs/${id}`, { fields: encFields({
+    endpoint: sub.endpoint, p256dh: sub.keys?.p256dh || '', auth: sub.keys?.auth || '',
+    lat: typeof sub.lat === 'number' ? sub.lat : null,
+    lng: typeof sub.lng === 'number' ? sub.lng : null,
+    createdAt: Date.now()
+  }) });
   return r ? id : null;
 }
 async function deletePushSub(id) { if (id) await req('DELETE', `/pushsubs/${id}`); }

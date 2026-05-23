@@ -124,6 +124,16 @@
     </article>
   </section>
 
+  <section class="card ask-card">
+    <header class="card-head"><h2>Ask LocalPulse</h2><span class="badge">AI</span></header>
+    <p class="muted small">Ask anything about your area right now — answered only from live, verified data.</p>
+    <form id="ask-form" class="ask-form" novalidate>
+      <input id="ask-input" type="text" maxlength="300" autocomplete="off" placeholder="e.g. Is the road to Shimla safe tonight?" aria-label="Ask about your area">
+      <button class="btn btn-primary" type="submit">Ask</button>
+    </form>
+    <p class="ask-answer" id="ask-answer" aria-live="polite"></p>
+  </section>
+
   <section class="card">
     <header class="card-head">
       <h2 data-i18n="incidents">Incidents</h2>
@@ -138,6 +148,28 @@
     </header>
     <p class="muted small">Real hospitals, police stations, community centres &amp; schools near you, live from OpenStreetMap.</p>
     <div class="shelter-grid" id="shelter-grid"></div>
+  </section>
+
+  <section class="card" id="aid">
+    <header class="card-head"><h2>Community help</h2><span class="muted small">neighbours helping neighbours</span></header>
+    <p class="muted small">Ask for help, offer help, or mark yourself safe. We auto-match needs to nearby offers.</p>
+    <form id="aid-form" class="form-grid" novalidate>
+      <label class="field">
+        <span>Type</span>
+        <select name="kind">
+          <option value="need">I need help</option>
+          <option value="offer">I can help</option>
+          <option value="safe">I'm safe</option>
+        </select>
+      </label>
+      <label class="field field-wide">
+        <span>Details</span>
+        <input name="message" maxlength="300" placeholder="e.g. Need drinking water for 3 near Chambaghat; or: have a 4x4, can ferry people">
+      </label>
+      <button class="btn btn-primary" type="submit">Post</button>
+      <p class="form-status" id="aid-status" role="status" aria-live="polite"></p>
+    </form>
+    <ul class="aid-list" id="aid-list"></ul>
   </section>
 
   <section class="card form-card" id="report-form">

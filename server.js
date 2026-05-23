@@ -14,6 +14,8 @@ const persist = require('./services/persist');
 const push = require('./services/push');
 const { verifyReport } = require('./services/verify');
 const dss = require('./services/dss');
+const assistant = require('./services/assistant');
+const aid = require('./services/aid');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -160,10 +162,53 @@ app.post('/api/report', async (req, res) => {
     process.stdout.write(JSON.stringify({ severity: 'INFO', kind: 'report-verified', id, verdict: v.verdict, sev: v.severity, conf: v.confidence, ts: Date.now() }) + '\n');
     // Escalate: a corroborated high-severity citizen report alerts the community.
     if (v.verdict === 'corroborated' && v.severity === 'high') {
-      push.sendToAll({ title: 'Verified emergency in your district', body: report.message.slice(0, 120) + ' (verified against live sources)', url: '/', tag: 'lp-report' })
+      const payload = { title: 'Verified emergency near you', body: report.message.slice(0, 120) + ' (verified against live sources)', url: '/', tag: 'lp-report' };
+      const center = (typeof report.lat === 'number' && typeof report.lng === 'number') ? { lat: report.lat, lng: report.lng } : null;
+      // Locality-scoped: only alert people near the event, not the whole district.
+      (center ? push.sendNear(payload, center, 12) : push.sendToAll(payload))
         .then((r) => process.stdout.write(JSON.stringify({ severity: 'NOTICE', kind: 'push-report', ...r, ts: Date.now() }) + '\n')).catch(() => {});
     }
   }).catch(() => {});
+});
+
+// --- Conversational situational assistant (RAG over live fused data).
+app.post('/api/ask', async (req, res) => {
+  const body = req.body || {};
+  const question = String(body.q || body.text || '').trim().slice(0, 300);
+  if (!question) return res.status(400).json({ error: { code: 'empty', message: 'Ask a question.' } });
+  const lang = SUPPORTED.includes(body.lang) ? body.lang : pickLang(req);
+  const lat = parseFloat(body.lat), lng = parseFloat(body.lng);
+  const userLoc = (Number.isFinite(lat) && Number.isFinite(lng)) ? { lat, lng } : null;
+  const haz = store.getHazards();
+  const ctx = {
+    risk: userLoc ? dss.assess(store.getIncidents(), haz || {}, store.getFacilities(), { userLoc }) : store.getAssessment(),
+    incidents: store.getIncidents().slice(0, 12).map((i) => ({ cat: i.category, sev: i.severity, title: i.title.en, place: i.place, trust: i.trust, status: i.status, hoursAgo: Math.round((Date.now() - (i.updatedAt || Date.now())) / 3.6e6) })),
+    weather: haz && haz.weather ? haz.weather : null,
+    airQuality: haz && haz.airQuality ? { aqi: haz.airQuality.aqi } : null,
+    officialAlerts: haz && haz.alerts ? haz.alerts.map((a) => a.title) : [],
+    facilities: store.getFacilities().slice(0, 10).map((f) => ({ name: f.name, kind: f.kind, phone: f.phone }))
+  };
+  const out = await assistant.ask(question, ctx, lang);
+  res.set('Cache-Control', 'no-store');
+  res.json(out || { answer: 'I could not process that right now. For an emergency, call 112.' });
+});
+
+// --- Community mutual-aid board (need / offer / I'm-safe), with auto-matching.
+app.post('/api/aid', async (req, res) => {
+  const b = req.body || {};
+  const kind = ['need', 'offer', 'safe'].includes(b.kind) ? b.kind : 'need';
+  const message = String(b.message || '').trim().slice(0, 300);
+  if (kind !== 'safe' && !message) return res.status(400).json({ error: { code: 'empty', message: 'Describe what you need or offer.' } });
+  const item = { kind, message: message || "I'm safe", name: String(b.name || '').slice(0, 40), lat: typeof b.lat === 'number' ? b.lat : null, lng: typeof b.lng === 'number' ? b.lng : null, createdAt: Date.now() };
+  let id = null;
+  try { id = await persist.addAid(item); } catch { /* ignore */ }
+  res.status(202).json({ ok: true, id });
+});
+app.get('/api/aid', async (_req, res) => {
+  res.set('Cache-Control', 'no-store');
+  let items = [];
+  try { const cutoff = Date.now() - 24 * 3600 * 1000; items = (await persist.listAid(50)).filter((a) => (a.createdAt || 0) >= cutoff); } catch { /* none */ }
+  res.json({ count: items.length, items: aid.enrich(items), ts: Date.now() });
 });
 
 // --- Web Push: subscribe to alerts (risk escalation + verified emergencies)
@@ -174,6 +219,8 @@ app.get('/api/push/key', (_req, res) => {
 app.post('/api/push/subscribe', async (req, res) => {
   const sub = req.body || {};
   if (!sub.endpoint) return res.status(400).json({ error: { code: 'bad_sub', message: 'Missing endpoint.' } });
+  // Optional location lets us scope localized alerts to nearby subscribers only.
+  if (typeof sub.lat !== 'number') { const la = parseFloat(sub.lat); if (Number.isFinite(la)) sub.lat = la; }
   let id = null;
   try { id = await persist.savePushSub(sub); } catch { /* ignore */ }
   res.json({ ok: !!id, id });

@@ -116,6 +116,30 @@ function assess(incidents = [], hazards = {}, facilities = [], opts = {}) {
     else headline = `${activeN} current incident(s) across the district — most are localized. Use "near me" for risk at your location.`;
   }
 
+  // ---- Cross-source early-warning: a fresh event that many INDEPENDENT feeds are
+  // already reporting is "emerging" — surfaced before any single official
+  // confirmation. This is the value of fusing 40+ sources: corroboration velocity.
+  const emerging = scoped
+    .filter((x) => x.age <= 6 && (x.i.sources || 0) >= 2 && x.i.category !== 'rumor')
+    .sort((a, b) => (b.i.sources || 0) - (a.i.sources || 0))
+    .slice(0, 2)
+    .map((x) => ({ category: x.i.category, title: titleOf(x.i), sources: x.i.sources, place: x.i.place }));
+  for (const e of emerging) recs.push({ kind: 'emerging', level: 'medium', scope: 'area', text: `Emerging: ${e.title} — corroborated by ${e.sources} independent sources in the last hours.` });
+
+  // ---- Predictive nowcast (next 24-48h): forward-looking guidance, NOT added to
+  // the current risk score (we don't scare people about a future that may not
+  // happen). Derived from forecast rain on hill terrain + river-discharge trend.
+  let forecast = null;
+  if (w) {
+    const rainSoon = Math.max(w.precipTodayMm || 0, w.precipTomorrowMm || 0);
+    const fl = hazards.flood;
+    const floodRising = fl && typeof fl.dischargeMax === 'number' && fl.dischargeMax > Math.max(fl.dischargeNow || 0, 0.5) * 2 && fl.dischargeMax > 1;
+    if (rainSoon >= 50 || floodRising) forecast = { trend: 'rising', horizon: '24-48h', text: `Heavy rain (~${Math.round(rainSoon)} mm) forecast on hill terrain — landslide and flash-flood risk rising. Avoid slopes and riverbeds; keep water, a torch and a power bank ready.` };
+    else if (rainSoon >= 20) forecast = { trend: 'watch', horizon: '24-48h', text: `Moderate rain (~${Math.round(rainSoon)} mm) expected — local landslides or road slips possible. Plan travel accordingly.` };
+    else forecast = { trend: 'stable', horizon: '24-48h', text: 'No major weather hazard expected over the next two days.' };
+    if (forecast.trend !== 'stable') recs.push({ kind: 'forecast', level: forecast.trend === 'rising' ? 'high' : 'medium', scope: 'forecast', text: `Next 48h: ${forecast.text}` });
+  }
+
   if (!recs.length) recs.push({ kind: 'info', level: 'low', text: 'No active hazards. Save 112 for emergencies and keep essentials ready.' });
 
   return {
@@ -134,6 +158,8 @@ function assess(incidents = [], hazards = {}, facilities = [], opts = {}) {
     farCount,
     factors,
     weather: w ? { tempC: w.tempC, condition: w.condition, precipTodayMm: w.precipTodayMm, precipTomorrowMm: w.precipTomorrowMm, aqi: hazards.airQuality ? hazards.airQuality.aqi : undefined } : null,
+    forecast,
+    emerging,
     officialAlerts: alerts.length,
     recommendations: recs.slice(0, 8),
     generatedAt: Date.now()

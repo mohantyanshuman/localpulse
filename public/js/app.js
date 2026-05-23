@@ -248,6 +248,63 @@
 
   function setKpi(id, v) { const e = document.getElementById(id); if (e) e.textContent = v; }
 
+  // --- Ask LocalPulse: conversational RAG over the live situational data
+  function bindAsk() {
+    const form = document.getElementById('ask-form');
+    if (!form) return;
+    const input = document.getElementById('ask-input');
+    const ans = document.getElementById('ask-answer');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const q = input.value.trim();
+      if (!q) return;
+      ans.textContent = 'Thinking…';
+      const body = { q: q, lang: state.lang };
+      if (state.userLoc) { body.lat = state.userLoc.lat; body.lng = state.userLoc.lng; }
+      try {
+        const r = await fetchJson('/api/ask', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        ans.textContent = r.answer || 'No answer available.';
+      } catch (_) { ans.textContent = 'Could not reach the assistant. For an emergency, call 112.'; }
+    });
+  }
+
+  // --- Community mutual-aid board (need / offer / safe) with auto-matching
+  function renderAid(items) {
+    const list = document.getElementById('aid-list');
+    if (!list) return;
+    clear(list);
+    if (!items.length) { list.appendChild(el('li', { class: 'muted small' }, 'No posts yet. Be the first to offer or ask for help.')); return; }
+    items.slice(0, 20).forEach((a) => {
+      const li = el('li', { class: 'aid-item', 'data-kind': a.kind });
+      li.appendChild(el('span', { class: 'aid-tag', 'data-kind': a.kind }, a.kind === 'need' ? 'NEED' : a.kind === 'offer' ? 'OFFER' : 'SAFE'));
+      const body = el('div');
+      body.appendChild(el('div', null, a.message));
+      body.appendChild(el('div', { class: 'muted small' }, (a.name ? a.name + ' · ' : '') + formatAgo(a.createdAt) + ' ago' + (a.cat && a.cat !== 'other' ? ' · ' + a.cat : '')));
+      if (a.match) body.appendChild(el('div', { class: 'aid-match small' }, '↳ Matched with ' + a.match.name + (a.match.km != null ? ' (~' + a.match.km + ' km)' : '') + ': ' + a.match.message));
+      li.appendChild(body);
+      list.appendChild(li);
+    });
+  }
+  async function loadAid() { try { const j = await fetchJson('/api/aid'); renderAid(j.items || []); } catch (_) {} }
+  function bindAid() {
+    const form = document.getElementById('aid-form');
+    if (!form) return;
+    const status = document.getElementById('aid-status');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(form);
+      const body = { kind: fd.get('kind'), message: String(fd.get('message') || '').trim(), lang: state.lang };
+      if (body.kind !== 'safe' && !body.message) { status.dataset.state = 'err'; status.textContent = 'Add a short detail.'; return; }
+      status.dataset.state = ''; status.textContent = 'Posting…';
+      if (navigator.geolocation) {
+        try { const pos = await new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, { timeout: 4000, maximumAge: 300000 })); body.lat = pos.coords.latitude; body.lng = pos.coords.longitude; } catch (_) {}
+      }
+      try { await fetchJson('/api/aid', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); status.textContent = 'Posted. Thank you for helping.'; form.reset(); loadAid(); }
+      catch (_) { status.dataset.state = 'err'; status.textContent = 'Could not post. Try again.'; }
+    });
+    loadAid();
+  }
+
   // --- Web push: subscribe to risk + verified-emergency alerts
   function urlB64ToUint8(b) {
     const pad = '='.repeat((4 - b.length % 4) % 4);
@@ -263,7 +320,13 @@
       const meta = await (await fetch('/api/push/key')).json();
       if (!meta.enabled || !meta.key) { label.textContent = 'Alerts unavailable'; return; }
       const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToUint8(meta.key) });
-      const r = await fetch('/api/push/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(sub) });
+      const payload = JSON.parse(JSON.stringify(sub)); // {endpoint, keys}
+      // Best-effort location so alerts can be scoped to hazards near you.
+      try {
+        const pos = await new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, { timeout: 5000, maximumAge: 300000 }));
+        payload.lat = pos.coords.latitude; payload.lng = pos.coords.longitude;
+      } catch (_) { /* no location — will receive district-wide alerts */ }
+      const r = await fetch('/api/push/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const j = await r.json();
       try { localStorage.setItem('lp.pushid', j.id || '1'); } catch (_) {}
       label.textContent = '✓ Alerts on'; btn.disabled = true;
@@ -410,6 +473,8 @@
     bindPulse();
     bindAlerts();
     bindNearMe();
+    bindAsk();
+    bindAid();
     reload();
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
   }

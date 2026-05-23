@@ -462,6 +462,21 @@ a:hover { text-decoration: underline; }
 .dss-recs li[data-level="high"]::before { color: var(--danger); }
 .dss-recs li a { color: var(--info); }
 
+/* Ask LocalPulse */
+.ask-form { display: flex; gap: 8px; margin-top: 6px; }
+.ask-form input { flex: 1; padding: 11px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-card); color: var(--fg); font-size: 15px; }
+.ask-form input:focus-visible { outline: 2px solid var(--accent); border-color: var(--accent); }
+.ask-answer:not(:empty) { margin-top: 12px; padding: 12px 14px; border-radius: var(--radius-sm); background: var(--accent-soft); font-size: 15px; line-height: 1.5; }
+
+/* Mutual-aid board */
+.aid-list { list-style: none; padding: 0; margin: 14px 0 0; display: grid; gap: 8px; }
+.aid-item { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-card); }
+.aid-tag { font-size: 10px; font-weight: 700; letter-spacing: .08em; padding: 3px 8px; border-radius: var(--radius-pill); color: #fff; white-space: nowrap; height: fit-content; }
+.aid-tag[data-kind="need"] { background: var(--danger); }
+.aid-tag[data-kind="offer"] { background: var(--success); }
+.aid-tag[data-kind="safe"] { background: var(--info); }
+.aid-match { margin-top: 4px; color: var(--success); font-weight: 500; }
+
 /* print: hide chrome */
 @media print {
   .appbar, .appfoot, .filters, .hero-actions, .form-card, .phone-controls { display: none !important; }

@@ -3,6 +3,24 @@
 All notable changes to LocalPulse are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); grouped by date.
 
+## 2026-05-24 (differentiators + patent)
+
+### Added
+- **Ask LocalPulse** — conversational RAG assistant (`services/assistant.js`):
+  free-form multilingual Q&A answered strictly from the live fused situational
+  data (incidents + hazards + forecast + facilities + personalized risk).
+- **Mutual-aid board** (`services/aid.js`): residents post a need / offer / "I'm
+  safe"; an engine **auto-matches needs to the nearest offer** by resource
+  category and proximity. Persisted in Firestore.
+- **Cross-source early-warning**: a fresh event corroborated by multiple
+  independent feeds is flagged *emerging* before any single official confirmation.
+- **Predictive nowcast**: forward 24–48h hazard guidance from forecast rain on
+  terrain + river-discharge trend (advisory; not added to current risk).
+- **Locality-scoped push**: verified localized emergencies notify only
+  subscribers within a radius; whole-community push reserved for area-wide events.
+- **PATENT.md**: prior-art review (US10629053, US20160371968, US9438619,
+  US20230091292) and draft independent/method claims distinguishing LocalPulse.
+
 ## 2026-05-24 (breadth + freshness + quality)
 
 ### Added
