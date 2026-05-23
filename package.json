@@ -13,8 +13,8 @@
     "dev": "node server.js"
   },
   "dependencies": {
-    "compression": "1.7.5",
-    "express": "4.21.1",
+    "compression": "1.8.1",
+    "express": "4.22.2",
     "web-push": "^3.6.7"
   },
   "author": "Anshuman Mohanty <GF202217744>",
