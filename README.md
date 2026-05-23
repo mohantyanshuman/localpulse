@@ -19,7 +19,27 @@ During local emergencies — floods, fires, power outages — information on soc
 1. **AI social-media summary** — an NLP agent ingests local Twitter / X and Reddit threads, filters noise, classifies posts (roads, shelters, power, water, medical), clusters duplicates, scores trust, and returns a one-glance "Status Summary".
 2. **Multilingual voice helpline** — a Twilio + Whisper phone line so elderly residents without smartphones can call in their own language (Hindi, Punjabi, Tamil, Bengali, English) to report issues or get updates.
 
-This repo ships the **MLP** (mock data, no persistence, scale-to-zero on Cloud Run). Production swaps mocks for live ingest, Twilio Voice, GPT-4o, Firestore + Pub/Sub.
+**Live ingestion is real.** Every 20 minutes (Cloud Scheduler → token-guarded `/tasks/ingest`) the server pulls public Google News items for the town, classifies them into categories + severity, and serves them at `/api/incidents` and `/api/summary`. It runs **free with no API key** (keyword heuristic); set `GEMINI_API_KEY` to upgrade triage to Gemini Flash, and add Reddit credentials for a second source. If a fetch fails or no key is set, it transparently falls back to the curated seed data so the app is never blank. Still no persistence (in-memory, scale-to-zero); Firestore is the durability upgrade. Voice still runs as a browser Web Speech demo (production: Twilio + Whisper).
+
+### Live data & keys (all optional, all free-tier)
+
+| Env var | Effect |
+|---|---|
+| _(none)_ | Real Google News ingestion + keyword classifier. ₹0. |
+| `GEMINI_API_KEY` | Smart triage/summaries via Gemini Flash. Key: [aistudio.google.com](https://aistudio.google.com/apikey). |
+| `GEMINI_MODEL` | Override model (default `gemini-2.0-flash`). |
+| `REDDIT_CLIENT_ID` / `REDDIT_CLIENT_SECRET` | Adds Reddit as a source (app-only OAuth). Register at [reddit.com/prefs/apps](https://www.reddit.com/prefs/apps). |
+| `REDDIT_SUBS` | Subreddits to scan (default `himachal,india`). |
+| `LOCATION_QUERY` | Town/region to search (default `Solan Himachal Pradesh`). |
+| `INGEST_TOKEN` | Shared secret required to call `/tasks/ingest`. Ingestion is disabled until set. |
+| `INGEST_MIN_INTERVAL_MS` | Cooldown between ingests (default 5 min) — protects the Gemini quota. |
+
+To enable Gemini on the live service:
+
+```bash
+gcloud run services update localpulse --region=asia-east1 \
+  --update-env-vars="GEMINI_API_KEY=YOUR_KEY"
+```
 
 ## Routes
 
