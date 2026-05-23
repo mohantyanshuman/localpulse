@@ -27,7 +27,7 @@ During local emergencies — floods, fires, power outages — information on soc
 |---|---|
 | _(none)_ | Real Google News ingestion + keyword classifier. ₹0. |
 | `GEMINI_API_KEY` | Smart triage/summaries via Gemini Flash. Key: [aistudio.google.com](https://aistudio.google.com/apikey). |
-| `GEMINI_MODEL` | Override model (default `gemini-2.0-flash`). |
+| `GEMINI_MODEL` | Override model (default `gemini-3.1-flash-lite` — cheapest/fastest tier). |
 | `REDDIT_CLIENT_ID` / `REDDIT_CLIENT_SECRET` | Adds Reddit as a source (app-only OAuth). Register at [reddit.com/prefs/apps](https://www.reddit.com/prefs/apps). |
 | `REDDIT_SUBS` | Subreddits to scan (default `himachal,india`). |
 | `LOCATION_QUERY` | Town/region to search (default `Solan Himachal Pradesh`). |
