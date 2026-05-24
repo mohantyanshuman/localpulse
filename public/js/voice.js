@@ -121,5 +121,9 @@
 
   capUser.textContent = 'Press the orange button below and speak. Or tap a suggestion on the right.';
 
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(function () {});
+  if ('serviceWorker' in navigator) {
+    var reloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', function () { if (reloaded) return; reloaded = true; location.reload(); });
+    navigator.serviceWorker.register('/sw.js').then(function (reg) { try { reg.update(); } catch (e) {} }).catch(function () {});
+  }
 })();

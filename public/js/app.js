@@ -564,7 +564,13 @@
     bindVulnerable();
     bindMissing();
     reload();
-    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+    // Auto-update: when a freshly deployed service worker takes control, reload
+    // once so the user gets the new version without a manual hard refresh.
+    if ('serviceWorker' in navigator) {
+      let reloaded = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => { if (reloaded) return; reloaded = true; location.reload(); });
+      navigator.serviceWorker.register('/sw.js').then((reg) => { try { reg.update(); } catch (_) {} }).catch(() => {});
+    }
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);

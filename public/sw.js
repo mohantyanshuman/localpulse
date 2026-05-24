@@ -1,7 +1,7 @@
 // LocalPulse service worker — offline resilience for slow phones / bad internet.
 // Shell is cache-first; API responses are network-first with a cache fallback,
 // so the dashboard still shows the last-known status when the connection drops.
-const CACHE = 'localpulse-v4';
+const CACHE = 'localpulse-v5';
 const SHELL = ['/', '/responder', '/voice', '/css/app.css', '/js/app.js', '/js/voice.js', '/manifest.json', '/favicon.svg'];
 
 self.addEventListener('install', (e) => {
