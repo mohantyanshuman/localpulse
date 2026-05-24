@@ -586,6 +586,26 @@
         ? `Cross-validated: ${data.gapsCovered.join(' · ')}`
         : 'Single-sensor reads this cycle; corroboration pending next overpass.';
     }
+    renderForecast(data.predictions || []);
+  }
+
+  function renderForecast(preds) {
+    const box = document.getElementById('eo-forecast');
+    const title = document.getElementById('eo-forecast-title');
+    if (!box) return;
+    box.innerHTML = '';
+    if (title) title.hidden = preds.length === 0;
+    for (const p of preds) {
+      const eta = p.etaHours === 0 ? 'now' : `~${p.etaHours}h`;
+      const row = el('div', { class: `eo-pred lk-${p.likelihood}` });
+      row.appendChild(el('div', { class: 'eo-pred-head' }, [
+        el('span', { class: 'eo-pred-headline' }, p.headline),
+        el('span', { class: `eo-pred-chip lk-${p.likelihood}` }, p.likelihood),
+      ]));
+      row.appendChild(el('div', { class: 'eo-pred-why muted' }, p.reasoning));
+      row.appendChild(el('div', { class: 'eo-pred-meta muted' }, `ETA ${eta} · confidence ${Math.round((p.confidence || 0) * 100)}%`));
+      box.appendChild(row);
+    }
   }
 
   function wireEO() {

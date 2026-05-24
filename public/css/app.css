@@ -513,3 +513,17 @@ body.big-text .muted.small, body.big-text .small { font-size: 14px; }
 .eo-headline.lv-elevated, .eo-card.lv-elevated { border-left: 4px solid #f59f00; }
 .eo-headline.lv-ok, .eo-card.lv-ok { border-left: 4px solid #2f9e44; }
 .eo-coverage { font-size: 12px; margin-top: 8px; }
+
+/* Satellite forecast (Phase 4) */
+.eo-forecast-title { font-size: 14px; margin: 14px 0 6px; }
+.eo-forecast { display: grid; gap: 8px; }
+.eo-pred { border-radius: 12px; padding: 10px 12px; background: var(--bg-card, #fff); box-shadow: 0 1px 3px rgba(0,0,0,.1); border-left: 4px solid #2f9e44; }
+.eo-pred.lk-moderate { border-left-color: #f59f00; }
+.eo-pred.lk-high { border-left-color: #c92a2a; }
+.eo-pred-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.eo-pred-headline { font-weight: 700; }
+.eo-pred-chip { text-transform: uppercase; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: #e6f4ea; color: #2f9e44; }
+.eo-pred-chip.lk-moderate { background: #fff3bf; color: #b8860b; }
+.eo-pred-chip.lk-high { background: #ffe3e3; color: #c92a2a; }
+.eo-pred-why { font-size: 13px; margin-top: 4px; }
+.eo-pred-meta { font-size: 12px; margin-top: 4px; }
