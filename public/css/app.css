@@ -503,3 +503,13 @@ body.big-text .muted.small, body.big-text .small { font-size: 14px; }
   .appbar, .appfoot, .filters, .hero-actions, .form-card, .phone-controls { display: none !important; }
   .card { break-inside: avoid; box-shadow: none; }
 }
+
+/* Satellite Intelligence panel */
+.eo-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+.eo-card { border-radius: 12px; padding: 12px; background: var(--card, var(--bg-card, #fff)); box-shadow: 0 1px 3px rgba(0,0,0,.12); min-width: 0; }
+.eo-axis { text-transform: capitalize; font-weight: 700; }
+.eo-headline.lv-high, .eo-card.lv-high { border-left: 4px solid #e67700; }
+.eo-headline.lv-severe, .eo-card.lv-severe { border-left: 4px solid #c92a2a; }
+.eo-headline.lv-elevated, .eo-card.lv-elevated { border-left: 4px solid #f59f00; }
+.eo-headline.lv-ok, .eo-card.lv-ok { border-left: 4px solid #2f9e44; }
+.eo-coverage { font-size: 12px; margin-top: 8px; }

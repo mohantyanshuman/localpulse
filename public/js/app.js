@@ -547,6 +547,61 @@
     loadMissing();
   }
 
+  // --- Satellite Intelligence: worldwide multi-sensor Earth-observation fusion
+  async function loadEO(coords) {
+    const qs = coords ? `?lat=${coords.lat}&lng=${coords.lng}` : '';
+    let data;
+    try {
+      data = await fetchJson(`/api/eo${qs}`);
+    } catch {
+      return; // offline; panel stays with last paint
+    }
+    renderEO(data);
+  }
+
+  function eoLevelClass(level) {
+    return { ok: 'lv-ok', elevated: 'lv-elevated', high: 'lv-high', severe: 'lv-severe' }[level] || 'lv-ok';
+  }
+
+  function renderEO(data) {
+    const headline = document.getElementById('eo-headline');
+    const cards = document.getElementById('eo-cards');
+    const coverage = document.getElementById('eo-coverage');
+    if (!headline || !cards) return;
+    const place = (data.location && data.location.place) || 'your area';
+    headline.textContent = `${place}: ${data.level.toUpperCase()} — ${data.sensorsUsed.length} sensors reporting`;
+    headline.className = `eo-headline ${eoLevelClass(data.level)}`;
+    cards.innerHTML = '';
+    for (const h of data.perHazard) {
+      const card = el('div', { class: `eo-card ${eoLevelClass(h.level)}` });
+      card.appendChild(el('div', { class: 'eo-axis' }, h.axis));
+      card.appendChild(el('div', { class: 'eo-level' }, h.level));
+      card.appendChild(el('div', { class: 'eo-conf' }, 'confidence ' + Math.round(h.confidence * 100) + '%'));
+      card.appendChild(el('div', { class: 'eo-sensors' }, h.sensorsUsed.join(', ')));
+      card.appendChild(el('div', { class: 'eo-gap muted' }, h.gapNote));
+      cards.appendChild(card);
+    }
+    if (coverage) {
+      coverage.textContent = data.gapsCovered.length
+        ? `Cross-validated: ${data.gapsCovered.join(' · ')}`
+        : 'Single-sensor reads this cycle; corroboration pending next overpass.';
+    }
+  }
+
+  function wireEO() {
+    const btn = document.getElementById('eo-sharpen');
+    if (btn) {
+      btn.addEventListener('click', () => {
+        if (!navigator.geolocation) return;
+        navigator.geolocation.getCurrentPosition(
+          (pos) => loadEO({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+          () => loadEO() // denied -> stay coarse
+        );
+      });
+    }
+    loadEO(); // coarse on boot
+  }
+
   function boot() {
     applyTheme(loadTheme());
     const tb = document.getElementById('theme-toggle');
@@ -571,6 +626,7 @@
     bindListen();
     bindVulnerable();
     bindMissing();
+    wireEO();
     reload();
     // Auto-update: when a freshly deployed service worker takes control, reload
     // once so the user gets the new version without a manual hard refresh.
