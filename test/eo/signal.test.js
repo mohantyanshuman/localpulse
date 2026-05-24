@@ -5,7 +5,7 @@ const { mkSignal, AXES } = require('../../services/eo/signal');
 test('AXES contains the seven hazard axes', () => {
   assert.deepStrictEqual(
     [...AXES].sort(),
-    ['air', 'fire', 'flood', 'power', 'seismic', 'storm', 'vegetation']
+    ['air', 'fire', 'flood', 'heat', 'power', 'seismic', 'storm', 'vegetation']
   );
 });
 

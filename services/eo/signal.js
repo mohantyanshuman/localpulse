@@ -20,7 +20,7 @@
  * @property {number} generatedAt
  */
 
-const AXES = new Set(['fire', 'air', 'flood', 'vegetation', 'storm', 'power', 'seismic']);
+const AXES = new Set(['fire', 'air', 'flood', 'vegetation', 'storm', 'power', 'seismic', 'heat']);
 
 const clamp01 = (n) => Math.max(0, Math.min(1, Number.isFinite(n) ? n : 0));
 
