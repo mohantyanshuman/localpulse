@@ -4,9 +4,10 @@
 const sh = require('../sentinelhub');
 const { mkSignal } = require('../signal');
 
+// CDSE Statistical API requires a dataMask output to compute stats.
 const EVALSCRIPT = `//VERSION=3
-function setup(){return {input:["VV","dataMask"],output:[{id:"data",bands:1}]}}
-function evaluatePixel(s){return {data:[s.VV]}}`;
+function setup(){return {input:["VV","dataMask"],output:[{id:"data",bands:1},{id:"dataMask",bands:1}]}}
+function evaluatePixel(s){return {data:[s.VV],dataMask:[s.dataMask]}}`;
 
 // VV linear backscatter from CDSE is ~0..1; water is very low. We accept either a
 // dB value (negative) or linear (0..1) and normalize: lower => more water.

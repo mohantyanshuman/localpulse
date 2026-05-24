@@ -3,9 +3,10 @@
 const sh = require('../sentinelhub');
 const { mkSignal } = require('../signal');
 
+// CDSE Statistical API requires a dataMask output to compute stats.
 const EVALSCRIPT = `//VERSION=3
-function setup(){return {input:["AER_AI_354_388","dataMask"],output:[{id:"data",bands:1}]}}
-function evaluatePixel(s){return {data:[s.AER_AI_354_388]}}`;
+function setup(){return {input:["AER_AI_354_388","dataMask"],output:[{id:"data",bands:1},{id:"dataMask",bands:1}]}}
+function evaluatePixel(s){return {data:[s.AER_AI_354_388],dataMask:[s.dataMask]}}`;
 
 // Aerosol index: <0 clean, ~1 hazy, >2 heavy smoke/dust. Map to 0..1 over [0,3].
 function toSignal(ai, center) {
