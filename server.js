@@ -136,7 +136,7 @@ app.get('/api/eo', async (req, res) => {
     res.set('Cache-Control', precise ? 'no-store' : 'public, max-age=300, stale-while-revalidate=600');
     res.json({ ...assessment, location: { ...loc, ...(place || {}) } });
   } catch (err) {
-    res.status(502).json({ error: 'fusion_failed', code: 'EO_FUSION', requestId: null });
+    res.status(502).json({ error: 'fusion_failed', code: 'EO_FUSION', requestId: res.getHeader('X-Correlation-Id') || null });
   }
 });
 
