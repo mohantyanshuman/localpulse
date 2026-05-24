@@ -435,6 +435,14 @@
         setStatus('online');
       } catch (_) {}
     });
+    // Raw real-time arrivals from the 40+ sources (unverified live signal).
+    es.addEventListener('incoming', (e) => {
+      try {
+        const d = JSON.parse(e.data);
+        prepend('[' + new Date(d.ts).toLocaleTimeString() + '] 🛰 LIVE · ' + (d.source || 'feed') + ' — ' + (d.title || ''));
+        setStatus('online');
+      } catch (_) {}
+    });
     es.addEventListener('ping', () => setStatus('online'));
     es.addEventListener('error', () => setStatus('stale'));
   }

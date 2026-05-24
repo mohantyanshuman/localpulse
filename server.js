@@ -16,6 +16,7 @@ const { verifyReport } = require('./services/verify');
 const dss = require('./services/dss');
 const assistant = require('./services/assistant');
 const aid = require('./services/aid');
+const livefeed = require('./services/livefeed');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -372,6 +373,10 @@ app.get('/api/pulse', (req, res) => {
   store.getIncidents().slice(0, 8).reverse().forEach((i) => send('incident', incidentEvt(i)));
   send('stat', stat());
 
+  // Register for the shared real-time live feed (new items from all 40+ free
+  // sources, broadcast as they appear — no Gemini, so nothing is rate-limited).
+  livefeed.addClient(res, lang);
+
   let lastV = store.getVersion();
   let n = 0;
   const tick = setInterval(() => {
@@ -387,7 +392,7 @@ app.get('/api/pulse', (req, res) => {
     }
     if (n > 1200) { clearInterval(tick); res.end(); }
   }, 15000);
-  req.on('close', () => clearInterval(tick));
+  req.on('close', () => { clearInterval(tick); livefeed.removeClient(res); });
 });
 
 // --- ingestion trigger (called by Cloud Scheduler). Token-guarded so nobody
