@@ -173,4 +173,31 @@ function assess(incidents = [], hazards = {}, facilities = [], opts = {}) {
   };
 }
 
-module.exports = { assess, LEVELS, haversineKm };
+const EO_RANK = { ok: 0, elevated: 1, high: 2, severe: 3 };
+
+// Fold a satellite EOAssessment into a DSS result: take the higher level, add a
+// recommendation per elevated satellite axis (same { kind, level, scope, text }
+// shape as the rest of recommendations), and attach a compact satellite summary.
+function mergeEo(assessment, eo) {
+  if (!eo || !Array.isArray(eo.perHazard)) return assessment;
+  const out = { ...assessment, recommendations: [...(assessment.recommendations || [])] };
+  if (EO_RANK[eo.level] > EO_RANK[out.level || 'ok']) out.level = eo.level;
+  for (const h of eo.perHazard) {
+    if (EO_RANK[h.level] >= EO_RANK.high) {
+      out.recommendations.push({
+        kind: 'satellite',
+        level: h.level,
+        scope: 'area',
+        text: `Satellite ${h.axis} signal is ${h.level} (${(h.sensorsUsed || []).join(', ')}).`,
+      });
+    }
+  }
+  out.satellite = {
+    level: eo.level,
+    sensorsUsed: eo.sensorsUsed || [],
+    axes: eo.perHazard.map((h) => ({ axis: h.axis, level: h.level, confidence: h.confidence })),
+  };
+  return out;
+}
+
+module.exports = { assess, LEVELS, haversineKm, mergeEo };

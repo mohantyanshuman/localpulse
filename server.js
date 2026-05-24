@@ -142,11 +142,18 @@ app.get('/api/eo', async (req, res) => {
 
 // Decision Support: risk + recommendations. With ?lat&lng it is personalized to
 // the user's location (incidents scoped to a radius); otherwise a district view.
-app.get('/api/dss', (req, res) => {
+app.get('/api/dss', async (req, res) => {
   const lat = parseFloat(req.query.lat), lng = parseFloat(req.query.lng);
   if (Number.isFinite(lat) && Number.isFinite(lng)) {
     res.set('Cache-Control', 'no-store');
-    return res.json(dss.assess(store.getIncidents(), store.getHazards() || {}, store.getFacilities(), { userLoc: { lat, lng } }));
+    let assessment = dss.assess(store.getIncidents(), store.getHazards() || {}, store.getFacilities(), { userLoc: { lat, lng } });
+    // Fuse the worldwide satellite layer for this point; best-effort so a Sentinel
+    // outage never breaks the DSS response.
+    try {
+      const eo = await eoFusion.fuse(lat, lng);
+      assessment = dss.mergeEo(assessment, eo);
+    } catch { /* satellite layer optional; ignore */ }
+    return res.json(assessment);
   }
   res.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=120');
   res.json(store.getAssessment() || { level: 'ok', score: 0, headline: 'Starting up — fetching live data.', recommendations: [], generatedAt: Date.now() });
@@ -176,7 +183,7 @@ function incidentsFor(lang, max) {
 // Collapses i18n-independent live state (risk + summary + incidents + facilities)
 // into ONE conditional request. Returns a ~25-byte "unchanged" when the client's
 // version matches, instead of re-sending everything every poll.
-app.get('/api/sync', (req, res) => {
+app.get('/api/sync', async (req, res) => {
   const lang = pickLang(req);
   const lite = req.query.lite === '1';
   const v = store.getVersion();
@@ -186,9 +193,19 @@ app.get('/api/sync', (req, res) => {
   if (req.headers['if-none-match'] === etag) return res.status(304).end();
   if (String(req.query.since || '') === String(v)) return res.json({ v, changed: false }); // tiny
   const incidents = incidentsFor(lang, lite ? 6 : 30);
+  // When the client shares its location, fold the worldwide satellite layer into
+  // the DSS section. Best-effort: a Sentinel hiccup must never fail a sync poll.
+  let dssSection = store.getAssessment();
+  const sLat = parseFloat(req.query.lat), sLng = parseFloat(req.query.lng);
+  if (Number.isFinite(sLat) && Number.isFinite(sLng)) {
+    try {
+      const eo = await eoFusion.fuse(sLat, sLng);
+      dssSection = dss.mergeEo(dssSection, eo);
+    } catch { /* satellite layer optional; ignore */ }
+  }
   const body = {
     v, changed: true, lang,
-    dss: store.getAssessment(),
+    dss: dssSection,
     summary: store.getSummary(lang),
     incidents,
     shelters: lite ? null : store.getFacilities(), // facilities change rarely; client keeps cache on lite
