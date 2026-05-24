@@ -23,7 +23,9 @@ const START_TS = Date.now();
 const REV = process.env.K_REVISION || 'local';
 
 app.disable('x-powered-by');
-app.use(compression());
+// Compress everything except the SSE stream (compression buffers event-streams,
+// which would stall live pulse delivery).
+app.use(compression({ filter: (req, res) => (req.path === '/api/pulse' ? false : compression.filter(req, res)) }));
 app.use(express.json({ limit: '32kb' }));
 
 // --- security + observability headers
@@ -356,23 +358,35 @@ app.post('/api/voice/intent', (req, res) => {
 // --- SSE pulse for live ticker (no persistence; synthetic ticks)
 app.get('/api/pulse', (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
   res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no'); // ask proxies not to buffer
   res.flushHeaders();
+  const lang = pickLang(req);
+  const send = (event, data) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+  const incidentEvt = (i) => ({ id: i.id, cat: i.category, sev: i.severity, title: i.title[lang] || i.title.en, ts: i.updatedAt, src: i.src });
+  const stat = () => { const m = store.meta(); return { activeIncidents: store.getIncidents().length, sheltersOpen: store.getFacilities().length, sourcesIngested: m.sourcesIngested || 0, mode: m.mode, ts: Date.now() }; };
+
+  // On connect: replay the latest real incidents (oldest→newest) + a stat snapshot,
+  // so the stream is never empty and reflects the actual situation.
+  store.getIncidents().slice(0, 8).reverse().forEach((i) => send('incident', incidentEvt(i)));
+  send('stat', stat());
+
+  let lastV = store.getVersion();
   let n = 0;
   const tick = setInterval(() => {
     n += 1;
-    const m = store.meta();
-    const evt = {
-      n, ts: Date.now(),
-      activeIncidents: store.getIncidents().length,
-      sheltersOpen: store.getFacilities().length,
-      sourcesIngested: m.sourcesIngested || 0,
-      mode: m.mode
-    };
-    res.write(`event: pulse\ndata: ${JSON.stringify(evt)}\n\n`);
-    if (n > 600) { clearInterval(tick); res.end(); }
-  }, 5000);
+    const v = store.getVersion();
+    if (v !== lastV) {
+      lastV = v;
+      // Something changed (new ingest or a community report) — push the freshest items live.
+      store.getIncidents().slice(0, 3).forEach((i) => send('incident', incidentEvt(i)));
+      send('stat', stat());
+    } else {
+      send('ping', { ts: Date.now() }); // heartbeat keeps the connection + status alive
+    }
+    if (n > 1200) { clearInterval(tick); res.end(); }
+  }, 15000);
   req.on('close', () => clearInterval(tick));
 });
 

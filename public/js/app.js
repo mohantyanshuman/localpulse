@@ -412,19 +412,30 @@
     if (!('EventSource' in window)) return;
     const es = new EventSource('/api/pulse');
     const stream = document.getElementById('pulse-stream');
-    es.addEventListener('pulse', (e) => {
+    const prepend = (txt) => {
+      if (!stream) return;
+      if (!stream.dataset.live) { stream.textContent = ''; stream.dataset.live = '1'; } // clear "awaiting events…"
+      stream.textContent = (txt + '\n' + stream.textContent).slice(0, 4000);
+    };
+    // Real incident events (initial replay + live as they change).
+    es.addEventListener('incident', (e) => {
+      try {
+        const d = JSON.parse(e.data);
+        prepend('[' + new Date(d.ts).toLocaleTimeString() + '] ' + (d.src === 'community' ? '📍 ' : '') + String(d.cat || '').toUpperCase() + (d.sev ? '/' + d.sev : '') + ' — ' + (d.title || ''));
+        setStatus('online');
+      } catch (_) {}
+    });
+    // Live counters.
+    es.addEventListener('stat', (e) => {
       try {
         const d = JSON.parse(e.data);
         setKpi('kpi-incidents', d.activeIncidents);
         setKpi('kpi-shelters', d.sheltersOpen);
         if (typeof d.sourcesIngested === 'number') setKpi('kpi-sources', d.sourcesIngested.toLocaleString());
         setStatus('online');
-        if (stream) {
-          const line = '[' + new Date(d.ts).toLocaleTimeString() + '] inc=' + d.activeIncidents + ' facilities=' + d.sheltersOpen + ' sources=' + d.sourcesIngested + ' mode=' + (d.mode || '') + '\n';
-          stream.textContent = (line + stream.textContent).slice(0, 4000);
-        }
       } catch (_) {}
     });
+    es.addEventListener('ping', () => setStatus('online'));
     es.addEventListener('error', () => setStatus('stale'));
   }
 
