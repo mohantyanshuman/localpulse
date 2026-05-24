@@ -73,3 +73,37 @@ A computer-implemented method performing steps (a)–(f) above, wherein the temp
 
 ## 7. Advantages
 Trustworthy (agentic verification + corroboration), genuine (spatiotemporal honesty, no over-alerting), proactive (nowcast, early-warning, scoped push), participatory (mutual aid), and economically deployable in low-resource regions (free feeds, capped AI, offline).
+
+---
+
+# Part B — Earth-Observation Fusion & Frontier Differentiators (Phase 5)
+
+> Added 2026-05-24 after building the worldwide satellite-fusion + prediction engine. This part is deliberately more conservative about novelty than Part A: the core idea of multi-source hazard fusion is NOT novel. Patentability here rests only on the specific technical-effect mechanisms of §B3 and their combination.
+
+## B1. Honest prior art (the strong references Part A omitted)
+- **PDC DisasterAWARE** (Pacific Disaster Center, NASA-partnered): near-real-time, AI-enhanced multi-hazard early warning + risk analytics across ~28 hazard types, global. This is direct, strong prior art for "fuse many sources, assess per-location hazard, alert." Any claim must distinguish over it.
+- **Google FloodHub / Flood Forecasting API**: free, global, AI riverine flood forecasts, public API (CC BY 4.0). Direct prior art for per-location flood prediction.
+- **ESA Copernicus EO4Multihazards** (2023–): satellite EO for cascading/compound multi-hazard analysis — prior art for compound-hazard work.
+- Extensive academic literature on multi-sensor EO fusion (optical+SAR+lidar, Bayesian/JS-divergence fusion), conformal prediction in EO, and physics-informed NNs for wildfire/flood.
+
+**Consequence:** generic "satellite fusion + prediction" is unpatentable here. We do NOT claim it.
+
+## B2. What is NOT claimed
+The act of fusing free EO feeds, computing a per-location risk, or forecasting a hazard. These are taught by PDC/FloodHub/EO4Multihazards.
+
+## B3. Claimed technical-effect mechanisms (each a concrete, non-abstract effect)
+1. **Cross-sensor divergence gating (anti-spoof + blindspot).** Jensen-Shannon divergence between independent sensors on a hazard axis classifies the axis as consensus / blindspot (one sensor sees a hazard the others miss) / suspect (an implausible outlier feed). Suspect feeds are down-weighted; blindspots raise an early-warning. *Technical effect:* robustness and integrity of the fused output against sensor failure and feed spoofing — not mere aggregation.
+2. **Cryptographically verifiable, offline-checkable provenance.** Each prediction carries a tamper-evident receipt binding a canonical hash of the exact sensor inputs + model version + timestamp, HMAC-signed; the recipient device re-verifies with constant-time comparison and rejects altered or stale receipts, with no network. *Technical effect:* improved security/integrity and auditability of an automated decision output (squarely eligible under India §3(k) CRI guidelines and US *Alice* "significantly more").
+3. **On-device, connectivity-independent recomputation.** The confidence-weighted roll-up and divergence are recomputed in-browser from the last cached per-sensor signals, and the provenance receipt re-verified locally, so the device yields a trustworthy hazard level with zero connectivity. *Technical effect:* improved operation of the device under intermittent/no network.
+4. **Physics-constrained propagation bounding the forecast.** Interpretable physical models (Rothermel-style fire rate-of-spread from satellite-derived dryness + wind + terrain slope; rainfall-runoff onset from rain intensity + terrain) constrain the prediction's reach/ETA. *Technical effect:* a specific computational method improving forecast accuracy, not an abstract score.
+5. **Distribution-free calibrated uncertainty.** Split-conformal intervals derived from a rolling log of (prediction, observed-outcome) nonconformity scores attach a guaranteed marginal-coverage interval to each forecast once calibrated, and explicitly report `calibrated:false` before sufficient data. *Technical effect:* a measurable statistical calibration property of the output.
+
+## B4. Patentable synthesis (claim spine, Phase 5)
+> A connectivity-resilient method for producing hazard nowcasts from a fusion of heterogeneous Earth-observation feeds, comprising: bounding each forecast by an interpretable physical propagation model parameterised by satellite-derived inputs; computing a cross-sensor divergence per hazard axis to gate per-feed trust and to raise a blindspot early-warning; attaching a split-conformal distribution-free coverage interval from accrued nonconformity scores; emitting a tamper-evident provenance receipt that binds the sensor inputs and is verifiable offline by the recipient device; and recomputing the headline assessment on-device from cached signals under loss of connectivity.
+
+The combination yields multiple interacting technical effects (accuracy, calibration guarantee, integrity/security, offline device operability) that none of PDC DisasterAWARE, Google FloodHub, or EO4Multihazards teaches together — the *KSR* synergy basis, mirroring Part A.
+
+## B5. Honest patentability assessment (Phase 5)
+- **Subject matter:** mechanisms 2 and 3 (security + device operability) are the safest under India §3(k) and *Alice*; 1, 4, 5 are stronger on novelty but each is individually at obviousness risk given the cited art. The defensible filing is the *combination*, anchored on the security/offline technical effects.
+- **Recommendation:** a single provisional covering Parts A+B is reasonable and cheap; expect the examiner to cite PDC/FloodHub; do not rely on the bare fusion/prediction claims. Treat copyright (code), defensive publication (public repo + live site), and the working product as the primary IP value.
+- *Not legal advice; for registered patent-agent review.*
