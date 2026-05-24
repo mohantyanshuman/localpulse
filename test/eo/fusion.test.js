@@ -29,3 +29,17 @@ test('fuseSignals reports skipped adapter ids', () => {
   assert.deepStrictEqual(out.skipped, ['firms']);
   assert.strictEqual(out.level, 'ok');
 });
+
+test('fuse skips Sentinel adapters when Copernicus creds are absent', async () => {
+  const prevId = process.env.COPERNICUS_CLIENT_ID;
+  const prevSecret = process.env.COPERNICUS_CLIENT_SECRET;
+  delete process.env.COPERNICUS_CLIENT_ID;
+  delete process.env.COPERNICUS_CLIENT_SECRET;
+  const { fuse } = require('../../services/eo/fusion');
+  const out = await fuse(0, 0);
+  assert.ok(out.skipped.includes('sentinel5p'));
+  assert.ok(out.skipped.includes('sentinel1'));
+  assert.ok(out.skipped.includes('sentinel2'));
+  if (prevId !== undefined) process.env.COPERNICUS_CLIENT_ID = prevId;
+  if (prevSecret !== undefined) process.env.COPERNICUS_CLIENT_SECRET = prevSecret;
+});

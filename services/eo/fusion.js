@@ -8,6 +8,9 @@ const ADAPTERS = [
   require('./adapters/openmeteo-air'),
   require('./adapters/power'),
   require('./adapters/seismic'),
+  require('./adapters/sentinel5p'),
+  require('./adapters/sentinel2'),
+  require('./adapters/sentinel1'),
 ];
 
 function hasReqs(a) {
