@@ -290,13 +290,17 @@ REQ_FUNCTIONAL = [
     "preferred language without reading the screen.",
     "The system shall let a responder mark an incident as acknowledged, in "
     "progress or resolved.",
-    "The system shall ingest public social-media posts (Twitter or X and Reddit) "
-    "and surface a deduplicated, categorised feed in the responder console.",
+    "The system shall ingest public information from many free sources (local "
+    "news feeds and official government alerts) and surface a deduplicated, "
+    "AI-classified, deduced feed in the dashboard and responder console.",
+    "The system shall verify each citizen report against live web sources using "
+    "an autonomous agent and label it corroborated, unverified or contradicted, "
+    "excluding contradicted reports from the risk computation.",
     "The system shall expose JSON application programming interfaces for "
-    "incidents, summaries, reports and voice intents.",
-    "The system shall accept a phone call on a single Twilio number, transcribe "
-    "the speech with Whisper, classify the intent and respond either with "
-    "spoken information or with a forwarding action.",
+    "incidents, summaries, hazards, decision support, reports, mutual aid and "
+    "voice intents.",
+    "The system shall answer a free-form question from a resident using only the "
+    "live situational data, in the resident's chosen language.",
     "The system shall surface real-time updates without requiring a manual page "
     "reload, using server-sent events or short polling.",
     "The system shall support a language switcher with at least Hindi, Punjabi, "
@@ -406,28 +410,31 @@ ARCH_OVERVIEW = [
     ),
     (
         "The system is split into four logical layers. The presentation layer is "
-        "a server-rendered HTML shell with progressive enhancement through a "
-        "small client bundle. The application layer is an Express server that "
-        "exposes JSON application programming interfaces and renders the HTML "
-        "shell. The intelligence layer is a set of small Node-side services for "
-        "summarisation and intent classification, which talk to managed AI "
-        "providers when running in production. The data layer is in-memory and "
-        "static for the minimum lovable product, and is Firestore plus "
-        "Pub/Sub plus BigQuery in production."
+        "a server-rendered HTML shell with progressive enhancement through a small "
+        "client bundle and an offline service worker. The application layer is an "
+        "Express server that exposes JSON APIs, a versioned delta-sync endpoint and "
+        "a Server-Sent-Events live stream. The intelligence layer is a set of Node "
+        "services that fuse forty-plus free feeds, classify, geocode and translate "
+        "with a Gemini Flash-Lite model, and verify citizen reports with an agentic "
+        "web search. The data layer is an in-memory live store backed by Firestore "
+        "for durable reports, the cold-start snapshot, push subscriptions and the "
+        "vulnerable-person registry."
     ),
 ]
 
 ARCH_COMPONENTS = [
-    ("Express HTTP Server", "Node.js 20, ~600 lines, handles routing, server-side rendering and JSON APIs."),
-    ("Static Front-End", "HTML, Tailwind CSS via CDN, vanilla JavaScript, Leaflet for maps."),
-    ("Locale Bundle", "JSON files per language under /public/i18n; chosen by Accept-Language with manual override."),
-    ("Mock Data Source", "JSON files under /data/ that mirror the production schema for incidents and social posts."),
-    ("Summariser Service", "Plain function in MLP; calls GPT-4o with a structured-output schema in production."),
-    ("Voice Intent Service", "Web Speech API in browser for MLP; Twilio webhook + Whisper + GPT-4o in production."),
-    ("Pub/Sub Topic (production)", "incidents-v1; ingest workers publish, all consumers fan-out subscribe."),
-    ("Firestore Collections (production)", "incidents, summaries, reports; document IDs are KSUIDs."),
-    ("BigQuery Dataset (production)", "localpulse_analytics, partitioned by day, for trend queries."),
-    ("Cloud Logging and Trace", "Receives structured logs and OpenTelemetry traces from every request."),
+    ("Express HTTP Server", "Node.js 20, single container; routing, server-side rendering, JSON APIs, delta-sync and the SSE live stream."),
+    ("Static Front-End", "HTML, Tailwind via CDN, vanilla JavaScript, Leaflet maps, and an offline service worker (installable PWA)."),
+    ("Source Registry (sources.js)", "40+ free, no-key feeds: Google News per Himachal district plus national, regional and Hindi RSS, fetched in parallel."),
+    ("Hazard Feeds (hazards.js)", "Open-Meteo weather / air-quality / river-discharge, USGS earthquakes, NASA EONET events, and official NDMA Sachet + GDACS alerts."),
+    ("Triage Brain (brain.js)", "Gemini Flash-Lite for relevance, category, severity, geocoding and five-language translation; free keyword heuristic as fallback."),
+    ("Agentic Verifier (verify.js)", "Gemini with the Google Search tool cross-checks each citizen report and returns a verdict: corroborated, unverified or contradicted."),
+    ("Decision Engine (dss.js)", "Spatially-scoped, time-decayed risk level and recommendations, with cross-source early-warning and a predictive nowcast."),
+    ("Facilities (facilities.js)", "Real relief points (hospitals, police, community centres, schools) from the OpenStreetMap Overpass API."),
+    ("Persistence (persist.js + Firestore)", "Reports, mutual-aid, vulnerable-person registry, missing persons, push subscriptions and an HMAC-signed cold-start snapshot."),
+    ("Web Push (push.js)", "VAPID notifications, locality-scoped so only subscribers near a verified event are alerted."),
+    ("Live Feed (livefeed.js)", "A shared poller that broadcasts new items from all sources to the SSE pulse stream in real time, with no model calls."),
+    ("Cloud Logging", "Structured JSON logs with a correlation ID on every request."),
 ]
 
 ARCH_DATAFLOW = [
@@ -560,15 +567,16 @@ TECH_STACK = [
     ("HTTP Framework", "Express 4", "Smallest mental model, surface area we can audit in an afternoon, every middleware we need exists."),
     ("UI Framework", "Server-rendered HTML + Tailwind CSS via CDN", "Zero build step on the front-end, first paint in under one second, accessibility is easier without a SPA."),
     ("Maps", "Leaflet 1.9 with OpenStreetMap tiles", "Free for non-commercial municipal use, ninety kilobytes gzipped, supports touch and keyboard."),
+    ("LLM", "Gemini Flash-Lite (via Generative Language API)", "Cheapest, fastest tier; classification, geocoding, five-language translation and Google-Search-grounded verification at a few cents per day."),
+    ("News ingestion", "40+ free RSS / Google News feeds", "No API key; breadth gives cross-source corroboration. X and Reddit are paid to read and kept as future scope."),
+    ("Hazard feeds", "Open-Meteo, USGS, NASA EONET, NDMA Sachet, GDACS", "Free, no-key weather / air / flood / seismic / official-alert data; structured facts processed by rules, not the model."),
+    ("Facilities", "OpenStreetMap Overpass API", "Free, real hospitals / police / schools / community centres near the town."),
     ("Voice (demo)", "Web Speech API", "Built into Chrome and Edge, no key required, lets a viva examiner test the flow on the spot."),
-    ("Voice (production)", "Twilio Programmable Voice", "Reliable Indian DID coverage, mature TwiML, transparent pricing."),
-    ("Speech to Text", "OpenAI Whisper (large-v3)", "Best-in-class accuracy on accented Indian English, native support for Hindi, Tamil, Bengali."),
-    ("LLM", "OpenAI GPT-4o with JSON-mode", "Strong instruction following, structured outputs, low latency for short prompts."),
+    ("Voice (future)", "Twilio Programmable Voice + Whisper", "For non-smartphone callers; needs a paid Indian DID, kept as roadmap."),
     ("Container Runtime", "Google Cloud Run", "Scale to zero, automatic Transport Layer Security, custom domain, regional pinning."),
     ("Image Registry", "Google Artifact Registry", "Same project, same Identity and Access Management, vulnerability scanning included."),
-    ("Async Bus (production)", "Google Pub/Sub", "Native at-least-once delivery, dead-letter topics, integrates with Cloud Run push subscriptions."),
-    ("State Store (production)", "Google Firestore (Native)", "Document model fits the event shape, server timestamps, snapshot listeners power live updates."),
-    ("Analytics (production)", "Google BigQuery", "Cheap append-only storage with partitioning, SQL access for situation reports."),
+    ("State Store", "Google Firestore (Native)", "Durable reports, mutual-aid, vulnerable registry, push subscriptions and the HMAC-signed cold-start snapshot."),
+    ("Notifications", "Web Push (VAPID)", "Standards-based, free; locality-scoped to subscribers near a verified event."),
     ("CI/CD", "GitHub Actions with Workload Identity Federation", "No long-lived keys, parallel jobs, free for public repositories."),
     ("Observability", "OpenTelemetry to Google Cloud Operations", "Open standard, single SDK, traces and metrics in one place."),
     ("Tests (unit)", "Vitest", "Fast, native ECMAScript modules, excellent watch mode."),
@@ -1175,20 +1183,22 @@ CONCLUSION = [
 
 FUTURE_SCOPE = [
     (
-        "Live ingestion. Replace the curated mock with the Twitter or X "
-        "filtered stream, the Reddit listing endpoint and a small WhatsApp "
-        "Business listener so that real public posts feed the summariser."
+        "Denser ingestion. Live ingestion from free sources (local news and "
+        "official alerts) is already running; the next step is to add the paid "
+        "X and Reddit streams and a small WhatsApp Business listener for richer "
+        "first-hand citizen signal where a budget allows."
     ),
     (
-        "Production telephony. Provision a Twilio Indian DID, wire the "
-        "Whisper streaming endpoint, and run a closed pilot in one Tier 3 "
-        "town with the local civil defence unit."
+        "Production telephony. Provision a Twilio Indian DID, wire OpenAI "
+        "Whisper on the audio path, and run a closed pilot in one Tier 3 town "
+        "with the local civil defence unit so callers without a smartphone can "
+        "dial in."
     ),
     (
-        "Offline-first PWA. Promote the service to a full Progressive Web "
-        "Application with a service worker, IndexedDB-backed outbox and a "
-        "satellite SMS fallback through Inmarsat or Iridium for areas where "
-        "the cellular network has failed."
+        "Off-grid reach. The Progressive Web Application and offline cache are "
+        "already shipped; the next step is a satellite SMS fallback through "
+        "Inmarsat or Iridium and on-device summarisation for areas where the "
+        "cellular network has failed."
     ),
     (
         "Bharat-wide language coverage. Expand from five locales to twelve "
@@ -1197,10 +1207,11 @@ FUTURE_SCOPE = [
         "Crowdin or Transifex project."
     ),
     (
-        "Government data integration. Join the National Disaster Management "
-        "Authority and State Disaster Response Force feeds where available, "
-        "publish situation reports back as standard CAP (Common Alerting "
-        "Protocol) messages, and let LocalPulse sit alongside Sachet."
+        "Deeper government integration. The National Disaster Management "
+        "Authority Sachet alert feed is already ingested; the next step is to "
+        "publish verified situation reports back as standard CAP (Common "
+        "Alerting Protocol) messages and join State Disaster Response Force "
+        "feeds where available."
     ),
     (
         "Predictive layer. Train a small model on five years of district-"
