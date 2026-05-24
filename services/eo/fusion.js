@@ -2,6 +2,7 @@
 // degrades gracefully, cross-validates overlapping signals, and emits one
 // EOAssessment. Adding a satellite = adding an adapter to ADAPTERS.
 const cache = require('./cache');
+const divergence = require('./divergence');
 
 const ADAPTERS = [
   require('./adapters/firms'),
@@ -59,6 +60,7 @@ function summarizeAxis(axis, signals) {
   const gapNote = sensors.length >= 2
     ? `Corroborated by ${sensors.length} sensors (${sensors.join(', ')}).`
     : `Single-sensor read (${sensors[0]}); no corroborating sensor this cycle.`;
+  const div = divergence.analyzeAxis(axis, signals);
   return {
     axis,
     level: levelFromMagnitude(top.magnitude),
@@ -66,6 +68,9 @@ function summarizeAxis(axis, signals) {
     confidence,
     sensorsUsed: sensors,
     gapNote,
+    divergence: div.divergence,
+    divergenceFlag: div.flag,
+    divergenceOutlier: div.outlier,
   };
 }
 

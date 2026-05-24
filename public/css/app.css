@@ -527,3 +527,6 @@ body.big-text .muted.small, body.big-text .small { font-size: 14px; }
 .eo-pred-chip.lk-high { background: #ffe3e3; color: #c92a2a; }
 .eo-pred-why { font-size: 13px; margin-top: 4px; }
 .eo-pred-meta { font-size: 12px; margin-top: 4px; }
+
+/* Phase 5: divergence flag */
+.eo-div { font-size: 12px; margin-top: 4px; color: #c92a2a; font-weight: 600; }

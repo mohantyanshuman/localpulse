@@ -3,6 +3,11 @@
 // predictions: hazard, likelihood, ETA, confidence, reasoning, drivers.
 const { getJson } = require('./http');
 const cache = require('./cache');
+const physics = require('./physics');
+const conformal = require('./conformal');
+const predlog = require('./predlog');
+
+const LK_MAG = { low: 0.35, moderate: 0.6, high: 0.85 };
 
 const sum = (arr, n) => (Array.isArray(arr) ? arr.slice(0, n).map(Number).filter(Number.isFinite).reduce((a, b) => a + b, 0) : 0);
 const finite = (arr) => (Array.isArray(arr) ? arr.map(Number).filter(Number.isFinite) : []);
@@ -136,6 +141,39 @@ async function forecast(lat, lng, assessment) {
     predictHeat(weather),
     predictFireSpread(assessment, weather),
   ].filter(Boolean);
+
+  // Physics constraint: enrich fire (Rothermel reach) and flood (terrain runoff) with
+  // satellite-derived terrain. Best-effort; never blocks the forecast.
+  let terr = null;
+  try { terr = await physics.terrain(lat, lng); } catch { terr = null; }
+  if (terr) {
+    const h = (weather && weather.hourly) || {};
+    const peakWind = Math.max(0, ...finite(h.wind_speed_10m));
+    const minRh = finite(h.relative_humidity_2m).length ? Math.min(...finite(h.relative_humidity_2m)) : 100;
+    const fire = preds.find((p) => p.hazard === 'fire');
+    if (fire) {
+      const ros = physics.fireRateOfSpread({ drynessP: Math.max(0, Math.min(1, (100 - minRh) / 100)), windKmh: peakWind, slopeDeg: terr.slopeDeg });
+      fire.drivers = { ...fire.drivers, rosMPerMin: ros.rosMPerMin, reachKm1h: ros.reachKm1h, slopeDeg: terr.slopeDeg };
+      fire.reasoning += ` Physics: ~${ros.reachKm1h} km/h spread reach on ${terr.slopeDeg} deg slope.`;
+    }
+    const fl = preds.find((p) => p.hazard === 'flood');
+    if (fl) {
+      const rainMmPerH = sum(h.precipitation, 6) / 6;
+      const onset = physics.floodOnsetFactor({ rainMmPerH, slopeDeg: terr.slopeDeg });
+      fl.drivers = { ...fl.drivers, terrainOnsetFactor: onset, slopeDeg: terr.slopeDeg };
+      fl.reasoning += ` Physics: terrain runoff factor ${onset} on ${terr.slopeDeg} deg slope.`;
+    }
+  }
+
+  // Conformal calibration: log each prediction and attach a distribution-free interval
+  // from the accrued nonconformity scores (honest calibrated:false until enough data).
+  const cell = cache.cellKey(lat, lng);
+  for (const p of preds) {
+    const mag = LK_MAG[p.likelihood] || 0.5;
+    predlog.record({ cell, hazard: p.hazard, pred: mag });
+    p.interval = conformal.interval(mag, predlog.scores(p.hazard), 0.1);
+  }
+
   preds.sort((a, b) => RANK[b.likelihood] - RANK[a.likelihood]);
   return preds;
 }

@@ -553,23 +553,34 @@
     let data;
     try {
       data = await fetchJson(`/api/eo${qs}`);
+      try { localStorage.setItem('lp.eo', JSON.stringify({ data, ts: Date.now() })); } catch (e) {}
+      renderEO(data, false);
     } catch {
-      return; // offline; panel stays with last paint
+      // Offline: recompute the headline level on-device from the last cached signals.
+      try {
+        const cached = JSON.parse(localStorage.getItem('lp.eo') || 'null');
+        if (cached && cached.data && window.EOOffline) {
+          cached.data.level = window.EOOffline.recomputeLevel(cached.data.perHazard);
+          renderEO(cached.data, true, cached.ts);
+        }
+      } catch (e) {}
     }
-    renderEO(data);
   }
 
   function eoLevelClass(level) {
     return { ok: 'lv-ok', elevated: 'lv-elevated', high: 'lv-high', severe: 'lv-severe' }[level] || 'lv-ok';
   }
 
-  function renderEO(data) {
+  function renderEO(data, offline, cachedTs) {
     const headline = document.getElementById('eo-headline');
     const cards = document.getElementById('eo-cards');
     const coverage = document.getElementById('eo-coverage');
     if (!headline || !cards) return;
     const place = (data.location && data.location.place) || 'your area';
-    headline.textContent = `${place}: ${data.level.toUpperCase()} — ${data.sensorsUsed.length} sensors reporting`;
+    let head = `${place}: ${data.level.toUpperCase()} — ${data.sensorsUsed.length} sensors reporting`;
+    if (offline && window.EOOffline) head += ` · offline estimate (${window.EOOffline.ageLabel(cachedTs)})`;
+    else if (data.provenance) head += ' · ✓ verified';
+    headline.textContent = head;
     headline.className = `eo-headline ${eoLevelClass(data.level)}`;
     cards.innerHTML = '';
     for (const h of data.perHazard) {
@@ -579,10 +590,16 @@
       card.appendChild(el('div', { class: 'eo-conf' }, 'confidence ' + Math.round(h.confidence * 100) + '%'));
       card.appendChild(el('div', { class: 'eo-sensors' }, h.sensorsUsed.join(', ')));
       card.appendChild(el('div', { class: 'eo-gap muted' }, h.gapNote));
+      if (h.divergenceFlag && h.divergenceFlag !== 'consensus' && h.divergenceFlag !== 'single') {
+        const label = h.divergenceFlag === 'blindspot'
+          ? `⚠ sensor blindspot (only ${h.divergenceOutlier} sees it)`
+          : `⚠ suspect feed (${h.divergenceOutlier})`;
+        card.appendChild(el('div', { class: 'eo-div' }, label));
+      }
       cards.appendChild(card);
     }
     if (coverage) {
-      coverage.textContent = data.gapsCovered.length
+      coverage.textContent = data.gapsCovered && data.gapsCovered.length
         ? `Cross-validated: ${data.gapsCovered.join(' · ')}`
         : 'Single-sensor reads this cycle; corroboration pending next overpass.';
     }
@@ -603,7 +620,13 @@
         el('span', { class: `eo-pred-chip lk-${p.likelihood}` }, p.likelihood),
       ]));
       row.appendChild(el('div', { class: 'eo-pred-why muted' }, p.reasoning));
-      row.appendChild(el('div', { class: 'eo-pred-meta muted' }, `ETA ${eta} · confidence ${Math.round((p.confidence || 0) * 100)}%`));
+      let meta = `ETA ${eta} · confidence ${Math.round((p.confidence || 0) * 100)}%`;
+      if (p.interval) {
+        meta += p.interval.calibrated
+          ? ` · ${Math.round(p.interval.coverage * 100)}% interval [${p.interval.low}, ${p.interval.high}]`
+          : ` · interval calibrating (${p.interval.n} samples)`;
+      }
+      row.appendChild(el('div', { class: 'eo-pred-meta muted' }, meta));
       box.appendChild(row);
     }
   }
