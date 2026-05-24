@@ -17,6 +17,8 @@ const dss = require('./services/dss');
 const assistant = require('./services/assistant');
 const aid = require('./services/aid');
 const livefeed = require('./services/livefeed');
+const eoFusion = require('./services/eo/fusion');
+const geolocate = require('./services/geolocate');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -115,6 +117,27 @@ app.get('/api/status', (_req, res) => {
 app.get('/api/hazards', (req, res) => {
   res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
   res.json(store.getHazards() || { weather: null, quakes: [], alerts: [], ts: Date.now() });
+});
+
+// Worldwide satellite fusion. Coarse location from CF edge headers unless the
+// client supplies precise lat/lng. Cross-validated multi-sensor assessment.
+app.get('/api/eo', async (req, res) => {
+  const qLat = parseFloat(req.query.lat);
+  const qLng = parseFloat(req.query.lng);
+  const precise = Number.isFinite(qLat) && Number.isFinite(qLng);
+  const loc = precise
+    ? { lat: qLat, lng: qLng, source: 'precise' }
+    : geolocate.coarseFromHeaders(req.headers);
+  try {
+    const [assessment, place] = await Promise.all([
+      eoFusion.fuse(loc.lat, loc.lng),
+      geolocate.reverseGeocode(loc.lat, loc.lng),
+    ]);
+    res.set('Cache-Control', precise ? 'no-store' : 'public, max-age=300, stale-while-revalidate=600');
+    res.json({ ...assessment, location: { ...loc, ...(place || {}) } });
+  } catch (err) {
+    res.status(502).json({ error: 'fusion_failed', code: 'EO_FUSION', requestId: null });
+  }
 });
 
 // Decision Support: risk + recommendations. With ?lat&lng it is personalized to
@@ -486,3 +509,5 @@ const shutdown = (sig) => () => {
 };
 process.on('SIGTERM', shutdown('SIGTERM'));
 process.on('SIGINT', shutdown('SIGINT'));
+
+module.exports = server;
