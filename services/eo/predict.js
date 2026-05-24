@@ -165,9 +165,16 @@ async function forecast(lat, lng, assessment) {
     }
   }
 
-  // Conformal calibration: log each prediction and attach a distribution-free interval
-  // from the accrued nonconformity scores (honest calibrated:false until enough data).
+  // Conformal calibration loop: the current observed per-axis magnitude is the realized
+  // outcome for predictions made earlier for this cell/hazard. Attach it (closes the
+  // loop so intervals actually mature), then log the new predictions and attach a
+  // distribution-free interval from accrued nonconformity scores.
   const cell = cache.cellKey(lat, lng);
+  for (const h of (assessment && assessment.perHazard) || []) {
+    if (['flood', 'storm', 'air', 'heat', 'fire'].includes(h.axis)) {
+      predlog.attachOutcome(cell, h.axis, Math.max(0, Math.min(1, h.magnitude || 0)));
+    }
+  }
   for (const p of preds) {
     const mag = LK_MAG[p.likelihood] || 0.5;
     predlog.record({ cell, hazard: p.hazard, pred: mag });

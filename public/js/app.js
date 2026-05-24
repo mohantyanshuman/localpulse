@@ -548,20 +548,45 @@
   }
 
   // --- Satellite Intelligence: worldwide multi-sensor Earth-observation fusion
+  // Fetch + cache the ECDSA public key so provenance can be verified offline.
+  async function eoPubkey() {
+    try {
+      const cached = JSON.parse(localStorage.getItem('lp.eo.pubkey') || 'null');
+      if (cached && cached.jwk) {
+        // refresh in the background, return cached immediately
+        fetchJson('/api/eo/pubkey').then((p) => { if (p && p.jwk) localStorage.setItem('lp.eo.pubkey', JSON.stringify(p)); }).catch(() => {});
+        return cached.jwk;
+      }
+      const p = await fetchJson('/api/eo/pubkey');
+      if (p && p.jwk) { localStorage.setItem('lp.eo.pubkey', JSON.stringify(p)); return p.jwk; }
+    } catch (e) {}
+    return null;
+  }
+
+  async function verifyEO(data) {
+    if (!data || !data.provenance || !window.EOOffline) return null;
+    const jwk = await eoPubkey();
+    if (!jwk) return null;
+    try { return (await window.EOOffline.verifyReceipt(data, data.provenance, jwk)).valid; } catch (e) { return null; }
+  }
+
   async function loadEO(coords) {
     const qs = coords ? `?lat=${coords.lat}&lng=${coords.lng}` : '';
     let data;
     try {
       data = await fetchJson(`/api/eo${qs}`);
       try { localStorage.setItem('lp.eo', JSON.stringify({ data, ts: Date.now() })); } catch (e) {}
-      renderEO(data, false);
+      const verified = await verifyEO(data);
+      renderEO(data, false, null, verified);
     } catch {
-      // Offline: recompute the headline level on-device from the last cached signals.
+      // Offline: recompute the headline level on-device AND re-verify the cached
+      // receipt with the cached public key — trustworthy with zero connectivity.
       try {
         const cached = JSON.parse(localStorage.getItem('lp.eo') || 'null');
         if (cached && cached.data && window.EOOffline) {
           cached.data.level = window.EOOffline.recomputeLevel(cached.data.perHazard);
-          renderEO(cached.data, true, cached.ts);
+          const verified = await verifyEO(cached.data);
+          renderEO(cached.data, true, cached.ts, verified);
         }
       } catch (e) {}
     }
@@ -571,15 +596,16 @@
     return { ok: 'lv-ok', elevated: 'lv-elevated', high: 'lv-high', severe: 'lv-severe' }[level] || 'lv-ok';
   }
 
-  function renderEO(data, offline, cachedTs) {
+  function renderEO(data, offline, cachedTs, verified) {
     const headline = document.getElementById('eo-headline');
     const cards = document.getElementById('eo-cards');
     const coverage = document.getElementById('eo-coverage');
     if (!headline || !cards) return;
     const place = (data.location && data.location.place) || 'your area';
     let head = `${place}: ${data.level.toUpperCase()} — ${data.sensorsUsed.length} sensors reporting`;
-    if (offline && window.EOOffline) head += ` · offline estimate (${window.EOOffline.ageLabel(cachedTs)})`;
-    else if (data.provenance) head += ' · ✓ verified';
+    if (offline && window.EOOffline) head += ` · offline (${window.EOOffline.ageLabel(cachedTs)})`;
+    if (verified === true) head += ' · ✓ cryptographically verified';
+    else if (verified === false) head += ' · ⚠ unverified signature';
     headline.textContent = head;
     headline.className = `eo-headline ${eoLevelClass(data.level)}`;
     cards.innerHTML = '';

@@ -142,6 +142,18 @@ async function listPushSubs(limit = 500) {
 // (tamper-evident integrity — defence in depth).
 const SNAP_SECRET = process.env.SYNC_SECRET || process.env.INGEST_TOKEN || 'localpulse-sync';
 const snapSig = (json) => crypto.createHmac('sha256', SNAP_SECRET).update(json).digest('hex');
+// --- Prediction log (conformal calibration): durable across cold starts.
+async function addPrediction(item) {
+  const doc = await req('POST', '/predictions', { fields: encFields(item) });
+  return doc ? (doc.name || '').split('/').pop() : null;
+}
+async function listPredictions(limit = 2000) {
+  const body = { structuredQuery: { from: [{ collectionId: 'predictions' }], orderBy: [{ field: { fieldPath: 'ts' }, direction: 'DESCENDING' }], limit } };
+  const rows = await req('POST', ':runQuery', body);
+  if (!Array.isArray(rows)) return [];
+  return rows.filter((r) => r.document).map((r) => ({ id: r.document.name.split('/').pop(), ...decFields(r.document.fields || {}) }));
+}
+
 async function saveSnapshot(obj) {
   const json = JSON.stringify(obj);
   const r = await req('PATCH', '/state/latest', { fields: encFields({ json, sig: snapSig(json), updatedAt: Date.now() }) });
@@ -156,4 +168,4 @@ async function loadSnapshot() {
   try { return JSON.parse(f.json); } catch { return null; }
 }
 
-module.exports = { addReport, listReports, updateReport, addAid, listAid, addVulnerable, listVulnerable, addMissing, listMissing, savePushSub, deletePushSub, listPushSubs, saveSnapshot, loadSnapshot };
+module.exports = { addReport, listReports, updateReport, addAid, listAid, addVulnerable, listVulnerable, addMissing, listMissing, savePushSub, deletePushSub, listPushSubs, saveSnapshot, loadSnapshot, addPrediction, listPredictions };

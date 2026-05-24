@@ -20,6 +20,7 @@ const livefeed = require('./services/livefeed');
 const eoFusion = require('./services/eo/fusion');
 const eoPredict = require('./services/eo/predict');
 const eoProvenance = require('./services/eo/provenance');
+const eoPredlog = require('./services/eo/predlog');
 const geolocate = require('./services/geolocate');
 
 const app = express();
@@ -146,6 +147,13 @@ app.get('/api/eo', async (req, res) => {
   } catch (err) {
     res.status(502).json({ error: 'fusion_failed', code: 'EO_FUSION', requestId: res.getHeader('X-Correlation-Id') || null });
   }
+});
+
+// Public key (JWK) for offline client-side verification of /api/eo provenance receipts.
+// ECDSA P-256: clients import this once and verify signatures with no shared secret.
+app.get('/api/eo/pubkey', (_req, res) => {
+  res.set('Cache-Control', 'public, max-age=86400');
+  res.json({ alg: 'ES256', jwk: eoProvenance.publicKeyJwk() });
 });
 
 // Decision Support: risk + recommendations. With ?lat&lng it is personalized to
@@ -521,6 +529,11 @@ const server = app.listen(PORT, () => {
         if (snap && Array.isArray(snap.liveIncidents) && snap.liveIncidents.length) restored = store.restoreSnapshot(snap);
       } catch { /* ignore */ }
       try { await loadCommunityReports(); } catch { /* ignore */ }
+      // Wire durable conformal calibration: persist completed scores + hydrate on boot.
+      try {
+        eoPredlog.usePersistence({ add: persist.addPrediction, list: persist.listPredictions });
+        await eoPredlog.hydrate();
+      } catch { /* calibration store optional */ }
       const r = restored ? { restored: true } : await runIngest({ force: true, useLLM: false });
       process.stdout.write(JSON.stringify({ severity: 'INFO', kind: 'ingest-boot', ...r, ts: Date.now() }) + '\n');
     })().catch(() => {});
