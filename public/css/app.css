@@ -262,9 +262,10 @@ a:hover { text-decoration: underline; }
 @media (min-width: 720px) { .shelter-grid { grid-template-columns: repeat(3, 1fr); } }
 .shelter {
   border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;
-  background: var(--bg-card);
+  background: var(--bg-card); min-width: 0; /* allow 1fr columns to shrink in narrow containers */
 }
-.shelter h3 { margin: 0 0 4px; font-size: 15px; font-family: var(--font-head); }
+.shelter h3 { margin: 0 0 4px; font-size: 15px; font-family: var(--font-head); overflow-wrap: anywhere; }
+.shelter a { overflow-wrap: anywhere; }
 .shelter .occ {
   display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; color: var(--fg-muted);
 }
