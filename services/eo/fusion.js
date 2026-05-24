@@ -12,6 +12,8 @@ const ADAPTERS = [
   require('./adapters/sentinel2'),
   require('./adapters/sentinel1'),
   require('./adapters/sentinel5p-no2'),
+  require('./adapters/sentinel5p-so2'),
+  require('./adapters/sentinel5p-co'),
   require('./adapters/sentinel3'),
   require('./adapters/storm'),
   require('./adapters/glofas'),

@@ -18,6 +18,7 @@ const assistant = require('./services/assistant');
 const aid = require('./services/aid');
 const livefeed = require('./services/livefeed');
 const eoFusion = require('./services/eo/fusion');
+const eoPredict = require('./services/eo/predict');
 const geolocate = require('./services/geolocate');
 
 const app = express();
@@ -133,8 +134,11 @@ app.get('/api/eo', async (req, res) => {
       eoFusion.fuse(loc.lat, loc.lng),
       geolocate.reverseGeocode(loc.lat, loc.lng),
     ]);
+    // Near-term forecasts fuse forecast feeds with the current assessment; best-effort.
+    let predictions = [];
+    try { predictions = await eoPredict.forecast(loc.lat, loc.lng, assessment); } catch { predictions = []; }
     res.set('Cache-Control', precise ? 'no-store' : 'public, max-age=300, stale-while-revalidate=600');
-    res.json({ ...assessment, location: { ...loc, ...(place || {}) } });
+    res.json({ ...assessment, predictions, location: { ...loc, ...(place || {}) } });
   } catch (err) {
     res.status(502).json({ error: 'fusion_failed', code: 'EO_FUSION', requestId: res.getHeader('X-Correlation-Id') || null });
   }
