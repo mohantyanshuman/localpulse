@@ -14,7 +14,10 @@ coverage/
 scripts/__pycache__/
 .claude/
 
-# local tooling artifacts
+# local tooling artifacts (Playwright screenshots, scratch files)
 .playwright-mcp/
-localpulse-dss.png
+/*.png
+/*.jpg
+/*.jpeg
+*.tmp.xml
 sachet_tmp.xml
