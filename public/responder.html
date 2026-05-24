@@ -15,24 +15,37 @@
 <body class="responder-body">
 <a class="skip-link" href="#main">Skip to content</a>
 
-<header class="appbar appbar-dark">
+<header class="appbar appbar-dark" role="banner">
   <a href="/" class="brand" aria-label="LocalPulse home">
     <span class="brand-logo" aria-hidden="true"><span class="ring"></span><span class="dot"></span></span>
     <span class="brand-text">LocalPulse</span>
     <span class="brand-sub">RESPONDER</span>
   </a>
   <nav class="appnav" aria-label="Primary">
-    <a href="/" class="nav-link">Dashboard</a>
-    <a href="/responder" class="nav-link is-active">Responder</a>
-    <a href="/voice" class="nav-link">Voice</a>
-    <a href="/pitch" class="nav-link">Pitch</a>
-    <a href="/report" class="nav-link">Report</a>
+    <a href="/" class="nav-link" data-i18n="nav.dashboard">Dashboard</a>
+    <a href="/responder" class="nav-link is-active" data-i18n="nav.responder">Responder</a>
+    <a href="/voice" class="nav-link" data-i18n="nav.voice">Voice</a>
+    <a href="/pitch" class="nav-link" data-i18n="nav.pitch">Pitch</a>
+    <a href="/report" class="nav-link" data-i18n="nav.report">Report</a>
   </nav>
   <div class="appbar-tail">
-    <span class="status-pill" id="status-pill" data-state="online"><span class="status-dot"></span><span>Live</span></span>
-    <label class="lang-select-wrap"><select id="lang-select">
-      <option value="en">English</option><option value="hi">हिन्दी</option><option value="pa">ਪੰਜਾਬੀ</option><option value="ta">தமிழ்</option><option value="bn">বাংলা</option>
-    </select></label>
+    <span class="status-pill" id="status-pill" data-state="online" aria-live="polite">
+      <span class="status-dot" aria-hidden="true"></span>
+      <span data-i18n="status.online">Live</span>
+    </span>
+    <label class="lang-select-wrap" aria-label="Language">
+      <select id="lang-select">
+        <option value="en">English</option>
+        <option value="hi">हिन्दी</option>
+        <option value="pa">ਪੰਜਾਬੀ</option>
+        <option value="ta">தமிழ்</option>
+        <option value="bn">বাংলা</option>
+      </select>
+    </label>
+    <button class="btn btn-ghost" id="bigtext-toggle" aria-label="Toggle large text" title="Larger text">A+</button>
+    <button class="btn btn-ghost theme-toggle" id="theme-toggle" aria-label="Toggle theme">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
+    </button>
   </div>
 </header>
 
