@@ -86,6 +86,15 @@ gcloud run services update localpulse --region=asia-east1 \
 - **Observability** — structured JSON logs to stdout (Cloud Logging picks up automatically), correlation ID per request, p95 latency target < 200 ms, cold-start < 2 s
 - **Accessibility** — WCAG 2.2 AAA targets: skip link, focus rings, semantic landmarks, keyboard nav, prefers-reduced-motion, screen-reader labels
 
+### Satellite sources
+
+The `/api/eo` endpoint fuses multiple Earth-observation sensors per location:
+active fire (NASA FIRMS: VIIRS S-NPP / NOAA-20 / NOAA-21, MODIS), air quality
+(Open-Meteo CAMS, Sentinel-5P assimilated), multi-day precipitation (NASA POWER),
+and seismic events (USGS). Each source degrades gracefully; the fusion engine
+cross-validates overlapping sensors and reports coverage. Add `FIRMS_MAP_KEY`
+(free) to enable fire detection. Sentinel-1/2/5P adapters arrive in Phase 2.
+
 ## Run locally
 
 ```bash
