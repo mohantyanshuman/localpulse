@@ -137,15 +137,23 @@ async function listPushSubs(limit = 500) {
   return r.documents.map((d) => ({ id: d.name.split('/').pop(), ...decFields(d.fields || {}) }));
 }
 
-// --- Snapshot of the last good ingest (stored as one JSON string field)
+// --- Snapshot of the last good ingest (one JSON field), HMAC-signed so a
+// tampered/compromised persisted snapshot is detected and rejected on load
+// (tamper-evident integrity — defence in depth).
+const SNAP_SECRET = process.env.SYNC_SECRET || process.env.INGEST_TOKEN || 'localpulse-sync';
+const snapSig = (json) => crypto.createHmac('sha256', SNAP_SECRET).update(json).digest('hex');
 async function saveSnapshot(obj) {
-  const r = await req('PATCH', '/state/latest', { fields: encFields({ json: JSON.stringify(obj), updatedAt: Date.now() }) });
+  const json = JSON.stringify(obj);
+  const r = await req('PATCH', '/state/latest', { fields: encFields({ json, sig: snapSig(json), updatedAt: Date.now() }) });
   return !!r;
 }
 async function loadSnapshot() {
   const r = await req('GET', '/state/latest');
   if (!r || !r.fields) return null;
-  try { return JSON.parse(decFields(r.fields).json); } catch { return null; }
+  const f = decFields(r.fields);
+  if (!f.json) return null;
+  if (f.sig && f.sig !== snapSig(f.json)) { process.stderr.write(JSON.stringify({ severity: 'WARNING', kind: 'snapshot-tamper' }) + '\n'); return null; }
+  try { return JSON.parse(f.json); } catch { return null; }
 }
 
 module.exports = { addReport, listReports, updateReport, addAid, listAid, addVulnerable, listVulnerable, addMissing, listMissing, savePushSub, deletePushSub, listPushSubs, saveSnapshot, loadSnapshot };

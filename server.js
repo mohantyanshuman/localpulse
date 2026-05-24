@@ -131,6 +131,47 @@ app.get('/api/i18n', (req, res) => {
   res.json({ supported: SUPPORTED, default: DEFAULT_LANG, dict });
 });
 
+// Shared incident projection (used by /api/incidents and /api/sync).
+const SYNC_SECRET = process.env.SYNC_SECRET || process.env.INGEST_TOKEN || 'localpulse-sync';
+const signPayload = (o) => crypto.createHmac('sha256', SYNC_SECRET).update(JSON.stringify(o)).digest('hex').slice(0, 32);
+function incidentsFor(lang, max) {
+  let out = store.getIncidents().map((i) => ({
+    id: i.id, category: i.category, severity: i.severity,
+    title: i.title[lang] || i.title.en, summary: i.summary[lang] || i.summary.en,
+    lat: i.lat, lng: i.lng, sources: i.sources, verified: i.verified, trust: i.trust,
+    updatedAt: i.updatedAt, src: i.src || undefined, status: i.status || undefined, note: i.note || undefined
+  }));
+  out.sort((a, b) => b.updatedAt - a.updatedAt);
+  return max ? out.slice(0, max) : out;
+}
+
+// --- Bandwidth-efficient versioned delta-sync (technical effect: fewer requests,
+// no transfer when unchanged, smaller payloads on slow links, signed integrity).
+// Collapses i18n-independent live state (risk + summary + incidents + facilities)
+// into ONE conditional request. Returns a ~25-byte "unchanged" when the client's
+// version matches, instead of re-sending everything every poll.
+app.get('/api/sync', (req, res) => {
+  const lang = pickLang(req);
+  const lite = req.query.lite === '1';
+  const v = store.getVersion();
+  const etag = `W/"${v}.${lang}${lite ? '.l' : ''}"`;
+  res.set('Cache-Control', 'no-cache');
+  res.set('ETag', etag);
+  if (req.headers['if-none-match'] === etag) return res.status(304).end();
+  if (String(req.query.since || '') === String(v)) return res.json({ v, changed: false }); // tiny
+  const incidents = incidentsFor(lang, lite ? 6 : 30);
+  const body = {
+    v, changed: true, lang,
+    dss: store.getAssessment(),
+    summary: store.getSummary(lang),
+    incidents,
+    shelters: lite ? null : store.getFacilities(), // facilities change rarely; client keeps cache on lite
+    meta: store.meta()
+  };
+  body.sig = signPayload({ v, lang, n: incidents.length }); // tamper-evidence
+  res.json(body);
+});
+
 app.post('/api/report', async (req, res) => {
   const body = req.body || {};
   const message = String(body.message || '').trim().slice(0, 500);

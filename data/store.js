@@ -18,8 +18,8 @@ const state = {
   mode: 'seed' // 'seed' until the first live ingest lands
 };
 
-function setCommunityReports(list) { state.communityReports = Array.isArray(list) ? list.slice(0, 50) : []; }
-function addCommunityReport(inc) { if (inc) state.communityReports = [inc, ...state.communityReports].slice(0, 50); }
+function setCommunityReports(list) { state.communityReports = Array.isArray(list) ? list.slice(0, 50) : []; bumpVersion(); }
+function addCommunityReport(inc) { if (inc) { state.communityReports = [inc, ...state.communityReports].slice(0, 50); bumpVersion(); } }
 // Apply an agentic verification verdict to a community report (matched by id).
 function updateCommunityReport(crId, patch) {
   const r = state.communityReports.find((x) => x.id === crId);
@@ -48,13 +48,19 @@ function restoreSnapshot(s) {
   return true;
 }
 
-function setHazards(h) { if (h) state.hazards = h; }
+// Monotonic state version — bumped on any change. Enables tiny delta-sync:
+// clients send their last version and get a full transfer only when it changed.
+let version = 1;
+function bumpVersion() { version += 1; }
+function getVersion() { return version; }
+
+function setHazards(h) { if (h) { state.hazards = h; bumpVersion(); } }
 function getHazards() { return state.hazards; }
-function setAssessment(a) { if (a) state.assessment = a; }
+function setAssessment(a) { if (a) { state.assessment = a; bumpVersion(); } }
 function getAssessment() { return state.assessment; }
 
 function setFacilities(list) {
-  if (Array.isArray(list) && list.length) state.facilities = list;
+  if (Array.isArray(list) && list.length) { state.facilities = list; bumpVersion(); }
 }
 
 // Real OSM facilities if we have them; otherwise the seed shelters mapped to the
@@ -70,6 +76,7 @@ function setLive(incidents, meta = {}) {
   state.mode = state.liveIncidents.length ? 'live' : 'seed';
   if (typeof meta.sourcesIngested === 'number') state.sourcesIngested = meta.sourcesIngested;
   if (meta.summaryBullets) state.lastSummaryBullets = meta.summaryBullets;
+  bumpVersion();
 }
 
 // Community reports first (most immediate), then live (or seed) incidents.
@@ -100,4 +107,4 @@ function meta() {
   };
 }
 
-module.exports = { setLive, getIncidents, getSummary, setFacilities, getFacilities, setHazards, getHazards, setAssessment, getAssessment, setCommunityReports, addCommunityReport, updateCommunityReport, snapshot, restoreSnapshot, meta, BASE: seed.BASE };
+module.exports = { setLive, getIncidents, getSummary, setFacilities, getFacilities, setHazards, getHazards, setAssessment, getAssessment, setCommunityReports, addCommunityReport, updateCommunityReport, getVersion, bumpVersion, snapshot, restoreSnapshot, meta, BASE: seed.BASE };

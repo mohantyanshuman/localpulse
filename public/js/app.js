@@ -428,32 +428,37 @@
     es.addEventListener('error', () => setStatus('stale'));
   }
 
+  function loadSyncCache() { try { return JSON.parse(localStorage.getItem('lp.sync') || 'null'); } catch (_) { return null; } }
+  function saveSyncCache(o) { try { localStorage.setItem('lp.sync', JSON.stringify(o)); } catch (_) {} }
+  function applySync(s) {
+    if (s.summary) state.summary = s.summary;
+    if (s.incidents) state.incidents = s.incidents;
+    if (s.shelters) state.shelters = s.shelters;
+    if (s.dss) renderDss(s.dss);
+    renderSummary(); renderIncidents(); renderShelters(); renderMarkers();
+    setKpi('kpi-incidents', (state.incidents || []).length);
+    setKpi('kpi-shelters', (state.shelters || []).length);
+    state.painted = true;
+  }
+  // Bandwidth-efficient delta sync: instant paint from cache, then fetch only the
+  // changed delta; connection-adaptive 'lite' on slow links / data-saver.
   async function reload() {
     try {
-      const [d, s, i, sh, dss] = await Promise.all([
-        fetchJson('/api/i18n'),
-        fetchJson('/api/summary?lang=' + state.lang),
-        fetchJson('/api/incidents?lang=' + state.lang),
-        fetchJson('/api/shelters'),
-        fetchJson('/api/dss').catch(() => null)
-      ]);
-      state.dict = d.dict[state.lang] || d.dict.en;
-      state.summary = s;
-      state.incidents = i.items;
-      state.shelters = sh.items;
+      if (!state.dictAll) { const d = await fetchJson('/api/i18n'); state.dictAll = d.dict; }
+      state.dict = state.dictAll[state.lang] || state.dictAll.en;
+      const cache = loadSyncCache();
+      if (cache && cache.lang === state.lang && !state.painted) applySync(cache);
+      const conn = navigator.connection || {};
+      const lite = (/(^|-)2g$/.test(conn.effectiveType || '') || conn.saveData) ? '&lite=1' : '';
+      const since = (cache && cache.lang === state.lang) ? (cache.v || 0) : 0;
+      const s = await fetchJson('/api/sync?since=' + since + '&lang=' + state.lang + lite);
+      if (s.changed) { applySync(s); state.syncV = s.v; saveSyncCache(Object.assign({ lang: state.lang }, s)); }
+      else { state.syncV = s.v; }
       window.LP_state = state;
       applyI18n();
-      if (dss) renderDss(dss);
-      renderSummary();
-      renderIncidents();
-      renderShelters();
-      renderMarkers();
       setStatus('online');
-      setKpi('kpi-incidents', state.incidents.length);
-      setKpi('kpi-shelters', state.shelters.length);
       setKpi('kpi-langs', String(LANGS.length));
-      // kpi-sources is filled by the live pulse stream with the real count.
-    } catch (e) { setStatus('offline'); }
+    } catch (e) { setStatus(loadSyncCache() ? 'stale' : 'offline'); }
   }
 
   // --- Accessibility: larger text + spoken status (low-literacy, elderly, blind)
@@ -533,7 +538,7 @@
     const sel = document.getElementById('lang-select');
     if (sel) {
       sel.value = state.lang;
-      sel.addEventListener('change', () => { state.lang = sel.value; saveLang(state.lang); reload(); });
+      sel.addEventListener('change', () => { state.lang = sel.value; saveLang(state.lang); state.painted = false; reload(); });
     }
     initMap();
     bindFilters();

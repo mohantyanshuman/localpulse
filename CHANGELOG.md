@@ -3,6 +3,21 @@
 All notable changes to LocalPulse are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); grouped by date.
 
+## 2026-05-24 (technical-effect upgrades for patentability)
+
+### Added
+- **Versioned delta-sync** (`/api/sync`): a monotonic state version drives a
+  conditional protocol — ~25-byte "unchanged" (or HTTP 304) when nothing changed,
+  five requests collapsed into one, HMAC-signed payload. Client paints instantly
+  from cache then syncs only the delta. *Technical effect: better network
+  communication, far less bandwidth on poor links.*
+- **Connection-adaptive `lite` mode**: client detects 2G / data-saver and requests
+  a reduced payload (fewer incidents, facilities omitted) for low-end devices.
+- **Tamper-evident state integrity**: the persisted snapshot is HMAC-signed and
+  rejected on load if altered (defence-in-depth security).
+- **PATENT.md** §6: patentability assessment against the four traits + India
+  §3(k) technical-effect requirement + the *KSR* synergy basis for combination.
+
 ## 2026-05-24 (humanity differentiators)
 
 ### Added

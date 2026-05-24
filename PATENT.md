@@ -43,6 +43,10 @@ Community-scale crisis/civic decision support for resource-constrained towns: in
 13. **Missing-persons reunification by safe-beacon matching** — missing-person posts are matched against community "I'm safe" check-ins (and reports) to reunite families, rather than a check-in timer or standalone photo registry.
 14. **Inclusive accessibility** — one-tap spoken status (TTS) in five languages and a large-text mode, so low-literacy, elderly and low-vision residents are served first-class.
 
+15. **Bandwidth-efficient versioned delta-sync** — a monotonic state version drives a conditional protocol that returns a ~25-byte "unchanged" response (or HTTP 304) when state has not changed, collapses five requests into one, and emits smaller payloads on slow links. *Measured technical effect: tens-of-KB → 23 bytes when unchanged.*
+16. **Connection-adaptive degradation** — the client measures the effective connection (and data-saver) and requests a reduced payload, so low-end devices on 2G remain usable.
+17. **Tamper-evident state integrity** — the persisted situational snapshot is HMAC-signed and rejected on load if altered, so a compromised store cannot feed false crisis data (security technical effect).
+
 **Combined-system novelty:** the patent rests on the *integration* — a single platform that fuses 40+ heterogeneous free feeds, verifies citizen input with an autonomous web-searching agent, computes spatiotemporally-honest risk, and closes the loop with locality-scoped alerting, mutual-aid matching, a vulnerable-person registry, outbreak early-warning and missing-person reunification, operable offline and multilingually on free infrastructure. No single prior reference teaches this combination.
 
 ## 4. Draft independent claim (apparatus)
@@ -59,5 +63,13 @@ Community-scale crisis/civic decision support for resource-constrained towns: in
 ## 5. Method claim (summary)
 A computer-implemented method performing steps (a)–(f) above, wherein the temporal-decay function halves an event's risk contribution every configurable interval and removes events older than a staleness threshold from action guidance; and wherein verification (d) is gated by a per-period budget.
 
-## 6. Advantages
+## 6. Patentability assessment (the four traits + India §3(k))
+- **Utility:** real-world use — keeps a town informed and coordinated in a crisis; reduces misinformation, over-alerting and response time. Reduced to practice and operating live.
+- **Novelty:** no single prior reference discloses the integrated system of §3; the specific mechanisms (agentic web-search verification of citizen reports, spatiotemporal anti-over-alerting, corroboration-velocity early-warning, delta-sync over fused situational state) are not found in the art reviewed.
+- **Non-obviousness (synergy, per *KSR*):** the elements are not merely aggregated — they **interact**: verification + multi-source corroboration + temporal decay jointly suppress false/stale alarms; the versioned fusion engine is what *makes* the delta-sync tiny; locality-scoping connects the spatial risk model to notification. The combined behaviour (trustworthy, non-alarmist, low-bandwidth crisis DSS) is an unexpected result over a naive mash-up, which would either over-alert or be bandwidth-heavy.
+- **Patentable subject matter / India §3(k):** the claims are anchored to **technical effects** beyond "a computer programme per se" — *better network communication* (delta-sync, 304/unchanged, adaptive payloads), *improved device operation on constrained networks* (offline-first, lite mode), and *improved security* (HMAC-tamper-evident state). Per the 2017 CRI Guidelines, a CRI delivering such technical contribution falls outside the §3(k) exclusion. (For US: these are concrete improvements / "significantly more" than an abstract idea under *Alice*.)
+
+**Note on combining prior art:** combining known building blocks is permissible; patentability turns on a non-obvious, synergistic combination producing an unexpected technical result — which is the basis claimed here, not mere collocation.
+
+## 7. Advantages
 Trustworthy (agentic verification + corroboration), genuine (spatiotemporal honesty, no over-alerting), proactive (nowcast, early-warning, scoped push), participatory (mutual aid), and economically deployable in low-resource regions (free feeds, capped AI, offline).
