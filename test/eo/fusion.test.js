@@ -30,6 +30,19 @@ test('fuseSignals reports skipped adapter ids', () => {
   assert.strictEqual(out.level, 'ok');
 });
 
+test('overall level is confidence-weighted: a lone low-confidence proxy does not over-alarm', () => {
+  const lone = fuseSignals([
+    mkSignal({ axis: 'vegetation', magnitude: 0.85, confidence: 0.5, sensor: 'Sentinel-2 MSI', distanceKm: 0 }),
+  ], []);
+  assert.ok(['ok', 'elevated'].includes(lone.level), `lone low-conf proxy should not be high/severe, got ${lone.level}`);
+
+  const corroborated = fuseSignals([
+    mkSignal({ axis: 'fire', magnitude: 0.7, confidence: 0.8, sensor: 'VIIRS NOAA-20', distanceKm: 2 }),
+    mkSignal({ axis: 'fire', magnitude: 0.7, confidence: 0.8, sensor: 'MODIS', distanceKm: 3 }),
+  ], []);
+  assert.ok(['high', 'severe'].includes(corroborated.level), `corroborated high should be high+, got ${corroborated.level}`);
+});
+
 test('fuse skips Sentinel adapters when Copernicus creds are absent', async () => {
   const prevId = process.env.COPERNICUS_CLIENT_ID;
   const prevSecret = process.env.COPERNICUS_CLIENT_SECRET;

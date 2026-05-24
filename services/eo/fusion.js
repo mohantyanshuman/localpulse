@@ -11,6 +11,10 @@ const ADAPTERS = [
   require('./adapters/sentinel5p'),
   require('./adapters/sentinel2'),
   require('./adapters/sentinel1'),
+  require('./adapters/sentinel5p-no2'),
+  require('./adapters/sentinel3'),
+  require('./adapters/storm'),
+  require('./adapters/glofas'),
 ];
 
 function hasReqs(a) {
@@ -25,6 +29,23 @@ function levelFromMagnitude(m) {
 }
 
 const RANK = { ok: 0, elevated: 1, high: 2, severe: 3 };
+
+// Confidence-weighted overall level. A hazard's effective magnitude is
+// magnitude x confidence, so a low-confidence single-sensor proxy cannot drive
+// the headline level on its own; but any axis that is both extreme (>=0.8) and
+// trustworthy (confidence >=0.7) still forces at least 'high'. Per-axis levels
+// stay raw for honesty; only this roll-up is weighted.
+function overallLevel(perHazard) {
+  let topEff = 0;
+  let forced = 'ok';
+  for (const h of perHazard) {
+    const eff = h.magnitude * h.confidence;
+    if (eff > topEff) topEff = eff;
+    if (h.magnitude >= 0.8 && h.confidence >= 0.7 && RANK.high > RANK[forced]) forced = 'high';
+  }
+  const weighted = levelFromMagnitude(topEff);
+  return RANK[weighted] >= RANK[forced] ? weighted : forced;
+}
 
 // Combine all signals on one axis into a per-hazard summary, raising confidence
 // when independent sensors corroborate.
@@ -56,7 +77,7 @@ function fuseSignals(signals, skipped) {
     .map(([axis, sigs]) => summarizeAxis(axis, sigs))
     .sort((a, b) => b.magnitude - a.magnitude);
 
-  const level = perHazard.reduce((max, h) => (RANK[h.level] > RANK[max] ? h.level : max), 'ok');
+  const level = overallLevel(perHazard);
   const sensorsUsed = [...new Set(signals.map((s) => s.sensor))];
   const gapsCovered = perHazard.filter((h) => h.sensorsUsed.length >= 2).map((h) => `${h.axis}: ${h.gapNote}`);
 
