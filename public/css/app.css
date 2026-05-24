@@ -327,9 +327,15 @@ a:hover { text-decoration: underline; }
 .dot-low { background: var(--info); }
 .dot-rumor { background: var(--rumor); }
 
+/* Grid/flex items default to min-width:auto, which refuses to shrink below their
+   content's intrinsic width and causes horizontal overflow. Allow them to shrink. */
+.responder-main { min-width: 0; }
+.responder-grid, .responder-grid > * { min-width: 0; }
+.incident-title, .incident-summary, .dss-headline, .dss-recs li { overflow-wrap: anywhere; }
 .responder-grid {
   display: grid; gap: 16px;
   grid-template-columns: 1fr;
+  min-width: 0;
 }
 @media (min-width: 1100px) {
   .responder-grid {
