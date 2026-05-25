@@ -717,6 +717,42 @@
     }
   }
 
+  // --- World Engine: show the system's self-learning forecast skill, honestly.
+  async function loadWorld() {
+    const cards = document.getElementById('world-cards');
+    const note = document.getElementById('world-note');
+    if (!cards) return;
+    let data;
+    try { data = await fetchJson('/api/eo/world'); } catch { return; }
+    cards.innerHTML = '';
+    let anyVerified = false;
+    for (const hz of Object.keys(data.hazards || {})) {
+      const h = data.hazards[hz];
+      const card = el('div', { class: 'eo-card' });
+      card.appendChild(el('div', { class: 'eo-axis' }, hz));
+      if (!h.n) {
+        card.appendChild(el('div', { class: 'eo-gap muted' }, 'no verified events yet'));
+      } else {
+        anyVerified = true;
+        card.appendChild(el('div', { class: 'eo-level' }, `Brier ${h.brier}`));
+        card.appendChild(el('div', { class: 'eo-conf' }, `${h.n} verified · hit ${h.hitRate == null ? 'n/a' : Math.round(h.hitRate * 100) + '%'}`));
+        card.appendChild(el('div', { class: 'eo-gap muted' }, h.learning ? 'still learning (need ≥30)' : (h.skillGain > 0 ? 'calibration improving accuracy' : 'calibrated')));
+      }
+      cards.appendChild(card);
+    }
+    if (note) {
+      note.textContent = anyVerified
+        ? 'Lower Brier = better. The engine verifies past forecasts against what actually happened and recalibrates itself; accuracy improves as events accrue.'
+        : 'No forecasts have been verified against outcomes yet. Skill scores appear here as predicted events are later confirmed or refuted — honest, measurable self-learning.';
+    }
+  }
+
+  function wireWorld() {
+    const btn = document.getElementById('world-refresh');
+    if (btn) btn.addEventListener('click', loadWorld);
+    loadWorld();
+  }
+
   function wireRoute() {
     const btn = document.getElementById('route-go');
     if (!btn) return;
@@ -755,6 +791,7 @@
     bindMissing();
     wireEO();
     wireRoute();
+    wireWorld();
     reload();
     // Auto-update: when a freshly deployed service worker takes control, reload
     // once so the user gets the new version without a manual hard refresh.

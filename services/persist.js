@@ -164,6 +164,17 @@ async function loadLedgerHead() {
   return decFields(doc.fields);
 }
 
+// --- World Engine learned skill/calibration state (one doc, durable across restarts).
+async function saveWorldSkill(obj) {
+  await req('PATCH', '/worldskill/state', { fields: encFields({ json: JSON.stringify(obj) }) });
+}
+async function loadWorldSkill() {
+  const doc = await req('GET', '/worldskill/state');
+  if (!doc || !doc.fields) return null;
+  const f = decFields(doc.fields);
+  try { return f.json ? JSON.parse(f.json) : null; } catch { return null; }
+}
+
 async function saveSnapshot(obj) {
   const json = JSON.stringify(obj);
   const r = await req('PATCH', '/state/latest', { fields: encFields({ json, sig: snapSig(json), updatedAt: Date.now() }) });
@@ -178,4 +189,4 @@ async function loadSnapshot() {
   try { return JSON.parse(f.json); } catch { return null; }
 }
 
-module.exports = { addReport, listReports, updateReport, addAid, listAid, addVulnerable, listVulnerable, addMissing, listMissing, savePushSub, deletePushSub, listPushSubs, saveSnapshot, loadSnapshot, addPrediction, listPredictions, saveLedgerHead, loadLedgerHead };
+module.exports = { addReport, listReports, updateReport, addAid, listAid, addVulnerable, listVulnerable, addMissing, listMissing, savePushSub, deletePushSub, listPushSubs, saveSnapshot, loadSnapshot, addPrediction, listPredictions, saveLedgerHead, loadLedgerHead, saveWorldSkill, loadWorldSkill };

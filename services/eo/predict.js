@@ -6,6 +6,7 @@ const cache = require('./cache');
 const physics = require('./physics');
 const conformal = require('./conformal');
 const predlog = require('./predlog');
+const world = require('./world');
 
 const LK_MAG = { low: 0.35, moderate: 0.6, high: 0.85 };
 
@@ -172,13 +173,19 @@ async function forecast(lat, lng, assessment) {
   const cell = cache.cellKey(lat, lng);
   for (const h of (assessment && assessment.perHazard) || []) {
     if (['flood', 'storm', 'air', 'heat', 'fire'].includes(h.axis)) {
-      predlog.attachOutcome(cell, h.axis, Math.max(0, Math.min(1, h.magnitude || 0)));
+      const observedMag = Math.max(0, Math.min(1, h.magnitude || 0));
+      predlog.attachOutcome(cell, h.axis, observedMag);
+      // World Engine: resolve whether a previously-forecast event actually occurred,
+      // scoring skill and recalibrating the predictor from reality.
+      world.observeFromMagnitude(h.axis, cell, observedMag);
     }
   }
   for (const p of preds) {
     const mag = LK_MAG[p.likelihood] || 0.5;
     predlog.record({ cell, hazard: p.hazard, pred: mag });
     p.interval = conformal.interval(mag, predlog.scores(p.hazard), 0.1);
+    // Attach the self-learned, calibrated probability and remember it pending an outcome.
+    p.probability = world.recordForecast(p.hazard, cell, mag);
   }
 
   preds.sort((a, b) => RANK[b.likelihood] - RANK[a.likelihood]);

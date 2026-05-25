@@ -22,6 +22,7 @@ const eoPredict = require('./services/eo/predict');
 const eoProvenance = require('./services/eo/provenance');
 const eoCertificate = require('./services/eo/certificate');
 const eoRoute = require('./services/eo/route');
+const eoWorld = require('./services/eo/world');
 const eoPredlog = require('./services/eo/predlog');
 const geolocate = require('./services/geolocate');
 
@@ -150,6 +151,14 @@ app.get('/api/eo', async (req, res) => {
   } catch (err) {
     res.status(502).json({ error: 'fusion_failed', code: 'EO_FUSION', requestId: res.getHeader('X-Correlation-Id') || null });
   }
+});
+
+// World Engine: the system's self-learning skill report. Shows, per hazard, how well
+// past forecasts matched reality (Brier score, hit / false-alarm rate), the learned
+// calibration, and whether calibration is improving accuracy (skillGain > 0).
+app.get('/api/eo/world', (_req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json(eoWorld.report());
 });
 
 // Public key (JWK) for offline client-side verification of /api/eo provenance receipts.
@@ -625,6 +634,11 @@ const server = app.listen(PORT, () => {
         const h = await persist.loadLedgerHead();
         if (h && h.head) eoProvenance.setChainState(h.head, Number(h.seq) || 0);
       } catch { /* ledger head optional */ }
+      // World Engine: resume learned forecast skill/calibration across cold starts.
+      try {
+        eoWorld.usePersistence({ save: persist.saveWorldSkill, load: persist.loadWorldSkill });
+        await eoWorld.hydrate();
+      } catch { /* skill store optional */ }
       const r = restored ? { restored: true } : await runIngest({ force: true, useLLM: false });
       process.stdout.write(JSON.stringify({ severity: 'INFO', kind: 'ingest-boot', ...r, ts: Date.now() }) + '\n');
     })().catch(() => {});
