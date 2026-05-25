@@ -671,6 +671,64 @@
     loadEO(); // coarse on boot
   }
 
+  // --- Safe-passage: verifiable evacuation-route clearance to the nearest shelter.
+  function routeClass(v) { return { GO: 'lv-ok', CAUTION: 'lv-elevated', NO_GO: 'lv-severe' }[v] || 'lv-ok'; }
+
+  async function loadRoute(coords) {
+    const verdictEl = document.getElementById('route-verdict');
+    const segEl = document.getElementById('route-segments');
+    const certEl = document.getElementById('route-cert');
+    if (!verdictEl || !segEl) return;
+    if (!coords) { verdictEl.textContent = 'Share your location to check a safe route.'; return; }
+    verdictEl.textContent = 'Assessing your route to the nearest shelter…';
+    let data;
+    try {
+      data = await fetchJson(`/api/eo/route?fromLat=${coords.lat}&fromLng=${coords.lng}`);
+    } catch { verdictEl.textContent = 'Could not assess the route (offline?).'; return; }
+    const dest = (data.certificate && data.certificate.route && data.certificate.route.destinationName) || 'the nearest shelter';
+    // Honest labels: never claim "safe". This is latency-aware decision-support.
+    const label = { GO: 'LOWEST ASSESSED RISK', CAUTION: 'ELEVATED RISK — PROCEED CAREFULLY', NO_GO: 'DO NOT TAKE THIS ROUTE' }[data.verdict] || data.verdict;
+    const age = data.dataAgeMin == null ? 'no fire pass' : (data.dataAgeMin < 60 ? `${data.dataAgeMin} min` : `${Math.round(data.dataAgeMin / 60)} h`);
+    verdictEl.className = `eo-headline ${routeClass(data.verdict)}`;
+    verdictEl.textContent = `${label} to ${dest} (${data.distanceKm} km): ${data.worst.reason}. ` +
+      `Confidence ${Math.round((data.confidence || 0) * 100)}% · satellite fire data ${age} old.`;
+    segEl.innerHTML = '';
+    (data.segments || []).forEach((s, i) => {
+      const card = el('div', { class: `eo-card ${routeClass(s.level)}` });
+      card.appendChild(el('div', { class: 'eo-axis' }, `Leg ${i + 1}`));
+      card.appendChild(el('div', { class: 'eo-level' }, s.level));
+      card.appendChild(el('div', { class: 'eo-gap muted' }, s.reason));
+      segEl.appendChild(card);
+    });
+    const basisEl = document.getElementById('route-basis') || (function () {
+      const p = el('p', { class: 'eo-coverage muted' }); p.id = 'route-basis';
+      segEl.parentNode.insertBefore(p, segEl.nextSibling); return p;
+    })();
+    basisEl.textContent = `${data.basis || ''} ${data.disclaimer || ''}`.trim();
+    if (certEl) {
+      certEl.textContent = 'Verifying clearance certificate…';
+      try {
+        const jwk = await eoPubkey();
+        const v = (window.EOOffline && data.certificate) ? await window.EOOffline.verifyCertificate(data.certificate) : null;
+        certEl.textContent = v && v.valid
+          ? `✓ Clearance certificate verified offline (seq ${v.seq}, key ${v.fingerprint}). Tamper-evident & non-repudiable.`
+          : 'Clearance certificate could not be verified.';
+      } catch { certEl.textContent = 'Clearance certificate present.'; }
+    }
+  }
+
+  function wireRoute() {
+    const btn = document.getElementById('route-go');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      if (!navigator.geolocation) { loadRoute(); return; }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => loadRoute({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => loadRoute()
+      );
+    });
+  }
+
   function boot() {
     applyTheme(loadTheme());
     const tb = document.getElementById('theme-toggle');
@@ -696,6 +754,7 @@
     bindVulnerable();
     bindMissing();
     wireEO();
+    wireRoute();
     reload();
     // Auto-update: when a freshly deployed service worker takes control, reload
     // once so the user gets the new version without a manual hard refresh.

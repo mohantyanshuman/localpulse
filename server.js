@@ -21,6 +21,7 @@ const eoFusion = require('./services/eo/fusion');
 const eoPredict = require('./services/eo/predict');
 const eoProvenance = require('./services/eo/provenance');
 const eoCertificate = require('./services/eo/certificate');
+const eoRoute = require('./services/eo/route');
 const eoPredlog = require('./services/eo/predlog');
 const geolocate = require('./services/geolocate');
 
@@ -191,6 +192,52 @@ app.post('/api/eo/verify', (req, res) => {
   res.set('Cache-Control', 'no-store');
   const cert = req.body && req.body.certificate ? req.body.certificate : req.body;
   res.json(eoCertificate.verifyCertificate(cert || {}));
+});
+
+// Evacuation-route clearance: is the path from origin to a destination (or the nearest
+// shelter) safe to traverse right now? Returns a GO / CAUTION / NO_GO verdict per
+// segment and an offline-verifiable, tamper-evident Route Clearance Certificate.
+app.get('/api/eo/route', async (req, res) => {
+  const fromLat = parseFloat(req.query.fromLat);
+  const fromLng = parseFloat(req.query.fromLng);
+  if (!Number.isFinite(fromLat) || !Number.isFinite(fromLng)) {
+    return res.status(400).json({ error: 'bad_origin', code: 'EO_ROUTE' });
+  }
+  let to;
+  const toLat = parseFloat(req.query.toLat);
+  const toLng = parseFloat(req.query.toLng);
+  if (Number.isFinite(toLat) && Number.isFinite(toLng)) {
+    to = { lat: toLat, lng: toLng };
+  } else {
+    // Snap to the nearest known shelter/relief facility.
+    const fac = store.getFacilities() || [];
+    let best = null; let bestD = Infinity;
+    for (const f of fac) {
+      if (!Number.isFinite(f.lat) || !Number.isFinite(f.lng)) continue;
+      const d = (f.lat - fromLat) ** 2 + (f.lng - fromLng) ** 2;
+      if (d < bestD) { bestD = d; best = f; }
+    }
+    if (!best) return res.status(404).json({ error: 'no_destination', code: 'EO_ROUTE' });
+    to = { lat: best.lat, lng: best.lng, name: best.name };
+  }
+  try {
+    const route = await eoRoute.assessRoute({ lat: fromLat, lng: fromLng }, to);
+    const body = {
+      level: route.verdict,
+      sensorsUsed: route.sensorsUsed,
+      predictions: [],
+      perHazard: route.segments,
+      location: { lat: fromLat, lng: fromLng },
+    };
+    body.provenance = eoProvenance.sign(body);
+    try { persist.saveLedgerHead(eoProvenance.chainState()); } catch { /* best-effort */ }
+    const cert = eoCertificate.issue(body);
+    cert.route = { to, distanceKm: route.distanceKm, worst: route.worst, activeFires: route.activeFires, destinationName: to.name || null };
+    res.set('Cache-Control', 'no-store');
+    res.json({ ...route, certificate: cert });
+  } catch (err) {
+    res.status(502).json({ error: 'route_failed', code: 'EO_ROUTE', requestId: res.getHeader('X-Correlation-Id') || null });
+  }
 });
 
 // Decision Support: risk + recommendations. With ?lat&lng it is personalized to
