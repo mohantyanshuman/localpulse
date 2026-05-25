@@ -130,3 +130,18 @@ flowchart TD
   CA --> C
   NG --> C
 ```
+
+## FIG. 10 — Self-improving outcome-verified loop (World Engine)
+```mermaid
+flowchart LR
+  F[Fused signals] --> P[Probabilistic forecast]
+  P --> CAL[Apply learned calibration]
+  CAL --> REC[Record forecast for cell+hazard]
+  REC --> W[(Durable skill + params)]
+  T[Later observation of same cell+hazard] --> OCC{Observed magnitude >= event threshold?}
+  OCC -->|yes/no| SC[Score: Brier, hit, false-alarm]
+  SC --> UP[Online logistic recalibration of params]
+  UP --> W
+  W --> CAL
+  W --> RPT[/api/eo/world: skill + learning status/]
+```
