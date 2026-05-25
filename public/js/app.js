@@ -731,12 +731,12 @@
       const card = el('div', { class: 'eo-card' });
       card.appendChild(el('div', { class: 'eo-axis' }, hz));
       if (!h.n) {
-        card.appendChild(el('div', { class: 'eo-gap muted' }, 'no verified events yet'));
+        card.appendChild(el('div', { class: 'eo-gap muted' }, `${h.engines || 0} engines · no verified events yet`));
       } else {
         anyVerified = true;
-        card.appendChild(el('div', { class: 'eo-level' }, `Brier ${h.brier}`));
-        card.appendChild(el('div', { class: 'eo-conf' }, `${h.n} verified · hit ${h.hitRate == null ? 'n/a' : Math.round(h.hitRate * 100) + '%'}`));
-        card.appendChild(el('div', { class: 'eo-gap muted' }, h.learning ? 'still learning (need ≥30)' : (h.skillGain > 0 ? 'calibration improving accuracy' : 'calibrated')));
+        card.appendChild(el('div', { class: 'eo-level' }, `Brier ${h.leaderBrier == null ? 'n/a' : h.leaderBrier}`));
+        card.appendChild(el('div', { class: 'eo-conf' }, `${h.n} verified · closeness ${h.closeness == null ? 'n/a' : Math.round(h.closeness * 100) + '%'}`));
+        card.appendChild(el('div', { class: 'eo-gap muted' }, h.learning ? `${h.engines} engines training (need ≥20)` : `winning engine: ${h.leader}`));
       }
       cards.appendChild(card);
     }

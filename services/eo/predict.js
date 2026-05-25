@@ -176,8 +176,13 @@ async function forecast(lat, lng, assessment) {
       const observedMag = Math.max(0, Math.min(1, h.magnitude || 0));
       predlog.attachOutcome(cell, h.axis, observedMag);
       // World Engine: resolve whether a previously-forecast event actually occurred,
-      // scoring skill and recalibrating the predictor from reality.
-      world.observeFromMagnitude(h.axis, cell, observedMag);
+      // confirmed by MULTIPLE mechanisms (consensus magnitude + cross-sensor
+      // corroboration + divergence flag), training every ensemble engine on the result.
+      world.observe(h.axis, cell, {
+        observedMag,
+        sensorCount: (h.sensorsUsed || []).length,
+        divergenceFlag: h.divergenceFlag,
+      });
     }
   }
   for (const p of preds) {
