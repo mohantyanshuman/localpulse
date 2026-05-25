@@ -38,6 +38,19 @@ test('indiaAxis + channelOf classification', () => {
   assert.strictEqual(OA.channelOf('Central Water Commission'), 'CWC');
 });
 
+test('NWS (US) GeoJSON parse maps events to axes and keeps severe/extreme', () => {
+  const json = { features: [
+    { properties: { event: 'Flood Warning', severity: 'Severe', headline: 'Flood Warning for X' } },
+    { properties: { event: 'Excessive Heat Warning', severity: 'Extreme', headline: 'Heat' } },
+    { properties: { event: 'Air Quality Alert', severity: 'Minor', headline: 'AQ' } },
+  ] };
+  const got = OA.parseNWS(json);
+  assert.ok(got.some((a) => a.authority === 'NWS' && a.axis === 'flood' && a.severity === 'orange'));
+  assert.ok(got.some((a) => a.axis === 'heat' && a.severity === 'red'));
+  assert.ok(!got.some((a) => a.severity === undefined)); // Minor dropped
+  assert.strictEqual(OA.nwsAxis('Red Flag Warning'), 'fire');
+});
+
 test('an official alert is AUTHORITATIVE confirmation, overriding the >=2-sensor rule', () => {
   const c = confirm.confirm({ observedMag: 0.2, sensorCount: 1, official: { authority: 'IMD' } });
   assert.strictEqual(c.occurred, true);   // confirmed despite low magnitude + single sensor

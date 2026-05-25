@@ -187,15 +187,15 @@ async function forecast(lat, lng, assessment) {
         sensorCount: (h.sensorsUsed || []).length,
         divergenceFlag: h.divergenceFlag,
         official: officialByAxis[h.axis] || null,
-      });
+      }, lat, lng);
     }
   }
   for (const p of preds) {
     const mag = LK_MAG[p.likelihood] || 0.5;
     predlog.record({ cell, hazard: p.hazard, pred: mag });
     p.interval = conformal.interval(mag, predlog.scores(p.hazard), 0.1);
-    // Attach the self-learned, calibrated probability and remember it pending an outcome.
-    p.probability = world.recordForecast(p.hazard, cell, mag);
+    // Attach the self-learned, region-calibrated probability and remember it pending.
+    p.probability = world.recordForecast(p.hazard, cell, mag, lat, lng);
   }
 
   preds.sort((a, b) => RANK[b.likelihood] - RANK[a.likelihood]);

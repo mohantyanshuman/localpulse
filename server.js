@@ -146,7 +146,10 @@ app.get('/api/eo', async (req, res) => {
     const body = { ...assessment, predictions, location: { ...loc, ...(place || {}) } };
     body.provenance = eoProvenance.sign(body);
     try { persist.saveLedgerHead(eoProvenance.chainState()); } catch { /* best-effort */ }
-    res.set('Cache-Control', precise ? 'no-store' : 'public, max-age=300, stale-while-revalidate=600');
+    // Edge-cacheable for coarse requests: s-maxage lets a CDN (Cloudflare) serve nearby
+    // users from cache and refresh in the background, cutting global latency + origin
+    // wakeups while preserving scale-to-zero. Precise (sharpen) requests are never cached.
+    res.set('Cache-Control', precise ? 'no-store' : 'public, max-age=120, s-maxage=300, stale-while-revalidate=600');
     res.json(body);
   } catch (err) {
     res.status(502).json({ error: 'fusion_failed', code: 'EO_FUSION', requestId: res.getHeader('X-Correlation-Id') || null });

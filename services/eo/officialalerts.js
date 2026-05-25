@@ -93,6 +93,38 @@ async function fetchIndia(regionTerms) {
   return parseIndia(xml, regionTerms);
 }
 
+// ---- United States: NOAA / National Weather Service (point-queryable, keyless) ----
+const US = { latMin: 18, latMax: 72, lngMin: -180, lngMax: -66 };
+function nwsAxis(event) {
+  const t = (event || '').toLowerCase();
+  if (/(flood|flash flood|coastal flood)/.test(t)) return 'flood';
+  if (/(fire|red flag)/.test(t)) return 'fire';
+  if (/(thunderstorm|tornado|hurricane|tropical|high wind|wind|storm|blizzard)/.test(t)) return 'storm';
+  if (/(heat)/.test(t)) return 'heat';
+  if (/(earthquake|tsunami)/.test(t)) return 'seismic';
+  if (/(air quality|smoke)/.test(t)) return 'air';
+  return null;
+}
+function parseNWS(json) {
+  const feats = (json && Array.isArray(json.features)) ? json.features : [];
+  const out = [];
+  for (const f of feats) {
+    const p = (f && f.properties) || {};
+    const axis = nwsAxis(p.event); if (!axis) continue;
+    if (!/severe|extreme/i.test(p.severity || '')) continue;
+    out.push({ authority: 'NWS', scope: 'us', axis, severity: /extreme/i.test(p.severity) ? 'red' : 'orange', distanceKm: null, title: String(p.headline || p.event || '').slice(0, 160) });
+  }
+  return out;
+}
+async function fetchNWS(lat, lng) {
+  // NWS (api.weather.gov) requires a User-Agent identifying the app WITH contact info.
+  const txt = await getText(`https://api.weather.gov/alerts/active?point=${lat.toFixed(4)},${lng.toFixed(4)}`, 9000, {
+    headers: { Accept: 'application/geo+json', 'User-Agent': 'LocalPulse/1.0 (localpulse.dmj.one; contact@dmj.one)' },
+  });
+  if (!txt) return [];
+  try { return parseNWS(JSON.parse(txt)); } catch { return []; }
+}
+
 function byAxis(alerts) {
   const m = {};
   for (const a of alerts) {
@@ -113,8 +145,10 @@ async function alertsByAxis(lat, lng) {
       return fetchIndia(terms).catch(() => []);
     })());
   }
+  const inUS = lat >= US.latMin && lat <= US.latMax && lng >= US.lngMin && lng <= US.lngMax;
+  if (inUS) tasks.push(fetchNWS(lat, lng).catch(() => []));
   const all = (await Promise.all(tasks)).flat();
   return byAxis(all);
 }
 
-module.exports = { parseEvents, alertsNear, fetchGdacs, parseIndia, fetchIndia, indiaAxis, channelOf, byAxis, alertsByAxis, TYPE_AXIS, RADIUS_KM, INDIA };
+module.exports = { parseEvents, alertsNear, fetchGdacs, parseIndia, fetchIndia, indiaAxis, channelOf, parseNWS, fetchNWS, nwsAxis, byAxis, alertsByAxis, TYPE_AXIS, RADIUS_KM, INDIA, US };
