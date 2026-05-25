@@ -110,3 +110,23 @@ flowchart LR
   H1 -. embedded public key .-> V[Third party verifies any certificate OFFLINE: signature + chain link]
   H2 -. no server, no blockchain .-> V
 ```
+
+## FIG. 9 — Verifiable evacuation-route clearance (hyper-specialisation)
+```mermaid
+flowchart TD
+  O[Origin / user location] --> D[Pick nearest shelter as destination]
+  D --> WP[Sample waypoints along path]
+  WP --> FB[One FIRMS bbox query: active fires]
+  WP --> WX[Batched multi-point: precipitation + wind]
+  WP --> EL[Batched multi-point: elevation]
+  FB --> SEG[Classify each segment: fire-proximity, low-lying rain, wind]
+  WX --> SEG
+  EL --> SEG
+  SEG --> V{Worst segment}
+  V -->|all clear| GO[GO: safe to proceed]
+  V -->|elevated| CA[CAUTION]
+  V -->|high/severe| NG[NO-GO: do not take this route]
+  GO --> C[Sign + chain -> offline-verifiable Route Clearance Certificate]
+  CA --> C
+  NG --> C
+```
