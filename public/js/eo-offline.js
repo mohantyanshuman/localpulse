@@ -33,11 +33,13 @@
     return '{' + Object.keys(v).sort().map((k) => JSON.stringify(k) + ':' + stableStringify(v[k])).join(',') + '}';
   }
   function canonical(payload) {
+    const loc = payload.location || null;
     return stableStringify({
       level: payload.level,
       sensorsUsed: payload.sensorsUsed,
       predictions: payload.predictions,
       perHazard: payload.perHazard,
+      location: loc ? { lat: loc.lat, lng: loc.lng } : null,
     });
   }
   function b64ToBytes(b64) {
@@ -50,7 +52,7 @@
     if (!receipt || !receipt.sig || !jwk) return { valid: false, stale: false };
     const subtle = (typeof crypto !== 'undefined' && crypto.subtle) || null;
     if (!subtle) return { valid: false, stale: false };
-    const msg = canonical(payload) + '|' + receipt.model + '|' + receipt.ts;
+    const msg = canonical(payload) + '|' + receipt.model + '|' + receipt.ts + '|' + (receipt.prevHash || '');
     let valid = false;
     try {
       const key = await subtle.importKey('jwk', jwk, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify']);
@@ -59,5 +61,26 @@
     return { valid, stale: Date.now() - receipt.ts > (ttlMs || 3600000) };
   }
 
-  return { recomputeLevel, levelFromMagnitude, ageLabel, canonical, stableStringify, verifyReceipt };
+  async function sha256hex(s) {
+    const subtle = (typeof crypto !== 'undefined' && crypto.subtle) || null;
+    if (!subtle) return null;
+    const b = await subtle.digest('SHA-256', new TextEncoder().encode(s));
+    return [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, '0')).join('');
+  }
+
+  // Fully offline, self-contained verification of a Warning Certificate using its OWN
+  // embedded public key: ECDSA signature over the canonical content + chain self-
+  // consistency (receiptHash == sha256(prevHash + "." + sig)).
+  async function verifyCertificate(cert) {
+    if (!cert || cert.kind !== 'localpulse-warning-certificate' || !cert.receipt || !cert.publicKeyJwk) {
+      return { valid: false, reason: 'not-a-certificate' };
+    }
+    const payload = { level: cert.level, sensorsUsed: cert.sensorsUsed, predictions: cert.predictions, perHazard: cert.perHazard, location: cert.location };
+    const sigRes = await verifyReceipt(payload, cert.receipt, cert.publicKeyJwk, Number.MAX_SAFE_INTEGER);
+    const expect = await sha256hex(cert.receipt.prevHash + '.' + cert.receipt.sig);
+    const chainOk = !!expect && expect === cert.receipt.receiptHash;
+    return { valid: sigRes.valid && chainOk, chainOk, signatureValid: sigRes.valid, fingerprint: cert.publicKeyFingerprint, seq: cert.receipt.seq, issuedAt: cert.issuedAt, reason: (sigRes.valid && chainOk) ? 'ok' : 'signature-or-chain-mismatch' };
+  }
+
+  return { recomputeLevel, levelFromMagnitude, ageLabel, canonical, stableStringify, verifyReceipt, sha256hex, verifyCertificate };
 });

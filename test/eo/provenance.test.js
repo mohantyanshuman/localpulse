@@ -35,3 +35,20 @@ test('verify reports stale beyond ttl', () => {
 test('stableStringify is order-independent', () => {
   assert.strictEqual(PR.stableStringify({ b: 1, a: 2 }), PR.stableStringify({ a: 2, b: 1 }));
 });
+
+test('sequential receipts form an unbroken tamper-evident chain', () => {
+  const r1 = PR.sign({ level: 'ok', sensorsUsed: ['a'], predictions: [], perHazard: [] });
+  const r2 = PR.sign({ level: 'elevated', sensorsUsed: ['a'], predictions: [], perHazard: [] });
+  const r3 = PR.sign({ level: 'high', sensorsUsed: ['a'], predictions: [], perHazard: [] });
+  assert.strictEqual(r2.prevHash, r1.receiptHash);
+  assert.strictEqual(r3.prevHash, r2.receiptHash);
+  assert.strictEqual(PR.verifyChain([r1, r2, r3]).ok, true);
+});
+
+test('reordering or deleting a warning breaks the chain', () => {
+  const r1 = PR.sign({ level: 'ok', sensorsUsed: ['a'], predictions: [], perHazard: [] });
+  const r2 = PR.sign({ level: 'high', sensorsUsed: ['a'], predictions: [], perHazard: [] });
+  const r3 = PR.sign({ level: 'severe', sensorsUsed: ['a'], predictions: [], perHazard: [] });
+  assert.strictEqual(PR.verifyChain([r1, r3, r2]).ok, false); // reordered
+  assert.strictEqual(PR.verifyChain([r1, r3]).ok, false);     // r2 deleted
+});

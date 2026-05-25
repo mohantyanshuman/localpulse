@@ -20,6 +20,7 @@ const livefeed = require('./services/livefeed');
 const eoFusion = require('./services/eo/fusion');
 const eoPredict = require('./services/eo/predict');
 const eoProvenance = require('./services/eo/provenance');
+const eoCertificate = require('./services/eo/certificate');
 const eoPredlog = require('./services/eo/predlog');
 const geolocate = require('./services/geolocate');
 
@@ -142,6 +143,7 @@ app.get('/api/eo', async (req, res) => {
     // Tamper-evident, offline-verifiable provenance receipt over the assessment+predictions.
     const body = { ...assessment, predictions, location: { ...loc, ...(place || {}) } };
     body.provenance = eoProvenance.sign(body);
+    try { persist.saveLedgerHead(eoProvenance.chainState()); } catch { /* best-effort */ }
     res.set('Cache-Control', precise ? 'no-store' : 'public, max-age=300, stale-while-revalidate=600');
     res.json(body);
   } catch (err) {
@@ -154,6 +156,41 @@ app.get('/api/eo', async (req, res) => {
 app.get('/api/eo/pubkey', (_req, res) => {
   res.set('Cache-Control', 'public, max-age=86400');
   res.json({ alg: 'ES256', jwk: eoProvenance.publicKeyJwk() });
+});
+
+// Forensic Warning Certificate: a self-contained, offline-verifiable, non-repudiable
+// artifact (embeds the public key + a tamper-evident chain position) attesting the
+// hazard warned, where, when and by which sensors. Usable as disaster-accountability
+// evidence with no server and no distributed ledger.
+app.get('/api/eo/certificate', async (req, res) => {
+  const qLat = parseFloat(req.query.lat);
+  const qLng = parseFloat(req.query.lng);
+  const precise = Number.isFinite(qLat) && Number.isFinite(qLng);
+  const loc = precise ? { lat: qLat, lng: qLng, source: 'precise' } : geolocate.coarseFromHeaders(req.headers);
+  try {
+    const [assessment, place] = await Promise.all([
+      eoFusion.fuse(loc.lat, loc.lng),
+      geolocate.reverseGeocode(loc.lat, loc.lng),
+    ]);
+    let predictions = [];
+    try { predictions = await eoPredict.forecast(loc.lat, loc.lng, assessment); } catch { predictions = []; }
+    const body = { ...assessment, predictions, location: { ...loc, ...(place || {}) } };
+    body.provenance = eoProvenance.sign(body);
+    try { persist.saveLedgerHead(eoProvenance.chainState()); } catch { /* best-effort */ }
+    const cert = eoCertificate.issue(body);
+    res.set('Cache-Control', 'no-store');
+    res.json(cert);
+  } catch (err) {
+    res.status(502).json({ error: 'certificate_failed', code: 'EO_CERT', requestId: res.getHeader('X-Correlation-Id') || null });
+  }
+});
+
+// Independent server-side verification of a submitted Warning Certificate (a citizen,
+// responder, insurer or court can POST a certificate and get an authenticity verdict).
+app.post('/api/eo/verify', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  const cert = req.body && req.body.certificate ? req.body.certificate : req.body;
+  res.json(eoCertificate.verifyCertificate(cert || {}));
 });
 
 // Decision Support: risk + recommendations. With ?lat&lng it is personalized to
@@ -483,6 +520,7 @@ const sendPage = (file) => (req, res) => {
 app.get('/', sendPage('index.html'));
 app.get('/responder', sendPage('responder.html'));
 app.get('/voice', sendPage('voice.html'));
+app.get('/verify', sendPage('verify.html'));
 app.get('/pitch', sendPage('pitch.html'));
 app.get('/report', sendPage('report.html'));
 
@@ -534,6 +572,12 @@ const server = app.listen(PORT, () => {
         eoPredlog.usePersistence({ add: persist.addPrediction, list: persist.listPredictions });
         await eoPredlog.hydrate();
       } catch { /* calibration store optional */ }
+      // Resume the tamper-evident warning chain from the last persisted head so the
+      // ledger is continuous across stateless cold starts.
+      try {
+        const h = await persist.loadLedgerHead();
+        if (h && h.head) eoProvenance.setChainState(h.head, Number(h.seq) || 0);
+      } catch { /* ledger head optional */ }
       const r = restored ? { restored: true } : await runIngest({ force: true, useLLM: false });
       process.stdout.write(JSON.stringify({ severity: 'INFO', kind: 'ingest-boot', ...r, ts: Date.now() }) + '\n');
     })().catch(() => {});

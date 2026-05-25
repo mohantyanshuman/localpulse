@@ -154,6 +154,16 @@ async function listPredictions(limit = 2000) {
   return rows.filter((r) => r.document).map((r) => ({ id: r.document.name.split('/').pop(), ...decFields(r.document.fields || {}) }));
 }
 
+// --- Tamper-evident warning-ledger head (chain continuity across cold starts).
+async function saveLedgerHead(obj) {
+  await req('PATCH', '/ledger/head', { fields: encFields(obj) });
+}
+async function loadLedgerHead() {
+  const doc = await req('GET', '/ledger/head');
+  if (!doc || !doc.fields) return null;
+  return decFields(doc.fields);
+}
+
 async function saveSnapshot(obj) {
   const json = JSON.stringify(obj);
   const r = await req('PATCH', '/state/latest', { fields: encFields({ json, sig: snapSig(json), updatedAt: Date.now() }) });
@@ -168,4 +178,4 @@ async function loadSnapshot() {
   try { return JSON.parse(f.json); } catch { return null; }
 }
 
-module.exports = { addReport, listReports, updateReport, addAid, listAid, addVulnerable, listVulnerable, addMissing, listMissing, savePushSub, deletePushSub, listPushSubs, saveSnapshot, loadSnapshot, addPrediction, listPredictions };
+module.exports = { addReport, listReports, updateReport, addAid, listAid, addVulnerable, listVulnerable, addMissing, listMissing, savePushSub, deletePushSub, listPushSubs, saveSnapshot, loadSnapshot, addPrediction, listPredictions, saveLedgerHead, loadLedgerHead };
