@@ -26,6 +26,9 @@ Multi-source hazard monitoring is established. The following are the closest ref
 | **PDC DisasterAWARE** (product) | Near-real-time AI multi-hazard early warning across ~28 hazard types | Proprietary/enterprise; no published cross-sensor divergence anti-spoof gating, no offline-verifiable provenance receipt, no on-device recompute, no distribution-free calibrated interval |
 | **Google FloodHub** (product) | Free global AI riverine flood forecast + API | Single hazard family; no integrity provenance, divergence gating, on-device verification, or physics-bounded multi-hazard nowcast |
 | **ESA EO4Multihazards** (research) | Cascading/compound multi-hazard science from Sentinel EO | Research, not a connectivity-resilient verifiable decision system; lacks the claimed integrity/offline/calibration mechanisms |
+| **IN 202141037092** (Indian application; hierarchical landslide early-warning) | Multi-level warnings from an in-ground "deep earth probe" sensor column measuring rainfall, soil moisture, ground movement | A physical in-situ sensor network for one hazard (landslide); no satellite/heterogeneous EO fusion, no cross-sensor divergence gating, no offline-verifiable provenance receipt, no on-device recompute, no conformal interval |
+| **US 2016/0275461 A1 / WO2016154001A1** (device-integrity attestation via blockchain) | Attesting a device's boot/execution integrity | Attests the *device*, not the integrity/authenticity of a *derived hazard decision* carried to and verified by an arbitrary recipient offline |
+| **US 11,930,061 B2 / US 2023/0385164 A1** (edge-device disaster-recovery mode) | Edge device falls back to locally stored broadcast data when offline | Serves cached *content*; does not recompute a fused hazard assessment on-device nor cryptographically verify a prediction's provenance offline |
 
 **Technical problems left unsolved by the art:**
 1. A fused automated hazard decision can be silently corrupted (compromised store, spoofed/degraded feed, man-in-the-middle) and the recipient has no way to detect it, especially offline.
@@ -42,6 +45,16 @@ Core technical means (all reduced to practice in the cited source):
 - **(M3) On-device, connectivity-independent recomputation:** the recipient device recomputes the confidence-weighted headline assessment from the last cached per-sensor signals and re-verifies the provenance receipt locally, remaining functional and trustworthy with zero connectivity.
 - **(M4) Split-conformal calibration:** a rolling, durably-persisted log of (prediction, later-observed-outcome) nonconformity scores yields a distribution-free interval with guaranteed marginal coverage attached to each forecast, and explicitly signals an uncalibrated state until sufficient data accrues.
 - **(M5) Physics-constrained propagation:** interpretable physical models (a Rothermel-type fire rate-of-spread parameterised by satellite-derived dryness, wind and terrain slope; a rainfall-runoff onset factor on terrain) bound the reach and time-to-onset of the forecast.
+
+## 4A. Brief Description of the Drawings
+(Figures to be rendered by the agent from these specifications; flowcharts are accepted for CRIs.)
+- **FIG. 1** — System architecture: recipient device, network interface, the plurality of EO source adapters, the fusion engine (with divergence module), the prediction engine (with physics + conformal modules), the provenance signer, and the public-key distribution path.
+- **FIG. 2** — Signal data structure and the uniform adapter contract (axis, magnitude, confidence, freshness, sensor, proximity).
+- **FIG. 3** — Divergence-gating flowchart: per-axis pairwise divergence → threshold test → consensus / blindspot (early-warning) / suspect (attenuate outlier) branches.
+- **FIG. 4** — Provenance sequence diagram: canonical encoding → ECDSA-P256 sign (IEEE-P1363) → receipt {alg, model, ts, sig} transmitted with output → recipient imports public key (JWK) → WebCrypto verify → valid/stale decision, all offline.
+- **FIG. 5** — On-device offline recomputation flowchart: connectivity loss → load cached signals → confidence-weighted level recompute → re-verify receipt with cached public key → render with data-age + verification state.
+- **FIG. 6** — Conformal calibration loop: log prediction for cell/hazard → later observe outcome → nonconformity score → durable store → split-conformal (1−α) quantile → coverage interval (or uncalibrated indication).
+- **FIG. 7** — Physics-constrained propagation: satellite-derived dryness/wind + terrain slope from elevation ring → fire rate-of-spread / rainfall-runoff onset → bounded reach + ETA.
 
 ## 5. Detailed Description (mapping to the working implementation)
 - Heterogeneous feeds are ingested by adapters exposing a uniform `query(lat,lng) → Signal[]` contract (`services/eo/adapters/*`), each `Signal` carrying axis, normalised magnitude, confidence, freshness, sensor identity and proximity (`services/eo/signal.js`); failures degrade independently.
@@ -83,6 +96,17 @@ such that the recipient device is enabled to verify the provenance receipt using
 
 ## 7. Statement of Technical Effect (for Section 3(k) / CRI 2025)
 The claimed invention is not a computer programme or algorithm per se. It provides a technical solution to technical problems (corruptibility of an automated decision; sensor spoofing/blindness; unbounded uncertainty; unavailability under network loss) through technical means (information-theoretic divergence gating; asymmetric cryptographic signing and on-device public-key verification; on-device recomputation; split-conformal interval computation; physics-parameterised propagation), achieving tangible technical effects beyond mere incidental effects, namely: **(i) verifiable data integrity and tamper-evidence of a derived decision; (ii) improved security against feed spoofing and store compromise; (iii) continued, trustworthy operation of the recipient device under loss of network connectivity; (iv) a measurable, guaranteed statistical-coverage property of the output; and (v) physically-bounded forecast accuracy.** Each effect improves the functioning of the system/device and solves a technical problem, satisfying the technical-contribution test affirmed in *Ferid Allani* and the Draft CRI Guidelines, 2025.
+
+## 7A. Claim chart (Claim 1 elements vs. closest prior art — the no-fightback basis)
+| Claim 1 element | US 11,200,788 B1 | PDC DisasterAWARE | Google FloodHub | IN 202141037092 | Sensor-signing / device-attestation art |
+|---|---|---|---|---|---|
+| (b) cross-sensor divergence gating (anti-spoof + blindspot) | absent | not disclosed | absent | absent | absent |
+| (c) physics-constrained propagation from satellite-derived inputs | statistical interpolation only | not disclosed | ML model, not interpretable physics bound | absent | absent |
+| (d) split-conformal distribution-free coverage interval | absent | not disclosed | absent | absent | absent |
+| (e) asymmetric signature over a canonical encoding of the fused decision | absent | absent | absent | absent | signs raw sensor data / attests device, not a fused decision |
+| (f) recipient verifies offline with public key alone + recomputes from cache | absent | absent | absent | absent | device attestation ≠ offline verification of a portable decision receipt |
+
+No single reference discloses any one of (b)–(f) as applied to a fused multi-hazard decision, and none discloses their combination. This is the literal-novelty and non-obviousness basis.
 
 ## 8. Industrial Applicability and Societal Benefit
 The system is industrially applicable as deployable disaster-resilience software operable on free public data and zero-cost serverless infrastructure, usable worldwide on low-end devices and poor networks. Societal benefit: it democratises trustworthy, forward-looking, tamper-evident hazard intelligence for resource-constrained and disaster-prone communities that cannot access proprietary platforms, and remains usable precisely when connectivity fails during a disaster. This addresses a genuine public-safety need and supports the "no one left behind" objective.

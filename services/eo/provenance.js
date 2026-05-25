@@ -32,7 +32,9 @@ let KP = null;
 
 function keypair() {
   if (KP) return KP;
-  const pem = process.env.EO_SIGNING_KEY;
+  let pem = process.env.EO_SIGNING_KEY;
+  // Accept either a raw PEM or a single-line base64-encoded PEM (env-file friendly).
+  if (pem && !pem.includes('BEGIN')) { try { pem = Buffer.from(pem, 'base64').toString('utf8'); } catch { /* keep as-is */ } }
   try {
     if (pem) {
       const priv = crypto.createPrivateKey(pem);
