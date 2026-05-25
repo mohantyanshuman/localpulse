@@ -23,7 +23,16 @@ Two injection modes (the script supports both):
 | Mode | How | Hardening |
 |---|---|---|
 | `env` (default) | `--update-secrets KEY=KEY:latest` injects the value as an env var sourced from Secret Manager | Value never in the config; standard strong option |
-| `file` | `--update-secrets /secrets/KEY=KEY:latest` mounts the secret as a **file**; `KEY_FILE=/secrets/KEY` is set and `services/secrets-bootstrap.js` loads it into the env at startup | Value also **not in the environment block**, so it can't leak via an env dump, a child process, a crash report, or an accidental log. Most leak-resistant. |
+| `file` | `--update-secrets /secrets/KEY/value=KEY:latest` mounts each secret as a **file in its own directory** (Cloud Run cannot mount multiple secrets into one directory); `KEY_FILE=/secrets/KEY/value` is set and `services/secrets-bootstrap.js` loads it into the env at startup | Value also **not in the environment block**, so it can't leak via an env dump, a child process, a crash report, or an accidental log. Most leak-resistant. |
+
+## Current production state (already wired)
+All nine secrets — `FIRMS_MAP_KEY`, `COPERNICUS_CLIENT_ID`, `COPERNICUS_CLIENT_SECRET`,
+`CDSAPI_KEY`, `EARTHDATA_TOKEN`, `EO_SIGNING_KEY`, `GEMINI_API_KEY`, `INGEST_TOKEN`,
+`VAPID_PRIVATE_KEY` — are in Secret Manager and injected into the `localpulse` service as
+**references** (env mode). Verified: `gcloud run services describe` shows only references,
+no plaintext values, and `/api/eo/pubkey` serves the stable signing key. `VAPID_PUBLIC_KEY`
+and other non-secret config remain plain env (public key is not a secret). Future
+`gcloud run deploy --source=.` (CI) preserves these references.
 
 ## Run it (you, not Claude — it needs your gcloud auth)
 ```bash

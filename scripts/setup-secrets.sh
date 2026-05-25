@@ -51,8 +51,9 @@ for K in $SECRET_KEYS; do
   gcloud secrets add-iam-policy-binding "$K" --project="$PROJECT" \
     --member="serviceAccount:${SA}" --role="roles/secretmanager.secretAccessor" >/dev/null 2>&1 || true
   if [ "$MODE" = "file" ]; then
-    # Mount as a file at /secrets/<KEY> and point <KEY>_FILE at it (read by secrets-bootstrap.js)
-    UPDATE_SECRETS="${UPDATE_SECRETS:+$UPDATE_SECRETS,}/secrets/${K}=${K}:latest"
+    # Mount each secret as a file in its OWN directory (/secrets/<KEY>/value); Cloud Run
+    # cannot mount multiple secrets into the same directory, so each needs a distinct path.
+    UPDATE_SECRETS="${UPDATE_SECRETS:+$UPDATE_SECRETS,}/secrets/${K}/value=${K}:latest"
   else
     # Inject as an env var sourced from Secret Manager (value not stored in the config)
     UPDATE_SECRETS="${UPDATE_SECRETS:+$UPDATE_SECRETS,}${K}=${K}:latest"
@@ -65,7 +66,7 @@ for K in $PLAIN_KEYS; do
   SET_ENV="${SET_ENV:+$SET_ENV,}${K}=${V}"
 done
 if [ "$MODE" = "file" ]; then
-  for K in $SECRET_KEYS; do [ -n "${ENV[$K]:-}" ] && SET_ENV="${SET_ENV:+$SET_ENV,}${K}_FILE=/secrets/${K}"; done
+  for K in $SECRET_KEYS; do [ -n "${ENV[$K]:-}" ] && SET_ENV="${SET_ENV:+$SET_ENV,}${K}_FILE=/secrets/${K}/value"; done
 fi
 
 ARGS=()
