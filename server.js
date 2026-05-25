@@ -1,5 +1,7 @@
 // LocalPulse — single-file Cloud Run server.
 // MVP/MLP: in-memory data, no persistence. Scale-to-zero friendly.
+// Load file-mounted secrets (Secret Manager volumes) into env BEFORE anything reads them.
+require('./services/secrets-bootstrap');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
