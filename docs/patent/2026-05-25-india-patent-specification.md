@@ -10,7 +10,9 @@
 ---
 
 ## 1. Title of the Invention
-**A connectivity-resilient system and method for generating cryptographically-verifiable, calibration-bounded multi-hazard nowcasts from divergence-gated fusion of heterogeneous Earth-observation feeds.**
+**A connectivity-resilient system and method for issuing offline-verifiable, tamper-evident and non-repudiable hazard-warning certificates from spoofing-resistant fusion of heterogeneous Earth-observation feeds.**
+
+*(Specialisation: the invention's novel core is the forensic, offline-verifiable warning certificate and its non-repudiable chain; the multi-hazard fusion and forecasting are the inputs that the certificate makes trustworthy and accountable.)*
 
 ## 2. Field of the Invention
 The invention relates to disaster early-warning and decision-support systems, and more particularly to a computer-implemented system that fuses heterogeneous public Earth-observation data streams to produce, for an arbitrary geographic location, a trustworthy and forward-looking multi-hazard assessment whose integrity is verifiable on the recipient device without network connectivity.
@@ -31,6 +33,8 @@ Multi-source hazard monitoring is established. The following are the closest ref
 | **IN 202141037092** (Indian application; hierarchical landslide early-warning) | Multi-level warnings from an in-ground "deep earth probe" sensor column measuring rainfall, soil moisture, ground movement | A physical in-situ sensor network for one hazard (landslide); no satellite/heterogeneous EO fusion, no cross-sensor divergence gating, no offline-verifiable provenance receipt, no on-device recompute, no conformal interval |
 | **US 2016/0275461 A1 / WO2016154001A1** (device-integrity attestation via blockchain) | Attesting a device's boot/execution integrity | Attests the *device*, not the integrity/authenticity of a *derived hazard decision* carried to and verified by an arbitrary recipient offline |
 | **US 11,930,061 B2 / US 2023/0385164 A1** (edge-device disaster-recovery mode) | Edge device falls back to locally stored broadcast data when offline | Serves cached *content*; does not recompute a fused hazard assessment on-device nor cryptographically verify a prediction's provenance offline |
+| **US 2008/0155262 A1** (tamper-evident certification) | Generic tamper-evident certification of data | Not a hazard warning; no sensor-fusion, no anti-spoof gating, no offline third-party-verifiable warning certificate bound to location/time/chain-position |
+| **US 10,419,225 B2 / US 12,481,987** (validating documents / verification via **blockchain / distributed ledger**) | Document/ledger validation using a blockchain or DLT | Require a distributed ledger/blockchain; the present invention is a **non-DLT**, single-issuer ECDSA + hash-chain certificate verifiable **offline on a phone** with only an embedded public key — no chain network, no consensus, usable when connectivity is denied |
 
 **Technical problems left unsolved by the art:**
 1. A fused automated hazard decision can be silently corrupted (compromised store, spoofed/degraded feed, man-in-the-middle) and the recipient has no way to detect it, especially offline.
@@ -47,6 +51,7 @@ Core technical means (all reduced to practice in the cited source):
 - **(M3) On-device, connectivity-independent recomputation:** the recipient device recomputes the confidence-weighted headline assessment from the last cached per-sensor signals and re-verifies the provenance receipt locally, remaining functional and trustworthy with zero connectivity.
 - **(M4) Split-conformal calibration:** a rolling, durably-persisted log of (prediction, later-observed-outcome) nonconformity scores yields a distribution-free interval with guaranteed marginal coverage attached to each forecast, and explicitly signals an uncalibrated state until sufficient data accrues.
 - **(M5) Physics-constrained propagation:** interpretable physical models (a Rothermel-type fire rate-of-spread parameterised by satellite-derived dryness, wind and terrain slope; a rainfall-runoff onset factor on terrain) bound the reach and time-to-onset of the forecast.
+- **(M6) Forensic warning certificate + non-repudiable chain (the specialisation):** each issued warning is packaged as a self-contained certificate embedding its own verification public key, and each warning's signature is chained to the prior warning's hash. The chain makes the *sequence* of warnings tamper-evident (no reorder/insert/delete/backdate), the embedded key makes each certificate verifiable **offline by any third party** with no server and no distributed ledger, and the location and timestamp are bound by the signature. This yields a non-repudiable, court/insurer-checkable record of exactly what was warned, where, and when — the differentiator that does not exist in surveyed systems.
 
 ## 4A. Brief Description of the Drawings
 (Figures to be rendered by the agent from these specifications; flowcharts are accepted for CRIs.)
@@ -63,10 +68,26 @@ Core technical means (all reduced to practice in the cited source):
 - A fusion engine (`services/eo/fusion.js`) groups signals per axis, applies a confidence-weighted roll-up, and invokes M1 (`services/eo/divergence.js`).
 - A prediction engine (`services/eo/predict.js`) computes near-term forecasts from forecast feeds, applies M5 (`services/eo/physics.js`, terrain from a keyless elevation service) and M4 (`services/eo/conformal.js` + durable `services/eo/predlog.js`).
 - An endpoint assembles the assessment + predictions and applies M2 (`services/eo/provenance.js`), exposing the verification public key at `/api/eo/pubkey`.
-- The recipient web client (`public/js/eo-offline.js`) performs M3 and M2-verification using the device WebCrypto API; the canonical encoding is byte-identical to the server (validated by a cross-stack test).
+- The provenance signer maintains a hash chain (`services/eo/provenance.js`: each receipt binds the prior `receiptHash`; head persisted via `persist.saveLedgerHead`/`loadLedgerHead` and resumed on boot). A certificate module (`services/eo/certificate.js`) packages a self-contained, public-key-embedding Warning Certificate, issued at `GET /api/eo/certificate` and independently checkable at `POST /api/eo/verify`.
+- The recipient web client (`public/js/eo-offline.js`) performs M3, M2-verification, and full offline certificate verification (signature + chain self-consistency) using the device WebCrypto API; a zero-dependency public verifier page (`public/verify.html`, `/verify`) lets any third party verify a certificate offline. The canonical encoding is byte-identical to the server (validated by cross-stack tests).
 - A per-cell, time-to-live cache shields free data quotas and bounds latency.
 
 ## 6. Claims (draft)
+
+> **Lead specialised claim.** The primary, narrowest and most novel claim is the
+> **forensic warning-certificate** claim (Claim 0 below): no surveyed system or patent
+> issues, for a fused multi-hazard warning, a self-contained certificate that is
+> tamper-evident, chained for non-repudiation, and independently verifiable OFFLINE by a
+> third party with only an embedded public key and without any distributed ledger. The
+> broader system/method Claims 1-3 follow.
+
+**Independent Claim 0 (forensic warning certificate — lead claim).**
+A computer-implemented method of issuing a verifiable hazard-warning certificate, comprising:
+(a) fusing, for a geographic location, signals from a plurality of independent Earth-observation sources, and attenuating the contribution of a source whose magnitude diverges implausibly from corroborating sources so a spoofed or failed feed cannot determine the warning;
+(b) forming a warning record comprising a hazard level, contributing sensor identities, and the location;
+(c) computing a deterministic canonical encoding of the warning record and signing it with a private key of an asymmetric key pair to produce a signature, and computing a chain value that binds the signature to the immediately preceding issued warning's chain value, such that any reordering, insertion, deletion, backdating or alteration of issued warnings is detectable;
+(d) assembling a self-contained certificate comprising the warning record, the signature, the chain value and preceding chain value, an ordinal position, a timestamp, and the public key of the asymmetric key pair; and
+(e) providing the certificate to a recipient, whereby any third party verifies the certificate's authenticity, integrity, location, time and ordinal position **offline, using only the embedded public key and without access to a server or a distributed ledger**.
 
 **Independent Claim 1 (system).**
 A data-processing system for connectivity-resilient multi-hazard assessment, comprising one or more processors, a memory, and a network interface, configured to:
@@ -95,9 +116,13 @@ such that the recipient device is enabled to verify the provenance receipt using
 13. Wherein the provenance receipt includes a timestamp bound by the signature, and the recipient device treats the assessment as stale when a current time exceeds the timestamp by a time-to-live.
 14. Wherein the location is obtained without user interaction from an edge geolocation header and is optionally refined to a device-reported precise location.
 15. Wherein each said data source is queried through a per-location-cell time-to-live cache that bounds query rate and latency.
+16. Wherein the chain value of Claim 0(c) is a cryptographic hash binding the preceding warning's chain value and the present signature, and a sequence of certificates is verified as an unbroken chain to establish a non-repudiable, tamper-evident record of which warnings were issued and when.
+17. Wherein the chain value is persisted to a durable store and re-loaded on process restart so the tamper-evident warning ledger is continuous across stateless restarts.
+18. Wherein the certificate embeds the public key as a JSON Web Key and a fingerprint thereof, and the recipient device verifies the certificate using a browser-native cryptographic interface with no network access and no distributed ledger.
+19. Wherein the timestamp and the location are bound by the signature, so that a certificate cannot be re-attributed to a different time or place without detection, rendering the certificate admissible as a tamper-evident record for disaster-accountability, insurance or liability purposes.
 
 ## 7. Statement of Technical Effect (for Section 3(k) / CRI 2025)
-The claimed invention is not a computer programme or algorithm per se. It provides a technical solution to technical problems (corruptibility of an automated decision; sensor spoofing/blindness; unbounded uncertainty; unavailability under network loss) through technical means (information-theoretic divergence gating; asymmetric cryptographic signing and on-device public-key verification; on-device recomputation; split-conformal interval computation; physics-parameterised propagation), achieving tangible technical effects beyond mere incidental effects, namely: **(i) verifiable data integrity and tamper-evidence of a derived decision; (ii) improved security against feed spoofing and store compromise; (iii) continued, trustworthy operation of the recipient device under loss of network connectivity; (iv) a measurable, guaranteed statistical-coverage property of the output; and (v) physically-bounded forecast accuracy.** Each effect improves the functioning of the system/device and solves a technical problem, satisfying the technical-contribution test affirmed in *Ferid Allani* and the Draft CRI Guidelines, 2025.
+The claimed invention is not a computer programme or algorithm per se. It provides a technical solution to technical problems (corruptibility of an automated decision; sensor spoofing/blindness; unbounded uncertainty; unavailability under network loss) through technical means (information-theoretic divergence gating; asymmetric cryptographic signing and on-device public-key verification; on-device recomputation; split-conformal interval computation; physics-parameterised propagation), achieving tangible technical effects beyond mere incidental effects, namely: **(i) verifiable data integrity and tamper-evidence of a derived decision; (ii) improved security against feed spoofing and store compromise; (iii) continued, trustworthy operation of the recipient device under loss of network connectivity; (iv) a measurable, guaranteed statistical-coverage property of the output; (v) physically-bounded forecast accuracy; and (vi) non-repudiation and tamper-evident ordering of an issued warning sequence, independently verifiable offline without a distributed ledger.** Each effect improves the functioning of the system/device and solves a technical problem, satisfying the technical-contribution test affirmed in *Ferid Allani* and the Draft CRI Guidelines, 2025.
 
 ## 7A. Claim chart (Claim 1 elements vs. closest prior art — the no-fightback basis)
 | Claim 1 element | US 11,200,788 B1 | PDC DisasterAWARE | Google FloodHub | IN 202141037092 | Sensor-signing / device-attestation art |
@@ -107,14 +132,15 @@ The claimed invention is not a computer programme or algorithm per se. It provid
 | (d) split-conformal distribution-free coverage interval | absent | not disclosed | absent | absent | absent |
 | (e) asymmetric signature over a canonical encoding of the fused decision | absent | absent | absent | absent | signs raw sensor data / attests device, not a fused decision |
 | (f) recipient verifies offline with public key alone + recomputes from cache | absent | absent | absent | absent | device attestation ≠ offline verification of a portable decision receipt |
+| **Claim 0: self-contained, non-repudiable, offline-verifiable warning certificate (no DLT) for a fused hazard warning** | absent | absent | absent | absent | tamper-evident-certification / blockchain art is generic and DLT-based; none issues an offline, non-DLT certificate for a fused, anti-spoof-gated hazard warning bound to location/time/order |
 
-No single reference discloses any one of (b)–(f) as applied to a fused multi-hazard decision, and none discloses their combination. This is the literal-novelty and non-obviousness basis.
+No single reference discloses any one of (b)–(f) or Claim 0 as applied to a fused multi-hazard decision, and none discloses their combination. This is the literal-novelty and non-obviousness basis.
 
 ## 8. Industrial Applicability and Societal Benefit
 The system is industrially applicable as deployable disaster-resilience software operable on free public data and zero-cost serverless infrastructure, usable worldwide on low-end devices and poor networks. Societal benefit: it democratises trustworthy, forward-looking, tamper-evident hazard intelligence for resource-constrained and disaster-prone communities that cannot access proprietary platforms, and remains usable precisely when connectivity fails during a disaster. This addresses a genuine public-safety need and supports the "no one left behind" objective.
 
 ## 9. Abstract
-A connectivity-resilient system fuses heterogeneous Earth-observation feeds into a per-location multi-hazard assessment and near-term forecast. Cross-sensor information-theoretic divergence gates per-feed trust and raises blindspot/anti-spoof alarms; an interpretable physical propagation model bounds forecast reach and onset; a split-conformal procedure attaches a distribution-free coverage interval; and the assessment is bound by a deterministic canonical encoding and signed with an asymmetric private key so that any recipient device verifies integrity offline with only the public key and recomputes the assessment from cached signals when connectivity is lost. The combination yields verifiable integrity, spoofing resistance, offline device operability, statistical calibration and physically-bounded accuracy.
+A connectivity-resilient system fuses heterogeneous Earth-observation feeds into a per-location multi-hazard assessment and near-term forecast, and issues each warning as a self-contained, tamper-evident certificate. Cross-sensor information-theoretic divergence gates per-feed trust and attenuates a spoofed or failed feed; an interpretable physical model bounds forecast reach and onset; a split-conformal procedure attaches a distribution-free coverage interval. Each warning is bound to a deterministic canonical encoding of its hazard level, sensors, location and time, signed with an asymmetric private key, and chained to the prior warning's hash to form a non-repudiable, tamper-evident ledger. The certificate embeds its own public key so any third party verifies the warning's authenticity, integrity, location, time and ordinal position offline, with no server and no distributed ledger, and a device recomputes the assessment from cached signals when connectivity is lost. The combination yields verifiable integrity, spoofing resistance, offline device operability, statistical calibration, physically-bounded accuracy, and non-repudiable disaster-warning accountability.
 
 ## 10. Honest patentability assessment and prosecution strategy
 - **Strongest, hardest-to-challenge ground:** M2 + M3 (offline-verifiable provenance and on-device operation under network loss) and M1 (divergence-gated integrity). These are concrete security/data-integrity/device-operability effects — the categories Indian and EPO practice most readily accept under the technical-effect test — and none of the cited art discloses them for a fused hazard decision.

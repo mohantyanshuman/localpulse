@@ -92,3 +92,21 @@ flowchart LR
   T --> RR
   RR --> O2[flood onset factor + ETA shift]
 ```
+
+## FIG. 8 — Non-repudiable warning-certificate chain
+```mermaid
+flowchart LR
+  G[Genesis hash] --> R1
+  subgraph R1[Warning #1]
+    C1[canonical: level, sensors, predictions, location] --> S1[ECDSA sign over canon-model-ts-prevHash]
+    S1 --> H1[receiptHash = sha256 prevHash + sig]
+  end
+  R1 --> R2
+  subgraph R2[Warning #2]
+    C2[canonical #2] --> S2[sign, prevHash = receiptHash #1]
+    S2 --> H2[receiptHash #2]
+  end
+  R2 --> R3[Warning #3 ...]
+  H1 -. embedded public key .-> V[Third party verifies any certificate OFFLINE: signature + chain link]
+  H2 -. no server, no blockchain .-> V
+```
