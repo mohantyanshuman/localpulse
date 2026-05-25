@@ -8,14 +8,19 @@
 // learn from HOW CLOSE a forecast was, not only whether it was right.
 const EVENT_MAG = 0.55;
 
-function confirm({ observedMag, sensorCount = 1, divergenceFlag = 'consensus' } = {}) {
+function confirm({ observedMag, sensorCount = 1, divergenceFlag = 'consensus', official = null } = {}) {
   const mag = Math.max(0, Math.min(1, Number(observedMag) || 0));
+  // Mechanism 4 (highest authority): a worldwide official alert (GDACS) for this hazard
+  // near the location confirms the event regardless of our own sensors, at full confidence.
+  if (official) {
+    return { observedMag: mag, occurred: true, confidence: 1, sensorCount, official: true, authority: official.authority || 'official' };
+  }
   let confidence = sensorCount >= 3 ? 1 : sensorCount === 2 ? 0.8 : 0.5;
   if (divergenceFlag === 'suspect') confidence *= 0.5;
-  // Require corroboration (>=2 independent sensors) for a magnitude to count as a
-  // confirmed event; a single-sensor high reading is treated as unconfirmed.
+  // Otherwise require corroboration (>=2 independent sensors) for a magnitude to count as
+  // a confirmed event; a single-sensor high reading is treated as unconfirmed.
   const occurred = mag >= EVENT_MAG && sensorCount >= 2;
-  return { observedMag: mag, occurred, confidence: +confidence.toFixed(2), sensorCount };
+  return { observedMag: mag, occurred, confidence: +confidence.toFixed(2), sensorCount, official: false };
 }
 
 // Continuous accuracy of a probabilistic forecast vs the realized magnitude (1 = exact).

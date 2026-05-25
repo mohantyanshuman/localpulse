@@ -7,6 +7,7 @@ const physics = require('./physics');
 const conformal = require('./conformal');
 const predlog = require('./predlog');
 const world = require('./world');
+const officialalerts = require('./officialalerts');
 
 const LK_MAG = { low: 0.35, moderate: 0.6, high: 0.85 };
 
@@ -171,6 +172,9 @@ async function forecast(lat, lng, assessment) {
   // loop so intervals actually mature), then log the new predictions and attach a
   // distribution-free interval from accrued nonconformity scores.
   const cell = cache.cellKey(lat, lng);
+  // Worldwide + India official alerts near this point (GDACS + NDMA Sachet/IMD/CWC/...),
+  // cached per cell — the authoritative confirmer.
+  const officialByAxis = await cache.memo(`official:${cell}`, 30 * 60 * 1000, () => officialalerts.alertsByAxis(lat, lng).catch(() => ({})));
   for (const h of (assessment && assessment.perHazard) || []) {
     if (['flood', 'storm', 'air', 'heat', 'fire'].includes(h.axis)) {
       const observedMag = Math.max(0, Math.min(1, h.magnitude || 0));
@@ -182,6 +186,7 @@ async function forecast(lat, lng, assessment) {
         observedMag,
         sensorCount: (h.sensorsUsed || []).length,
         divergenceFlag: h.divergenceFlag,
+        official: officialByAxis[h.axis] || null,
       });
     }
   }
