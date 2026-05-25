@@ -3,6 +3,8 @@
 > **Status:** Filing-ready draft for review by a registered Indian Patent Agent before submission to the Indian Patent Office (IPO). Prepared 2026-05-25. Not legal advice. Anchored to the Patents Act, 1970 (as amended), the Patents Rules, and the Draft CRI Guidelines, 2025 (technical-effect test per *Ferid Allani v. Union of India*, 2019; *Microsoft v. Asst. Controller*, 2023).
 >
 > **Inventor / Applicant:** Anshuman Mohanty (GF202217744), B.Tech CSE (Cloud Computing), Shoolini University. **Reduced to practice:** https://localpulse.dmj.one · source github.com/divyamohan1993/localpulse.
+> **Companion documents:** drawings in `docs/patent/figures.md`; IPO forms/checklist in `docs/patent/filing-package.md`. All claimed mechanisms are reduced to practice and tested (76 passing) in the cited repository, including the Claim 1(b) suspect-feed attenuation and blindspot early-warning.
+>
 > **Recommended track:** Provisional first (₹1,750 e-filing for a natural person/startup; Form 1 + Form 2 + Form 3 + Form 5; Form 28 for startup/small-entity fee), then complete within 12 months. Request **expedited examination (Rule 24C)** as an eligible startup/natural person.
 
 ---

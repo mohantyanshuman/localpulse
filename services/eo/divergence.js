@@ -25,9 +25,14 @@ function analyzeAxis(axis, signals) {
   const max = Math.max(...mags), min = Math.min(...mags);
   const mean = mags.reduce((a, b) => a + b, 0) / mags.length;
   if (divergence >= 0.3) {
-    const top = signals[mags.indexOf(max)];
-    const flag = (max - mean) > (mean - min) ? 'blindspot' : 'suspect';
-    return { axis, divergence, flag, outlier: top ? top.sensor : null };
+    // A lone HIGH outlier (above-mean deviation dominates) is a possible emerging
+    // hazard others miss -> 'blindspot'. A lone LOW outlier among higher sensors is a
+    // likely degraded/failed feed -> 'suspect'. The outlier is the deviating sensor.
+    const aboveDominates = (max - mean) > (mean - min);
+    const flag = aboveDominates ? 'blindspot' : 'suspect';
+    const outlierMag = aboveDominates ? max : min;
+    const sig = signals[mags.indexOf(outlierMag)];
+    return { axis, divergence, flag, outlier: sig ? sig.sensor : null };
   }
   return { axis, divergence, flag: 'consensus', outlier: null };
 }

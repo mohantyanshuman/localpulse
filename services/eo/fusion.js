@@ -56,15 +56,46 @@ function summarizeAxis(axis, signals) {
   const sensors = [...new Set(signals.map((s) => s.sensor))];
   const top = signals.reduce((a, b) => (b.magnitude > a.magnitude ? b : a));
   const agreement = sensors.length >= 2 ? Math.min(0.2, 0.1 * (sensors.length - 1)) : 0;
-  const confidence = Math.min(1, top.confidence + agreement);
-  const gapNote = sensors.length >= 2
-    ? `Corroborated by ${sensors.length} sensors (${sensors.join(', ')}).`
-    : `Single-sensor read (${sensors[0]}); no corroborating sensor this cycle.`;
   const div = divergence.analyzeAxis(axis, signals);
+
+  // Anti-spoof attenuation: when divergence flags an implausible 'suspect' outlier,
+  // exclude that outlier from the representative magnitude so a single rogue/degraded
+  // feed cannot drive the hazard level, and reduce confidence. (Reduces to practice
+  // Claim 1(b): "attenuate the contribution of an outlier source".)
+  let repMag = top.magnitude;
+  let confidence = Math.min(1, top.confidence + agreement);
+  let attenuated = false;
+  let gapNote;
+  if (div.flag === 'suspect' && div.outlier) {
+    // Lone LOW outlier = likely degraded feed; drop it so it cannot hide a real
+    // consensus hazard. Level set from the corroborating sensors.
+    const others = signals.filter((s) => s.sensor !== div.outlier);
+    if (others.length) {
+      repMag = others.reduce((m, s) => Math.max(m, s.magnitude), 0);
+      confidence = Math.min(1, confidence * 0.85);
+      attenuated = true;
+      gapNote = `Attenuated a suspect feed (${div.outlier}); level from ${others.length} corroborating sensor(s).`;
+    }
+  } else if (div.flag === 'blindspot' && div.outlier && sensors.length >= 2) {
+    // Lone HIGH uncorroborated outlier = possible emerging hazard OR spoof. Cap its
+    // solo influence so one unverified feed cannot force the maximum alarm, while
+    // still surfacing it as an early-warning (anti-false-alarm + no-suppression).
+    repMag = Math.min(top.magnitude, 0.6);
+    confidence = Math.min(1, confidence * 0.7);
+    attenuated = true;
+    gapNote = `Early-warning: only ${div.outlier} reports this; solo influence capped pending corroboration.`;
+  }
+  if (!gapNote) {
+    gapNote = sensors.length >= 2
+      ? `Corroborated by ${sensors.length} sensors (${sensors.join(', ')}).`
+      : `Single-sensor read (${sensors[0]}); no corroborating sensor this cycle.`;
+  }
   return {
     axis,
-    level: levelFromMagnitude(top.magnitude),
-    magnitude: top.magnitude,
+    level: levelFromMagnitude(repMag),
+    magnitude: repMag,
+    rawMagnitude: top.magnitude,
+    attenuated,
     confidence,
     sensorsUsed: sensors,
     gapNote,

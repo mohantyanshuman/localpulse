@@ -43,6 +43,31 @@ test('overall level is confidence-weighted: a lone low-confidence proxy does not
   assert.ok(['high', 'severe'].includes(corroborated.level), `corroborated high should be high+, got ${corroborated.level}`);
 });
 
+test('a lone HIGH uncorroborated feed cannot force severe (anti-spoof attenuation)', () => {
+  const out = fuseSignals([
+    mkSignal({ axis: 'flood', magnitude: 0.1, confidence: 0.7, sensor: 'NASA POWER (MERRA-2)', distanceKm: 0 }),
+    mkSignal({ axis: 'flood', magnitude: 0.1, confidence: 0.7, sensor: 'GloFAS (Open-Meteo)', distanceKm: 0 }),
+    mkSignal({ axis: 'flood', magnitude: 0.95, confidence: 0.55, sensor: 'Sentinel-1 SAR', distanceKm: 0 }),
+  ], []);
+  const flood = out.perHazard.find((h) => h.axis === 'flood');
+  assert.strictEqual(flood.attenuated, true);
+  assert.ok(flood.magnitude <= 0.6, `solo high feed must be capped, got ${flood.magnitude}`);
+  assert.notStrictEqual(flood.level, 'severe');
+  assert.strictEqual(flood.divergenceFlag, 'blindspot');
+});
+
+test('a lone LOW feed cannot hide a corroborated hazard (suspect feed dropped)', () => {
+  const out = fuseSignals([
+    mkSignal({ axis: 'air', magnitude: 0.85, confidence: 0.8, sensor: 'CAMS (Sentinel-5P assimilated)', distanceKm: 0 }),
+    mkSignal({ axis: 'air', magnitude: 0.82, confidence: 0.75, sensor: 'Sentinel-5P TROPOMI', distanceKm: 0 }),
+    mkSignal({ axis: 'air', magnitude: 0.05, confidence: 0.7, sensor: 'Sentinel-5P TROPOMI (NO2)', distanceKm: 0 }),
+  ], []);
+  const air = out.perHazard.find((h) => h.axis === 'air');
+  assert.strictEqual(air.attenuated, true);
+  assert.ok(air.magnitude >= 0.8, `consensus hazard must stand, got ${air.magnitude}`);
+  assert.strictEqual(air.divergenceFlag, 'suspect');
+});
+
 test('fuse skips Sentinel adapters when Copernicus creds are absent', async () => {
   const prevId = process.env.COPERNICUS_CLIENT_ID;
   const prevSecret = process.env.COPERNICUS_CLIENT_SECRET;

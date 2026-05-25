@@ -1,6 +1,8 @@
 # LocalPulse — Patentability Brief & Draft Claims
 
 > Working document for a provisional patent filing. Prepared 2026-05-24. Not legal advice; for attorney review.
+>
+> **Canonical filing draft for the Earth-observation invention:** `docs/patent/2026-05-25-india-patent-specification.md` (India-compliant, with prior-art claim chart, §3(k) technical-effect statement, drawings in `docs/patent/figures.md`, and IPO forms in `docs/patent/filing-package.md`). Part A below covers the community-DSS layer; Part B and the canonical draft cover the satellite-fusion + frontier (Phase 5) layer.
 
 **Title (working):** *Method and system for a spatially-scoped, temporally-decayed community decision-support platform that fuses heterogeneous free data feeds with agentic web-search verification of citizen reports.*
 
