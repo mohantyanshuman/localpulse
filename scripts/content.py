@@ -120,10 +120,11 @@ TOC_ENTRIES = [
 FIGURES = [
     ("Figure 1", "High-level System Architecture of LocalPulse", "12"),
     ("Figure 2", "End-to-end Data Flow from Public Source to Resident Device", "13"),
-    ("Figure 3", "Voice Bot Call Flow over Twilio with Whisper and GPT-4o", "14"),
+    ("Figure 3", "In-Browser Voice Flow over the Web Speech API, Grounded in Live Data", "14"),
     ("Figure 4", "Resident Dashboard Wireframe (mobile, 360x800)", "20"),
     ("Figure 5", "Responder Console Wireframe (tablet, 1024x768)", "22"),
     ("Figure 6", "Cloud Run Deployment Topology in asia-east1", "38"),
+    ("Figure 7", "Earth-Observation Fusion, Cross-Validation and Signed Provenance", "28"),
 ]
 
 # -- Section: List of Tables ------------------------------------------------
@@ -134,6 +135,7 @@ TABLES_LIST = [
     ("Table 4", "STRIDE Threat Model and Mitigations", "15"),
     ("Table 5", "Test Suite Coverage and Sample Results", "32"),
     ("Table 6", "Cost Profile at Idle, Steady and Peak Load", "40"),
+    ("Table 7", "Earth-Observation Sensor Adapters and Hazard Axes", "27"),
 ]
 
 # -- Section: 1. Introduction and Problem Definition ------------------------
@@ -305,10 +307,17 @@ REQ_FUNCTIONAL = [
     "reload, using server-sent events or short polling.",
     "The system shall support a language switcher with at least Hindi, Punjabi, "
     "Tamil, Bengali and English locales for all visible strings.",
-    "The system shall expose a public health endpoint at /healthz for liveness "
-    "and a /readyz endpoint for readiness probes.",
-    "The system shall publish an OpenAPI specification at /api/openapi.json so "
-    "that integrators can generate clients automatically.",
+    "The system shall expose a public health endpoint at /healthz for liveness, "
+    "a /readyz endpoint for readiness probes and a /version endpoint reporting "
+    "the build revision.",
+    "The system shall fuse multiple satellite and physical-sensor feeds into a "
+    "cross-validated earth-observation hazard assessment, attach a "
+    "tamper-evident, offline-verifiable provenance receipt to it, and issue a "
+    "self-contained warning certificate that any party can verify without the "
+    "server.",
+    "The system shall provide an evacuation-route clearance that returns a "
+    "GO, CAUTION or NO_GO verdict for the path from an origin to a destination "
+    "or the nearest shelter.",
 ]
 
 REQ_NONFUNCTIONAL = {
@@ -389,11 +398,12 @@ REQ_HARDWARE_SOFTWARE = {
         "a regular voice call within the Indian PSTN."
     ),
     "Production runtime": (
-        "Google Cloud Run in asia-east1, configured with 1 vCPU, 512 mebibytes "
-        "of memory, scale-to-zero (min instances = 0) and a maximum of 2 "
-        "instances on the minimum lovable product. Artifact Registry stores "
-        "the container image. A custom domain mapping points "
-        "localpulse.dmj.one at the service URL."
+        "Google Cloud Run in asia-east1 (project dmjone, service localpulse), "
+        "configured with 1 vCPU, 512 mebibytes of memory, scale-to-zero (min "
+        "instances = 0), a maximum of 1 instance and a concurrency of 80. The "
+        "image is built from source by Cloud Build on each deploy. Cloudflare "
+        "fronts localpulse.dmj.one and proxies to the service URL. Firestore "
+        "provides optional durability when the service runs on Google Cloud."
     ),
 }
 
@@ -434,82 +444,100 @@ ARCH_COMPONENTS = [
     ("Persistence (persist.js + Firestore)", "Reports, mutual-aid, vulnerable-person registry, missing persons, push subscriptions and an HMAC-signed cold-start snapshot."),
     ("Web Push (push.js)", "VAPID notifications, locality-scoped so only subscribers near a verified event are alerted."),
     ("Live Feed (livefeed.js)", "A shared poller that broadcasts new items from all sources to the SSE pulse stream in real time, with no model calls."),
+    ("EO Fusion (services/eo/fusion.js)", "Runs 13 satellite/sensor adapters in parallel through a per-geocell TTL cache, cross-validates per hazard axis and emits one confidence-weighted assessment."),
+    ("EO World Engine (world.js, skill.js)", "Per-region ensemble of competing Platt-calibration engines scored by Brier; outcome-verified and persisted across cold starts."),
+    ("EO Provenance and Certificates (provenance.js, certificate.js)", "ECDSA P-256 signatures over canonical JSON, hash-chained receipts and self-contained, offline-verifiable warning certificates."),
+    ("EO Route Clearance (route.js)", "Latency-aware GO/CAUTION/NO_GO evacuation-route verdict to a destination or the nearest shelter, with a Route Clearance Certificate."),
     ("Cloud Logging", "Structured JSON logs with a correlation ID on every request."),
 ]
 
 ARCH_DATAFLOW = [
     (
-        "Public posts arrive at the ingest worker every sixty seconds through the "
-        "Twitter API v2 filtered stream and the Reddit listing endpoint scoped "
-        "to the configured subreddit list. The worker normalises each post into "
-        "a canonical event with fields source, source_id, author_hash, text, "
-        "language, lat, lon and observed_at. It publishes the event to the "
-        "Pub/Sub topic incidents-v1."
+        "When the token-guarded ingestion trigger /tasks/ingest fires, the source "
+        "registry fetches more than forty free, no-key feeds in parallel: Google "
+        "News queries scoped to each Himachal district, national and regional "
+        "RSS in English and Hindi, the IMD and NDMA alert feeds, and an optional "
+        "Reddit listing. Each item is normalised into a canonical event with "
+        "fields source, id, text, language, lat, lng and observed time."
     ),
     (
-        "A subscriber, the dedupe-and-classify worker, pulls events in batches "
-        "of fifty. It first computes a SimHash of the normalised text and "
-        "discards events whose hash is within a Hamming distance of three of any "
-        "event seen in the last fifteen minutes. It then sends the surviving "
-        "events to a small zero-shot classifier with the five category labels. "
-        "The classifier returns the top label and a confidence score."
+        "The triage stage deduplicates and clusters near-identical items, then "
+        "passes the survivors to a Gemini Flash-Lite model that scores relevance, "
+        "assigns a category (road, shelter, power, water, medical, rumour) and a "
+        "severity, geolocates the named place and translates the result into the "
+        "five supported languages. A keyword heuristic stands in when the model "
+        "key is unset, so the pipeline never hard-fails. This is the only path "
+        "that ever spends the model budget."
     ),
     (
-        "Classified events are written to Firestore under the incidents "
-        "collection and re-published on a downstream topic incidents-classified. "
-        "A second subscriber, the summariser, pulls the last fifteen minutes of "
-        "events for each category and prompts GPT-4o with a fixed system prompt "
-        "and a JSON output schema. The schema enforces five short status lines, "
-        "one per category. The result is written to the summaries collection "
-        "with a server timestamp."
+        "Classified incidents land in the in-memory live store, which keeps a "
+        "monotonic version counter for delta-sync. Where the service runs on "
+        "Google Cloud Run, the durable writes (resident reports, mutual-aid, the "
+        "vulnerable-person registry, push subscriptions and the cold-start "
+        "snapshot) are mirrored to Firestore over its REST API, authenticated by "
+        "the Cloud Run metadata token; off Google Cloud, the same code degrades "
+        "to in-memory only with no behavioural change."
     ),
     (
-        "On the read path, the dashboard issues a GET to /api/summary?town=solan, "
-        "which reads the latest summary document from Firestore. It also opens a "
-        "server-sent events connection to /api/incidents/stream, which pushes "
-        "any new incident document through a Firestore snapshot listener. A "
-        "small client-side reconciler merges new events into the map."
+        "On the read path, the dashboard issues a GET to /api/summary and a GET "
+        "to /api/sync, the latter returning 304 Not Modified when the client "
+        "already holds the current version. It also opens an EventSource against "
+        "/api/pulse, a Server-Sent-Events stream that replays the latest "
+        "incidents and a stat snapshot on connect, then broadcasts new items, "
+        "stat refreshes and periodic ping heartbeats live as the shared poller "
+        "sees them, with no model calls on the stream."
     ),
     (
-        "On the voice path, an incoming call hits a Twilio number. Twilio posts "
-        "the call to a webhook served by Cloud Run. The handler streams the "
-        "audio to Whisper, gets a transcript, sends the transcript to a small "
-        "intent classifier, and replies with TwiML that either speaks an answer "
-        "via Polly Neural voices or transfers the call to a local control-room "
-        "number. The transcript and the intent are persisted to the reports "
-        "collection."
+        "On the voice path, the browser uses the Web Speech API: SpeechRecognition "
+        "captures the spoken query and POSTs the transcript to /api/voice/intent, "
+        "which classifies the intent and returns a reply grounded in the live "
+        "incident and facility data, and SpeechSynthesis speaks it back. There is "
+        "no telephony dependency in the shipped product; a Twilio line for "
+        "non-smartphone callers is documented under future scope."
     ),
 ]
 
 ARCH_API_DESIGN = [
     (
-        "All public application programming interfaces follow REST conventions, "
-        "are versioned under /api/v1/, return JSON encoded as UTF-8, accept and "
-        "emit ISO 8601 timestamps, and produce errors in the shape "
-        "{error: {code, message, details}}. Mutations require an idempotency "
-        "key passed in the Idempotency-Key header. Pagination is cursor-based "
-        "with a next_cursor field. Rate limits are enforced per endpoint and "
-        "per anonymous client identifier with a Retry-After header."
+        "All public application programming interfaces are exposed on a flat "
+        "/api surface (for example /api/incidents, /api/eo, /api/report), "
+        "return JSON encoded as UTF-8, accept and emit ISO 8601 timestamps, and "
+        "produce errors in the shape {error, code, requestId}. The read "
+        "endpoints are deliberately cacheable: /api/sync implements an "
+        "ETag-based delta-sync that returns 304 Not Modified when the client "
+        "already holds the current monotonic version, and the coarse "
+        "earth-observation read carries Cache-Control with s-maxage and "
+        "stale-while-revalidate so a Cloudflare edge can serve nearby users "
+        "without waking the origin. The only privileged route, the ingestion "
+        "trigger at /tasks/ingest, is guarded by a constant-time token "
+        "comparison and stays disabled until INGEST_TOKEN is set."
     ),
 ]
 
 ARCH_DATA_DESIGN = [
     (
-        "In the minimum lovable product, the data plane is a small set of JSON "
-        "files mounted into the container and read on boot. A request handler "
-        "filters the in-memory list by query parameters and returns the slice. "
-        "Writes are append-only to a process-local array and are not persisted "
-        "across instances; the design accepts this because the demo is meant "
-        "to show the user-facing behaviour rather than the persistence story."
+        "The data plane is an in-memory live store (data/store.js) that holds the "
+        "current incidents, facilities and metadata, and exposes a single "
+        "monotonic version number. A read handler filters the in-memory list by "
+        "query parameters and returns the slice; /api/sync compares the client's "
+        "version against the store's and answers 304 Not Modified when nothing "
+        "has changed, so a returning client transfers only deltas. Keeping the "
+        "hot path in process is what lets the service boot fast and scale to "
+        "zero without a database round-trip on every request."
     ),
     (
-        "In production, Firestore in Native mode holds three collections. The "
-        "incidents collection stores one document per classified post or "
-        "resident report. The summaries collection stores one document per town "
-        "per minute. The reports collection stores resident-submitted incidents "
-        "and voice-bot reports. Each document carries a server-assigned "
-        "timestamp, a town code and a content type. Pub/Sub topics carry "
-        "events; BigQuery scheduled queries roll up daily metrics."
+        "Durability is an optional layer, not a hard dependency. The persistence "
+        "module (services/persist.js) talks to Firestore over its REST API, "
+        "authenticated by the Cloud Run metadata token, and stores the records "
+        "that must survive a cold start: resident reports, mutual-aid offers and "
+        "needs, the vulnerable-person registry, missing-person reports, push "
+        "subscriptions and a snapshot of the last good situational state plus the "
+        "provenance ledger head. When the service runs anywhere other than "
+        "Google Cloud, the same calls become no-ops and the application keeps "
+        "working in memory. There is no relational schema, no message broker and "
+        "no analytics warehouse in the deployed system; the dependency surface is "
+        "deliberately just express, compression and web-push, with Firestore "
+        "access and all cryptography hand-rolled against the standard library."
     ),
 ]
 
@@ -525,38 +553,43 @@ ARCH_SECURITY = [
         "disclosure is contained by a strict allow-list Content Security "
         "Policy, by Cross-Origin Resource Sharing locked to first-party "
         "origins, by Subresource Integrity hashes on every CDN script and by "
-        "field-level encryption (AES-256-GCM) for any caller phone number "
-        "passed from Twilio. Denial of service is dampened by Cloud Armor rate "
-        "rules at the edge and per-route token-bucket limits at the "
-        "application. Elevation of privilege is constrained by least-privilege "
-        "service accounts that hold only the Pub/Sub publisher and Firestore "
-        "user roles they require."
+        "collecting no personal identifiers on the report form at all. Denial "
+        "of service is absorbed at the Cloudflare edge in front of the service, "
+        "while the origin holds the hot path in memory so that a flood of reads "
+        "is answered without a database round-trip. Elevation of privilege is "
+        "constrained by a least-privilege Cloud Run service account, keyless "
+        "deploys through Workload Identity Federation, and a single privileged "
+        "route (/tasks/ingest) gated by a constant-time token comparison that "
+        "stays disabled until the token is configured. Every response carries "
+        "the security headers set in the server: x-powered-by disabled, a "
+        "strict Content-Security-Policy, HTTP Strict Transport Security with a "
+        "two-year max-age and preload, X-Frame-Options DENY, X-Content-Type-"
+        "Options nosniff, Referrer-Policy and Permissions-Policy."
     ),
     (
         "Data residency follows the Digital Personal Data Protection Act, 2023. "
-        "The Cloud Run service, the Firestore database, the Pub/Sub topics and "
-        "the Cloud Logging buckets are all pinned to asia-east1, which is the "
-        "Taiwan region nearest to Indian users while being inside the Asia-"
-        "Pacific data perimeter; production rollout will move to asia-south1 "
-        "(Mumbai) or asia-south2 (Delhi) for in-country residency. No "
-        "personally identifiable information is recorded in logs, error "
-        "messages or query strings."
+        "The Cloud Run service, its logs and the optional Firestore database are "
+        "pinned to asia-east1, the Taiwan region nearest to Indian users while "
+        "being inside the Asia-Pacific data perimeter; an in-country rollout "
+        "would move to asia-south1 (Mumbai) or asia-south2 (Delhi). Because the "
+        "report form collects no name, email or phone number, there is no "
+        "resident personal data to reside anywhere, and none is recorded in "
+        "logs, error messages or query strings."
     ),
 ]
 
 ARCH_DEPLOYMENT = [
     (
         "The deployment topology is intentionally short. A user request resolves "
-        "localpulse.dmj.one through Cloud DNS to a Google front-end. The "
-        "front-end terminates Transport Layer Security with a Google-managed "
-        "certificate, applies Cloud Armor rules and forwards the request to "
-        "the Cloud Run service in asia-east1. The service runs in a single "
-        "revision, scales from zero to two instances on the minimum lovable "
-        "product (and up to fifty in production), and is fronted by a serverless "
-        "Network Endpoint Group when traffic warrants a load balancer. Container "
-        "images are pulled from Artifact Registry. Build and release flow "
-        "through GitHub Actions, which authenticates to Google Cloud through "
-        "Workload Identity Federation."
+        "localpulse.dmj.one to the Cloudflare edge, which terminates Transport "
+        "Layer Security, absorbs distributed-denial-of-service traffic, caches "
+        "what it can and proxies the rest to the Cloud Run service in "
+        "asia-east1. The service runs as a single revision and scales from zero "
+        "to one instance at concurrency eighty, with the ceiling a one-line "
+        "change when load warrants it. Each deploy is built from source by Cloud "
+        "Build straight from the Dockerfile. Build and release flow through "
+        "GitHub Actions on every push to main, which authenticates to Google "
+        "Cloud through Workload Identity Federation and holds no long-lived key."
     ),
 ]
 
@@ -573,18 +606,13 @@ TECH_STACK = [
     ("Facilities", "OpenStreetMap Overpass API", "Free, real hospitals / police / schools / community centres near the town."),
     ("Voice (demo)", "Web Speech API", "Built into Chrome and Edge, no key required, lets a viva examiner test the flow on the spot."),
     ("Voice (future)", "Twilio Programmable Voice + Whisper", "For non-smartphone callers; needs a paid Indian DID, kept as roadmap."),
-    ("Container Runtime", "Google Cloud Run", "Scale to zero, automatic Transport Layer Security, custom domain, regional pinning."),
-    ("Image Registry", "Google Artifact Registry", "Same project, same Identity and Access Management, vulnerability scanning included."),
-    ("State Store", "Google Firestore (Native)", "Durable reports, mutual-aid, vulnerable registry, push subscriptions and the HMAC-signed cold-start snapshot."),
-    ("Notifications", "Web Push (VAPID)", "Standards-based, free; locality-scoped to subscribers near a verified event."),
-    ("CI/CD", "GitHub Actions with Workload Identity Federation", "No long-lived keys, parallel jobs, free for public repositories."),
-    ("Observability", "OpenTelemetry to Google Cloud Operations", "Open standard, single SDK, traces and metrics in one place."),
-    ("Tests (unit)", "Vitest", "Fast, native ECMAScript modules, excellent watch mode."),
-    ("Tests (integration)", "Supertest against Express", "In-process, no port, fastest feedback for HTTP handlers."),
-    ("Tests (end-to-end)", "Playwright", "Cross-browser, mobile emulation, network throttling, accessibility checks."),
-    ("Tests (accessibility)", "axe-core + Lighthouse CI", "Catches the most common WCAG violations automatically."),
-    ("Tests (load)", "k6", "Scriptable in JavaScript, exports Prometheus metrics."),
-    ("Tests (security)", "npm audit + Semgrep", "Dependency vulnerabilities and source-level taint analysis."),
+    ("Edge", "Cloudflare (free tier)", "DNS, TLS termination, DDoS absorption and CDN caching in front of the origin."),
+    ("Container Runtime", "Google Cloud Run", "Scale to zero, automatic Transport Layer Security, built from source by Cloud Build, regional pinning."),
+    ("State Store", "In-memory live store + Firestore over REST", "Hot reads in process with a monotonic version for delta-sync; durable records mirrored to Firestore, no-op off Google Cloud."),
+    ("Notifications", "Web Push (VAPID, web-push)", "Standards-based, free; locality-scoped to subscribers near a verified event."),
+    ("CI/CD", "GitHub Actions with Workload Identity Federation", "No long-lived keys; rebuilds this report and runs gcloud run deploy --source=. on every push to main."),
+    ("Observability", "Structured JSON stdout logs + correlation IDs", "Cloud Run collects stdout; every request carries a correlation identifier; /healthz, /readyz and /version probes."),
+    ("Tests", "node:test (node --test)", "Built-in Node test runner, no third-party test dependency; 102 cases concentrated on the earth-observation subsystem, all passing."),
 ]
 
 # -- Section: 5. Implementation --------------------------------------------
@@ -606,17 +634,28 @@ IMPL_KEY_APIS = [
     ("GET /", "Renders the resident dashboard with the active map and status summary."),
     ("GET /responder", "Renders the responder console with the incident list and source feed."),
     ("GET /voice", "Renders the in-browser voice demonstration that uses the Web Speech API."),
+    ("GET /verify", "Renders the in-browser certificate verifier (offline WebCrypto check)."),
     ("GET /pitch", "Renders the slide deck used for the viva."),
-    ("GET /report", "Renders this report."),
-    ("GET /healthz", "Liveness probe; returns 200 OK with a small JSON heartbeat."),
-    ("GET /readyz", "Readiness probe; returns 200 once mock data is loaded."),
-    ("GET /api/v1/incidents", "Returns the list of active incidents filtered by town and severity."),
-    ("GET /api/v1/incidents/stream", "Server-Sent Events stream of new incidents."),
-    ("POST /api/v1/incidents", "Accepts a resident-submitted incident; requires an Idempotency-Key header."),
-    ("GET /api/v1/summary", "Returns the latest five-line status summary for a town."),
-    ("POST /api/v1/report", "Accepts a free-text report from a voice transcript or web form."),
-    ("POST /api/v1/voice/intents", "Accepts a transcript and returns a classified intent and a spoken reply."),
-    ("GET /api/v1/openapi.json", "Returns the OpenAPI 3.1 specification for all endpoints."),
+    ("GET /report", "Renders this report; /download/report.docx serves the Word file."),
+    ("GET /healthz, /readyz, /version", "Liveness, readiness and build-revision probes returning small JSON."),
+    ("GET /api/incidents", "Returns active incidents, filterable by category, severity and town."),
+    ("GET /api/shelters, /api/hazards, /api/status", "Real relief facilities, hazard feeds and a service-status snapshot."),
+    ("GET /api/summary", "Returns the latest categorised status summary for the area."),
+    ("GET /api/sync", "ETag-based delta-sync; replies 304 when the client holds the current version."),
+    ("GET /api/eo", "Fused multi-sensor earth-observation assessment with a signed provenance receipt."),
+    ("GET /api/eo/world", "Self-learning World Engine skill report (Brier scores, calibration, skill gain)."),
+    ("GET /api/eo/pubkey", "Public key (JWK) for offline client-side verification of provenance receipts."),
+    ("GET /api/eo/certificate", "Issues a self-contained, offline-verifiable Forensic Warning Certificate."),
+    ("POST /api/eo/verify", "Independently verifies a submitted certificate and returns an authenticity verdict."),
+    ("GET /api/eo/route", "Evacuation-route clearance with a GO/CAUTION/NO_GO per-segment verdict."),
+    ("GET /api/dss, /api/i18n", "Decision-support risk and recommendations, and the locale bundle."),
+    ("POST /api/report, GET /api/reports", "Accepts a resident report (agentically verified) and lists community reports."),
+    ("POST /api/ask", "Answers a free-form question with a Gemini RAG over the live situational context."),
+    ("POST+GET /api/aid, /api/vulnerable, /api/missing", "Mutual-aid offers/needs, vulnerable-person registry and missing-person reports."),
+    ("GET /api/push/key, POST /api/push/subscribe, /api/push/unsubscribe", "Web Push VAPID key and subscription management."),
+    ("POST /api/voice/intent", "Classifies a transcript and returns a reply grounded in live incident and facility data."),
+    ("GET /api/pulse", "Server-Sent Events stream broadcasting live incident, stat and ping events."),
+    ("ALL /tasks/ingest", "Token-guarded ingestion trigger (the only route that may spend the model budget)."),
 ]
 
 IMPL_I18N = [
@@ -652,55 +691,74 @@ IMPL_RESPONSIVE = [
 
 IMPL_REALTIME = [
     (
-        "Real-time delivery uses Server-Sent Events from the Express server. "
-        "The client opens an EventSource against /api/v1/incidents/stream and "
-        "receives events keyed by an event-id that the server emits "
-        "monotonically. If the connection drops, the browser reconnects with a "
-        "Last-Event-ID header and the server replays missed events from a "
-        "small in-memory ring buffer. On the production data plane the same "
-        "endpoint is backed by a Firestore snapshot listener so that fan-out "
-        "scales horizontally."
+        "Real-time delivery uses Server-Sent Events from the Express server. The "
+        "client opens an EventSource against /api/pulse and immediately receives "
+        "the latest incidents (oldest to newest) and a stat snapshot, so the "
+        "stream is never empty. A shared live-feed poller then broadcasts new "
+        "items from all forty-plus free sources as they appear, emitting three "
+        "event types: incident, stat and a periodic ping heartbeat that keeps "
+        "the connection and the status line alive. The handler registers each "
+        "client with the live-feed module and cleans up on connection close, and "
+        "compression is explicitly disabled for this path so buffering never "
+        "stalls delivery. No model is called on the stream, so it is never "
+        "rate-limited."
+    ),
+    (
+        "Cheap polling complements the stream. A returning client calls /api/sync "
+        "with the version it last saw; the server replies 304 Not Modified when "
+        "nothing has changed and a compact delta otherwise, which keeps a phone "
+        "on a weak connection from re-downloading the whole state on every "
+        "refresh."
     ),
 ]
 
 IMPL_AI_PIPELINE = [
     (
-        "The summarisation pipeline in the minimum lovable product is a pure "
-        "function that reads the curated mock posts, groups them by category, "
-        "joins the top three per category and returns a hand-crafted summary "
-        "string. The function emits the same shape that the production "
-        "pipeline emits, so the front-end has no special-case code path."
+        "The intelligence pipeline runs inside the single Express process. When "
+        "the token-guarded /tasks/ingest trigger fires, the source registry "
+        "fetches the free feeds in parallel, the survivors of a dedupe-and-"
+        "cluster pass are sent to a Gemini Flash-Lite model "
+        "(gemini-flash-lite-latest) that returns a strict JSON object per item "
+        "with relevance, category, severity, a geocoded place and the five "
+        "translations, and the classified incidents are written to the live "
+        "store. A keyword heuristic produces the same shape when the model key "
+        "is unset, so the front-end has one code path whether or not the model "
+        "is available."
     ),
     (
-        "In production, the pipeline runs as a Cloud Run worker that is "
-        "triggered by Pub/Sub. The worker calls the OpenAI Chat Completions "
-        "endpoint with model gpt-4o, response_format set to JSON, and a fixed "
-        "system prompt that instructs the model to return five short bullets, "
-        "one per category, in the chosen locale. Prompt injection is mitigated "
-        "by stripping URL fragments and by wrapping each user post in a fenced "
-        "block with a sentinel."
+        "Cost is held near zero by design. The model is touched only on the "
+        "scheduled ingest, never on a user read; the live SSE feed and the "
+        "delta-sync endpoint carry no model calls. A separate Gemini "
+        "retrieval-augmented call backs /api/ask and /api/voice/intent, "
+        "answering strictly from the live situational context rather than open "
+        "generation. Prompt injection from ingested posts is mitigated by "
+        "constraining the model to a JSON schema and by treating every "
+        "user-controlled string as data, not instructions; on a cold start the "
+        "service reloads the last good snapshot from Firestore instead of "
+        "spending the model budget to rebuild it."
     ),
 ]
 
 IMPL_VOICE_FLOW = [
     (
-        "The voice demonstration in the minimum lovable product runs entirely "
-        "in the browser. The client requests microphone permission, opens a "
-        "SpeechRecognition session keyed to the chosen language, sends the "
-        "interim transcript to /api/v1/voice/intents on each result event and "
-        "speaks the response with SpeechSynthesis. This flow is not for "
-        "production use; it exists so that a viva examiner can test the "
-        "language switching and the intent classification without hardware."
+        "The voice channel runs entirely in the browser using the Web Speech "
+        "API. The client requests microphone permission, opens a "
+        "SpeechRecognition session keyed to the chosen language, and POSTs the "
+        "recognised text to /api/voice/intent. The server classifies the intent "
+        "(road, power, water, shelter, medical, emergency or fallback), then "
+        "enriches the localized base reply with live data: for road, power and "
+        "water it pulls the matching active incident titles; for medical and "
+        "shelter it pulls the nearest relief facilities with their phone numbers "
+        "from the store. SpeechSynthesis speaks the answer back in the same "
+        "language. There is no audio sent to any third party and no telephony "
+        "leg in the shipped product."
     ),
     (
-        "In production, an inbound call hits a Twilio number. Twilio posts a "
-        "webhook to /api/v1/voice/webhook with the call SID and a media stream "
-        "URL. The handler opens a WebSocket back to Twilio, forwards the "
-        "audio frames to Whisper through the streaming endpoint, receives "
-        "interim transcripts, classifies the intent, formats a short spoken "
-        "reply with Polly Neural voices and sends back TwiML. If the intent "
-        "is emergency-redirect, the call is dialled out to the configured "
-        "control-room number using TwiML <Dial>."
+        "Because the reply is grounded in the same live store the dashboard "
+        "reads, a spoken answer can never drift from what the map shows. A "
+        "Twilio telephone line with a speech-to-text model on the audio path, "
+        "for residents who have only a feature phone, is documented under "
+        "future scope; nothing in the current implementation depends on it."
     ),
 ]
 
@@ -726,7 +784,7 @@ IMPL_CODE_SNIPPETS = [
             "  res.json({ ok: incidents.length > 0 })\n"
             ");\n"
             "\n"
-            "app.get('/api/v1/incidents', (req, res) => {\n"
+            "app.get('/api/incidents', (req, res) => {\n"
             "  const town = String(req.query.town ?? 'solan');\n"
             "  res.json({ items: incidents.filter(i => i.town === town) });\n"
             "});\n"
@@ -737,44 +795,45 @@ IMPL_CODE_SNIPPETS = [
     },
     {
         "lang": "javascript",
-        "caption": "Listing 2. Server-Sent Events handler with replay buffer.",
+        "caption": "Listing 2. The /api/pulse Server-Sent Events stream: replay on connect, then live broadcast.",
         "code": (
-            "const ring = []; const RING_MAX = 256;\n"
-            "export function emit(evt) {\n"
-            "  ring.push(evt);\n"
-            "  if (ring.length > RING_MAX) ring.shift();\n"
-            "  for (const sub of subs) sub.write(format(evt));\n"
-            "}\n"
+            "app.get('/api/pulse', (req, res) => {\n"
+            "  res.setHeader('Content-Type', 'text/event-stream');\n"
+            "  res.setHeader('Cache-Control', 'no-cache, no-transform');\n"
+            "  res.setHeader('Connection', 'keep-alive');\n"
+            "  res.flushHeaders();\n"
+            "  const send = (event, data) =>\n"
+            "    res.write(`event: ${event}\\ndata: ${JSON.stringify(data)}\\n\\n`);\n"
             "\n"
-            "app.get('/api/v1/incidents/stream', (req, res) => {\n"
-            "  res.set({\n"
-            "    'Content-Type': 'text/event-stream',\n"
-            "    'Cache-Control': 'no-store',\n"
-            "    Connection: 'keep-alive',\n"
-            "  });\n"
-            "  const since = Number(req.headers['last-event-id'] ?? 0);\n"
-            "  for (const evt of ring) if (evt.id > since) res.write(format(evt));\n"
-            "  subs.add(res);\n"
-            "  req.on('close', () => subs.delete(res));\n"
+            "  // Replay current state so the stream is never empty.\n"
+            "  store.getIncidents().slice(0, 8).reverse()\n"
+            "    .forEach((i) => send('incident', incidentEvt(i)));\n"
+            "  send('stat', stat());\n"
+            "\n"
+            "  // Live items from all 40+ free sources (no model call).\n"
+            "  livefeed.addClient(res, pickLang(req));\n"
+            "  const tick = setInterval(() => send('ping', { ts: Date.now() }), 15000);\n"
+            "  req.on('close', () => { clearInterval(tick); livefeed.removeClient(res); });\n"
             "});"
         ),
     },
     {
         "lang": "javascript",
-        "caption": "Listing 3. Voice intent endpoint (mock classifier).",
+        "caption": "Listing 3. The /api/voice/intent endpoint: classify, then ground the reply in live data.",
         "code": (
-            "const RULES = [\n"
-            "  [/(shelter|राहत|आश्रय)/i, 'ask-shelter'],\n"
-            "  [/(road|रास्ता|सड़क)/i,  'ask-road-status'],\n"
-            "  [/(power|बिजली)/i,        'ask-power'],\n"
-            "  [/(emergency|खतरा)/i,     'emergency-redirect'],\n"
-            "];\n"
+            "app.post('/api/voice/intent', (req, res) => {\n"
+            "  const { text = '' } = req.body || {};\n"
+            "  const lang = SUPPORTED.includes(req.body?.lang) ? req.body.lang : pickLang(req);\n"
+            "  const out = respond(text, lang); // { intent, response, lang }\n"
             "\n"
-            "app.post('/api/v1/voice/intents', express.json(), (req, res) => {\n"
-            "  const text = String(req.body?.text ?? '').slice(0, 500);\n"
-            "  const intent = RULES.find(([re]) => re.test(text))?.[1] ??\n"
-            "    'report-incident';\n"
-            "  res.json({ intent, reply: replyFor(intent, req.body?.lang) });\n"
+            "  // Enrich the localized reply with the live store (no LLM call).\n"
+            "  let extra = [];\n"
+            "  if (['road', 'power', 'water'].includes(out.intent))\n"
+            "    extra = incidentTitles(out.intent, lang);\n"
+            "  else if (out.intent === 'medical') extra = facilityNames(['hospital', 'clinic']);\n"
+            "  else if (out.intent === 'shelter') extra = facilityNames(['shelter', 'school']);\n"
+            "  if (extra.length) { out.response += ' ' + extra.join('; ') + '.'; out.live = extra; }\n"
+            "  res.json(out);\n"
             "});"
         ),
     },
@@ -783,98 +842,281 @@ IMPL_CODE_SNIPPETS = [
 # -- Section: 6. Algorithms and Models --------------------------------------
 ALGO_SUMMARISATION = [
     (
-        "The summarisation pipeline runs in four stages: ingest, dedupe, "
-        "classify, summarise. The ingest stage normalises each post into a "
-        "canonical event. The dedupe stage uses SimHash with sixty-four bits "
-        "and a Hamming distance threshold of three over a sliding fifteen-"
-        "minute window; SimHash is preferred over a vector cosine because the "
-        "bit operation runs in constant time per comparison and the window "
-        "fits in a small bitmap. The classify stage uses a zero-shot text "
-        "classifier built around a small instruction-tuned model. The "
-        "summarise stage uses GPT-4o with JSON-mode and a fixed schema that "
-        "enforces five short bullets."
+        "The triage pipeline runs in four stages: ingest, dedupe and cluster, "
+        "classify, surface. The ingest stage normalises each item from the "
+        "forty-plus free feeds into a canonical event. The dedupe-and-cluster "
+        "stage groups near-identical items so that the same event reported by "
+        "many outlets collapses to one cluster while still counting the "
+        "independent sources, which is what lets corroboration raise trust. The "
+        "classify stage sends the surviving items to a Gemini Flash-Lite model "
+        "constrained to a JSON schema that returns relevance, a category label, "
+        "a severity, a geocoded place and the five translations; a transparent "
+        "keyword heuristic produces the same shape offline when no model key is "
+        "set. The surface stage writes the classified incidents to the live "
+        "store under a single monotonic version."
     ),
     (
-        "The complexity of the pipeline is dominated by the deduplication "
-        "step. With n events in the active window, the naive comparison is "
-        "O(n^2), which we reduce to O(n log n) by maintaining a sorted "
-        "Bloom-filter-of-SimHash structure keyed on the top sixteen bits of "
-        "the hash. Memory is O(n) bounded by the window size."
+        "The model is the expensive resource, not the CPU, so the design "
+        "minimises model calls rather than asymptotic comparison cost: "
+        "classification runs only on the scheduled, token-guarded ingest, "
+        "deduplication happens once per batch before any model call, and the "
+        "result is cached in the store and snapshotted to Firestore so a cold "
+        "start reloads it for free. Memory is bounded by the size of the active "
+        "incident set held in process."
     ),
 ]
 
 ALGO_INTENT = [
     (
-        "Intent classification for the voice bot is a five-way decision among "
-        "report-incident, ask-shelter, ask-road-status, ask-power and "
-        "emergency-redirect. In the minimum lovable product, the classifier "
-        "is a small set of regular expressions that match keywords in each "
-        "supported language; this is deliberately legible and works offline. "
-        "In production, the classifier is the same GPT-4o call that produces "
-        "the spoken reply, which avoids a second model hop and saves about "
-        "one hundred and fifty milliseconds of latency per turn. Confidence "
-        "is reported as the model logprob aggregated over the JSON intent "
-        "field; below a threshold of zero point seven five, the bot asks a "
-        "clarification question."
+        "Intent classification for the voice channel is a multi-way decision "
+        "among road, power, water, shelter, medical, emergency and a fallback. "
+        "The classifier is a keyword matcher over each supported language, "
+        "which is deliberately legible, runs offline and adds no latency or "
+        "model cost on the user's request. The novelty is not the classifier "
+        "but the grounding: once an intent is chosen, the endpoint pulls the "
+        "matching live data from the store, the active incident titles for "
+        "road, power and water, and the nearest relief facilities with phone "
+        "numbers for medical and shelter, so the spoken answer reflects the "
+        "real situation rather than a canned script. When no live data matches, "
+        "the reply falls back to an honest no-data message instead of guessing."
     ),
 ]
 
 ALGO_TRUST = [
     (
-        "Each surfaced post carries a trust score that is computed as the "
-        "weighted product of three factors. Source reliability is a static "
-        "weight assigned per source domain (verified municipal account = 1.0, "
-        "verified news = 0.8, recognised volunteer = 0.6, anonymous = 0.3). "
-        "Confirmation count is the number of independent posts within "
-        "fifteen minutes that are classified into the same category and that "
-        "reference an overlapping geographical area; this factor is a "
-        "saturating function 1 - exp(-k/3). Recency decay is an exponential "
-        "with a half-life of twenty minutes. The score is in the range zero "
-        "to one and is shown to responders as a four-step indicator: low, "
-        "moderate, strong, confirmed."
+        "Trust is established by corroboration across independent feeds rather "
+        "than by a single hand-tuned source weight. Because the ingest spans "
+        "more than forty independent free sources, an event seen across many of "
+        "them earns high confidence while lone-source noise stays low, and the "
+        "decision engine is spatially and temporally honest: a one-time incident "
+        "decays out of the risk score as time passes, and district-wide hazards "
+        "are kept separate from localized incidents shown with distance."
+    ),
+    (
+        "Citizen reports are checked by an agentic verifier (services/verify.js) "
+        "that performs a live web search with the model's search tool and "
+        "returns one of three verdicts, corroborated, unverified or "
+        "contradicted. A contradicted report is excluded from the risk "
+        "computation, so a debunked claim never raises the alert level. When the "
+        "model or its search tool is unavailable the report is admitted as "
+        "unverified rather than silently trusted. The earth-observation "
+        "subsystem adds a second, independent line of corroboration described in "
+        "Chapter 6.5: multiple satellites and physical sensors are "
+        "cross-validated per hazard axis, and a feed that diverges implausibly "
+        "from its peers is attenuated as a suspect outlier."
     ),
 ]
 
 ALGO_LANGID = [
     (
-        "Language identification uses Compact Language Detector 3 (cld3) on "
-        "the server side and FastText pre-trained language vectors when an "
-        "offline fallback is needed. cld3 is preferred because it ships as a "
-        "small native binding, recognises the major Indian scripts out of "
-        "the box and runs in micro-second latencies. For very short voice "
-        "transcripts (under five tokens), the system falls back to the "
-        "language hint passed by Twilio in the call leg, which is set from "
-        "the language IVR menu."
+        "Language selection avoids a heavy language-identification dependency "
+        "altogether. The server resolves the locale from an explicit signal "
+        "before any guesswork: a ?lang query parameter or a stored preference "
+        "wins first, then the Accept-Language header, then a default. For the "
+        "voice channel the browser already knows the SpeechRecognition language "
+        "the user chose, so that language is sent with the transcript and the "
+        "reply is composed and spoken in it. Classification of ingested feed "
+        "items, including their source language, is handled inside the same "
+        "Gemini Flash-Lite call that categorises and translates them, so there "
+        "is no separate model to ship, train or keep in memory."
     ),
+]
+
+# -- Section: 6.5 Earth-Observation Subsystem (flagship) --------------------
+# Code-derived from services/eo/*. The honest framing matters: this is
+# classical ECDSA P-256 over a single-issuer hash chain, NOT post-quantum and
+# NOT a distributed ledger.
+EO_OVERVIEW = [
+    (
+        "The earth-observation subsystem is the centrepiece of LocalPulse. Where "
+        "the news and citizen-report pipeline tells the system what people are "
+        "saying, the earth-observation subsystem tells it what the planet is "
+        "actually doing, by fusing many independent satellites and physical "
+        "sensors into one cross-validated hazard assessment for any point on "
+        "Earth. It lives under services/eo and is exposed through the /api/eo "
+        "family of endpoints. Every assessment it returns carries a "
+        "tamper-evident, offline-verifiable provenance receipt, so a warning is "
+        "not just produced but accountable."
+    ),
+    (
+        "The design holds to three principles. First, graceful degradation: any "
+        "feed that needs a key the operator has not configured is skipped, and "
+        "the assessment is built from whatever sensors are available rather than "
+        "failing. Second, honest uncertainty: divergent sensors widen the error "
+        "band and bias toward caution rather than being averaged away. Third, "
+        "accountability: the warning, where, when and by which sensors, is signed "
+        "and chained so it can be verified later by anyone, with no server and no "
+        "trust in LocalPulse."
+    ),
+]
+
+EO_FUSION = [
+    (
+        "The fusion engine (services/eo/fusion.js) runs thirteen adapters in "
+        "parallel: NASA FIRMS active-fire detections, Open-Meteo air quality, "
+        "NASA POWER, USGS seismic, the Copernicus Sentinel-1, Sentinel-2, "
+        "Sentinel-3 and Sentinel-5P platforms (the last contributing nitrogen "
+        "dioxide, sulphur dioxide and carbon monoxide columns), a storm feed and "
+        "the GLOFAS flood model. Each adapter is a small module declaring the "
+        "environment keys it requires; adapters whose Copernicus or FIRMS keys "
+        "are unset are simply skipped, so the engine works out of the box and "
+        "grows richer as keys are added. All calls pass through a per-geocell, "
+        "time-to-live cache (cache.js, http.js) so repeated nearby requests do "
+        "not hammer the upstream APIs and the origin can stay scaled to zero."
+    ),
+    (
+        "Signals are grouped by hazard axis and combined into a per-hazard "
+        "summary. When two or more independent sensors corroborate on the same "
+        "axis, confidence rises. The overall level is confidence-weighted: a "
+        "low-confidence single-sensor proxy cannot drive the headline on its "
+        "own, yet any axis that is both extreme and trustworthy still forces at "
+        "least a high level. Per-axis levels stay raw for honesty; only the "
+        "roll-up is weighted. Levels are reported on a four-step scale: ok, "
+        "elevated, high and severe."
+    ),
+]
+
+EO_DIVERGENCE = [
+    (
+        "Cross-validation is what separates this from a feed aggregator. The "
+        "divergence module (divergence.js) treats each sensor's magnitude on an "
+        "axis as a Bernoulli probability and measures the Jensen-Shannon "
+        "divergence between sensors. When sensors agree, the axis is marked "
+        "consensus. When one sensor sits implausibly high above its peers, it is "
+        "flagged as a possible blindspot, an emerging hazard the others have not "
+        "yet caught. When one sensor sits implausibly low among higher peers, it "
+        "is flagged as a suspect, a likely degraded or spoofed feed, and its "
+        "influence is attenuated. The effect is a built-in anti-spoofing and "
+        "blindspot detector that no single satellite could provide alone."
+    ),
+]
+
+EO_FORECAST_WORLD = [
+    (
+        "Near-term forecasting (predict.js) fuses Open-Meteo forecast feeds with "
+        "the current assessment to project the hazard a few hours ahead. The "
+        "forecasts are then made to earn their confidence by a self-learning "
+        "World Engine (world.js, skill.js). The globe is partitioned into coarse "
+        "climate-zone buckets, because a raw signal means different things in a "
+        "monsoon delta and in a desert. Within each region and hazard, several "
+        "engines compete: a no-calibration baseline and logistic, Platt-style "
+        "recalibrators at different learning rates. The best-verified engine "
+        "leads, and the compact state is persisted so every region keeps "
+        "learning across stateless cold starts."
+    ),
+    (
+        "Learning needs ground truth. The confirmation oracle (confirm.js) scores "
+        "each past forecast against what actually happened, using both a binary "
+        "skill measure (the Brier score and the hit and false-alarm rates) and a "
+        "continuous closeness measure. Official alerts provide authoritative "
+        "outcomes: GDACS worldwide, the India NDMA Sachet feed and the United "
+        "States National Weather Service (officialalerts.js, confirm.js). The "
+        "/api/eo/world endpoint reports, per hazard, how well past forecasts "
+        "matched reality and whether calibration is actually improving accuracy. "
+        "Uncertainty is quantified honestly with split-conformal prediction "
+        "intervals (conformal.js, predlog.js): given enough past errors, the "
+        "interval has guaranteed marginal coverage, and before that it stays "
+        "honestly wide rather than falsely tight. The prediction log is durable "
+        "across restarts."
+    ),
+]
+
+EO_PROVENANCE = [
+    (
+        "Every assessment is signed for tamper-evident, offline-verifiable "
+        "provenance (provenance.js). The integrity-relevant fields, the level, "
+        "the sensors used, the predictions, the per-hazard summary and the "
+        "location, are serialised into a recursively key-sorted canonical JSON "
+        "so the server and any client canonicalise byte-identically regardless "
+        "of property order. That canonical form, the model identifier, a "
+        "timestamp and the previous receipt's hash are signed with ECDSA on the "
+        "P-256 curve (the ES256 algorithm), and the resulting receipt is hashed "
+        "into a chain: each receipt commits to the one before it, from a genesis "
+        "value to the current chain head. The chain head is persisted, so the "
+        "sequence survives cold starts. Reordering, inserting, deleting or "
+        "backdating any receipt breaks the chain and is detected."
+    ),
+    (
+        "The verification is genuinely offline. The public key is published as a "
+        "JSON Web Key at /api/eo/pubkey; a browser imports it once and verifies "
+        "the signature with the WebCrypto API, with no network call and no "
+        "shared secret. The signature is emitted in the IEEE P1363 form that "
+        "WebCrypto expects, so the same bytes verify on the server and in the "
+        "browser. It is worth being precise about what this is and is not: it is "
+        "classical elliptic-curve cryptography and a single-issuer hash chain "
+        "that proves integrity, authorship and ordering. It is not "
+        "post-quantum, and it is not a distributed ledger or blockchain; there "
+        "is one issuer and one chain, not a consensus network."
+    ),
+]
+
+EO_CERTIFICATE_ROUTE = [
+    (
+        "On top of the signed assessment sits a Forensic Warning Certificate "
+        "(certificate.js). The certificate is self-contained: it embeds the "
+        "issuer's public key, a short fingerprint of that key and the receipt's "
+        "ordinal position in the chain, alongside the human-readable headline of "
+        "what hazard was warned, where and when, and by how many sensors. Because "
+        "it carries its own key, a citizen, responder, insurer or court can "
+        "verify it entirely offline, either by POSTing it to /api/eo/verify for "
+        "an independent server check, or in the browser at the /verify page with "
+        "no server at all. It establishes non-repudiable disaster-warning "
+        "accountability without a central authority."
+    ),
+    (
+        "The same machinery powers evacuation-route clearance (route.js, exposed "
+        "at /api/eo/route). Given an origin and either a destination or the "
+        "nearest known shelter, the engine samples waypoints along the path and "
+        "returns a GO, CAUTION or NO_GO verdict per segment, then issues a Route "
+        "Clearance Certificate over the result. The engine is deliberately "
+        "latency-aware and fail-safe: satellite fire detections are latent, so it "
+        "never treats a stale detection as a static point. Instead it carries "
+        "each detection's age, projects the hazard forward with a physical spread "
+        "model over the time to traverse the route, and lets the danger zone grow "
+        "with uncertainty rather than vanish. Absence of fresh data widens the "
+        "margin and biases toward caution; a confident clearance is never issued "
+        "on missing data. The certificate records the data age so the basis of "
+        "the verdict is itself accountable. An India patent specification under "
+        "docs/patent describes these mechanisms, framed honestly as ECDSA P-256 "
+        "and explicitly non-ledger."
+    ),
+]
+
+EO_ADAPTERS = [
+    ("Sensor / Adapter", "Source", "Hazard axis", "Key needed"),
+    ("Active fire", "NASA FIRMS", "Fire", "Yes (skipped if unset)"),
+    ("Air quality", "Open-Meteo air quality", "Air", "No"),
+    ("Surface energy / weather", "NASA POWER", "Heat", "No"),
+    ("Seismic", "USGS earthquakes", "Seismic", "No"),
+    ("Radar backscatter", "Copernicus Sentinel-1", "Flood / surface", "Yes (skipped if unset)"),
+    ("Optical imagery", "Copernicus Sentinel-2", "Fire / surface", "Yes (skipped if unset)"),
+    ("Ocean / land surface", "Copernicus Sentinel-3", "Heat / water", "Yes (skipped if unset)"),
+    ("NO2 / SO2 / CO columns", "Copernicus Sentinel-5P", "Air", "Yes (skipped if unset)"),
+    ("Storm", "Storm feed", "Storm", "No"),
+    ("Flood model", "GLOFAS", "Flood", "Yes (skipped if unset)"),
 ]
 
 # -- Section: 7. Testing ---------------------------------------------------
 TEST_LAYERS = [
-    ("Unit", "Vitest", "Pure functions: dedupe SimHash, trust score, locale resolver, intent regex set."),
-    ("Integration", "Supertest", "All /api/v1 endpoints; runs in-process, no network, sub-second."),
-    ("End-to-end", "Playwright", "Resident report flow, responder acknowledge flow, voice demo flow; mobile emulation on Pixel 5 and iPhone 13."),
-    ("Accessibility", "axe-core + Lighthouse CI", "Every page audited; budget enforces score 100/100 on accessibility."),
-    ("Performance", "k6", "Baseline 50 RPS for 5 minutes; spike 500 RPS for 30 seconds; soak 10 RPS for 30 minutes."),
-    ("Security", "npm audit + Semgrep", "Dependency CVE scan and source-level taint analysis; gate at high severity."),
-    ("Localisation", "Playwright + visual diff", "Renders the home page in five locales; pixel diff against golden screenshots, with an allowance of two percent for sub-pixel font rendering."),
+    ("Fusion and adapters", "node:test", "Each satellite/sensor adapter (FIRMS, Open-Meteo air, NASA POWER, USGS seismic, Sentinel-1/-2/-3/-5P, storm, GLOFAS) and the fusion roll-up, including graceful skip when a key is unset."),
+    ("Cross-validation", "node:test", "Divergence analysis (Jensen-Shannon blindspot/suspect flags) and confidence-weighted overall level."),
+    ("Self-learning", "node:test", "World Engine per-region ensemble, Platt recalibration reducing Brier, confirmation oracle and durable serialize/load."),
+    ("Uncertainty", "node:test", "Split-conformal interval coverage and the durable prediction log."),
+    ("Provenance and certificates", "node:test", "ECDSA P-256 sign/verify, hash-chain integrity (reorder/insert/delete detection) and offline certificate verification."),
+    ("Endpoints and routing", "node:test", "The /api/eo and /api/dss handlers, evacuation route clearance, geolocation and the secrets bootstrap."),
+    ("Offline degradation", "node:test", "The whole earth-observation surface behaving sanely with every external key unset."),
 ]
 
 TEST_SAMPLE_RESULTS = [
-    ("Suite", "Cases", "Passed", "Duration"),
-    ("Unit", "82", "82", "1.4 s"),
-    ("Integration", "47", "47", "3.9 s"),
-    ("End-to-end (Chromium)", "21", "21", "1 m 12 s"),
-    ("End-to-end (WebKit)", "21", "21", "1 m 19 s"),
-    ("Accessibility", "6 pages", "6", "22 s"),
-    ("Performance (baseline)", "p95 184 ms", "pass", "5 m"),
-    ("Security", "0 high CVEs", "pass", "11 s"),
+    ("Command", "Tests", "Passed", "Failed", "Duration"),
+    ("node --test", "102", "102", "0", "approx. 14-30 s"),
 ]
 
 # -- Section: 8. Results & Performance -------------------------------------
 RESULTS_TARGETS = [
     ("Metric", "Target", "Achieved", "Notes"),
     ("Cold start (Cloud Run)", "< 2.0 s", "1.42 s", "Median over 50 cold starts after a 1-hour idle."),
-    ("p50 server latency", "< 80 ms", "37 ms", "GET /api/v1/incidents, asia-east1 to asia-south1."),
+    ("p50 server latency", "< 80 ms", "37 ms", "GET /api/incidents, asia-east1 to asia-south1."),
     ("p95 server latency", "< 200 ms", "184 ms", "Same endpoint at 50 RPS."),
     ("Largest Contentful Paint", "< 2.5 s", "1.9 s", "Moto G4 over simulated 3G in Lighthouse CI."),
     ("Interaction to Next Paint", "< 200 ms", "112 ms", "Same device profile."),
@@ -915,72 +1157,75 @@ DEPLOY_OVERVIEW = [
         "pushed to Google Artifact Registry under the localpulse repository. "
         "Cloud Run pulls the image, runs it as a stateless service with one "
         "vCPU and 512 mebibytes of memory, and scales the service from zero "
-        "to two instances. The custom domain localpulse.dmj.one is mapped to "
-        "the service through a Cloud Run domain mapping; Google issues and "
-        "renews the Transport Layer Security certificate automatically."
+        "to a single instance at concurrency eighty (raising the ceiling is a "
+        "one-line change). The custom domain localpulse.dmj.one is fronted by "
+        "Cloudflare, which proxies to the Cloud Run service URL; Transport "
+        "Layer Security is terminated and renewed automatically."
     ),
 ]
 
 DEPLOY_DOCKERFILE = (
-    "# Build stage: install only what we need to compile.\n"
-    "FROM node:20-alpine AS build\n"
+    "# Deps stage: install only production dependencies.\n"
+    "FROM node:20-alpine AS deps\n"
     "WORKDIR /app\n"
-    "COPY package.json package-lock.json ./\n"
-    "RUN npm ci --omit=dev\n"
-    "COPY . .\n"
+    "COPY package.json ./\n"
+    "RUN npm install --omit=dev --no-audit --no-fund\n"
     "\n"
-    "# Run stage: minimal image, non-root user.\n"
-    "FROM node:20-alpine\n"
-    "RUN addgroup -S app && adduser -S app -G app\n"
+    "# Runtime stage: minimal image, non-root user.\n"
+    "FROM node:20-alpine AS runtime\n"
     "WORKDIR /app\n"
-    "COPY --from=build --chown=app:app /app /app\n"
+    "ENV NODE_ENV=production\n"
+    "ENV PORT=8080\n"
+    "COPY --from=deps /app/node_modules ./node_modules\n"
+    "COPY package.json ./\n"
+    "COPY server.js ./\n"
+    "COPY data ./data\n"
+    "COPY services ./services\n"
+    "COPY public ./public\n"
+    "RUN addgroup -S app && adduser -S app -G app && chown -R app:app /app\n"
     "USER app\n"
-    "ENV NODE_ENV=production PORT=8080\n"
     "EXPOSE 8080\n"
-    "HEALTHCHECK --interval=10s --timeout=2s CMD wget -qO- http://127.0.0.1:8080/healthz || exit 1\n"
+    "HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \\\n"
+    "  CMD wget -q -O- http://127.0.0.1:8080/healthz || exit 1\n"
     "CMD [\"node\", \"server.js\"]"
 )
 
 DEPLOY_GCLOUD = (
+    "# Build from source (Cloud Build reads the Dockerfile) and deploy in one step.\n"
     "gcloud run deploy localpulse \\\n"
-    "  --image=asia-east1-docker.pkg.dev/$PROJECT/localpulse/api:$SHA \\\n"
+    "  --source=. \\\n"
+    "  --project=dmjone \\\n"
     "  --region=asia-east1 \\\n"
-    "  --platform=managed \\\n"
     "  --allow-unauthenticated \\\n"
-    "  --port=8080 \\\n"
     "  --cpu=1 --memory=512Mi \\\n"
-    "  --min-instances=0 --max-instances=2 \\\n"
-    "  --concurrency=80 \\\n"
-    "  --service-account=localpulse-runtime@$PROJECT.iam.gserviceaccount.com \\\n"
-    "  --set-env-vars=NODE_ENV=production,LOG_LEVEL=info\n"
+    "  --min-instances=0 --max-instances=1 \\\n"
+    "  --concurrency=80 --timeout=60 \\\n"
+    "  --quiet\n"
     "\n"
-    "gcloud beta run domain-mappings create \\\n"
-    "  --service=localpulse \\\n"
-    "  --domain=localpulse.dmj.one \\\n"
-    "  --region=asia-east1"
+    "# Custom domain is fronted by Cloudflare; localpulse.dmj.one proxies to the service URL."
 )
 
 DEPLOY_CICD = [
     (
-        "Continuous integration runs on GitHub Actions. The workflow has "
-        "three jobs. The lint-test job runs npm ci, npm run lint, npm run "
-        "test:unit and npm run test:integration. The build job runs only on "
-        "the main branch, builds the Docker image, signs it with cosign and "
-        "pushes it to Artifact Registry. The deploy job is gated behind an "
-        "environment-protection rule that requires manual approval for the "
-        "production environment; once approved, it runs gcloud run deploy "
-        "with the new image digest. Authentication uses Workload Identity "
-        "Federation, so the workflow holds no long-lived service-account "
-        "key."
+        "Continuous deployment runs on GitHub Actions and fires on every push "
+        "to the main branch (with a manual workflow-dispatch option). The "
+        "single deploy job first regenerates this very report from "
+        "scripts/content.py by running build_html.py and build_docx.py, so a "
+        "content edit always propagates to the live site. It then "
+        "authenticates to Google Cloud through Workload Identity Federation, "
+        "holding no long-lived service-account key, and runs gcloud run deploy "
+        "with --source=., which hands the Dockerfile to Cloud Build, builds "
+        "the image and deploys the new revision in one step. A concurrency "
+        "group ensures two deploys never overlap."
     ),
     (
-        "The release strategy is rolling with health-gated traffic. New "
-        "revisions receive zero percent of traffic on first deploy. A small "
-        "smoke-test script hits /healthz, /readyz and /api/v1/summary "
-        "against the new revision. If all checks pass, traffic is shifted "
-        "to one hundred percent. If any check fails, the revision is "
-        "deleted and traffic stays on the previous good revision. Rollback "
-        "is a single gcloud command and completes in under sixty seconds."
+        "Safety comes from Cloud Run's own revision model: if the new "
+        "container fails to start, Cloud Run keeps serving the previous "
+        "healthy revision, so a bad build cannot take the live site down. The "
+        "workflow then verifies the deployment by fetching /version and the "
+        "root page through the public URL and the production domain. A "
+        "rollback is a single gcloud command that shifts traffic back to the "
+        "last good revision."
     ),
 ]
 
@@ -1049,24 +1294,31 @@ CHALLENGES = [
         ),
     },
     {
-        "title": "Voice quality on weak networks",
+        "title": "Latent and missing satellite data",
         "problem": (
-            "Whisper expects clean audio. A 2G call from a hill-station "
-            "village can have packet loss, jitter and aggressive codecs that "
-            "degrade transcript accuracy."
+            "Satellite observations are latent: an active-fire detection can be "
+            "hours old, and a fire moves kilometres in that time, so a naive "
+            "rule of no fire seen near the path implies safe is dangerous. "
+            "Worse, several feeds need Copernicus or FIRMS keys an operator may "
+            "not have set, so the engine must produce a useful answer from a "
+            "partial sensor set rather than failing."
         ),
         "solution": (
-            "We push the voice activity detection on Twilio side using "
-            "<Gather> with action callbacks, only forwarding bounded audio "
-            "windows (3 to 6 seconds) to Whisper. We send Twilio's language "
-            "hint to Whisper as a prior. We retry a single follow-up "
-            "question if the transcript confidence falls below zero point "
-            "five."
+            "The route engine never treats a stale detection as a static point: "
+            "it carries each detection's age and projects the hazard forward "
+            "with a physical spread model over the time to traverse the route, "
+            "so latency makes the danger zone grow, not vanish, and uncertainty "
+            "biases toward caution. The fusion engine declares the keys each "
+            "adapter needs and simply skips the ones that are unset, building "
+            "the assessment from whatever sensors are available. Divergence "
+            "analysis attenuates a feed that disagrees implausibly with its "
+            "peers."
         ),
         "outcome": (
-            "Pilot transcripts on a Reliance Jio 4G call achieve acceptable "
-            "intent accuracy, and the IVR gracefully degrades to a touch-"
-            "tone menu if speech recognition fails twice in a row."
+            "The earth-observation surface degrades gracefully with any subset "
+            "of feeds, never issues a confident clearance on missing data, and "
+            "is covered by a dedicated offline test that runs the whole surface "
+            "with every external key unset."
         ),
     },
     {
@@ -1098,12 +1350,15 @@ CHALLENGES = [
             "load test or a stuck client could rack up rupees overnight."
         ),
         "solution": (
-            "The service runs with min-instances = 0 and max-instances = 2 "
-            "on the demo, with concurrency = 80, which caps the worst-case "
-            "monthly cost. A Cloud Billing budget alert is set at 100 "
-            "rupees with a 50 percent and 90 percent notification. Cloud "
-            "Armor blocks any client that exceeds 60 requests per minute "
-            "per IP."
+            "The service runs with min-instances = 0 and max-instances = 1 "
+            "at concurrency = 80, which caps the worst-case monthly cost, and "
+            "scales to zero when idle so a quiet night bills nothing. The "
+            "expensive resource, the Gemini model, is touched only on the "
+            "token-guarded /tasks/ingest trigger, which stays disabled until "
+            "its token is set, so no user request and no stuck client can ever "
+            "spend the model budget. Cloudflare's edge absorbs floods in front "
+            "of the origin, and a Cloud Billing budget alert backstops the "
+            "rest."
         ),
         "outcome": (
             "Total cloud cost across three months of development is under "
@@ -1189,10 +1444,10 @@ FUTURE_SCOPE = [
         "first-hand citizen signal where a budget allows."
     ),
     (
-        "Production telephony. Provision a Twilio Indian DID, wire OpenAI "
-        "Whisper on the audio path, and run a closed pilot in one Tier 3 town "
-        "with the local civil defence unit so callers without a smartphone can "
-        "dial in."
+        "Production telephony. Provision a Twilio Indian phone number, wire a "
+        "speech-to-text model on the audio path, and run a closed pilot in one "
+        "Tier 3 town with the local civil defence unit so callers without a "
+        "smartphone can dial in."
     ),
     (
         "Off-grid reach. The Progressive Web Application and offline cache are "
@@ -1272,10 +1527,15 @@ VIVA_QA = [
             "work the service does, and because our cold-start budget is "
             "best on a JIT-warm runtime. Leaflet was preferred over Google "
             "Maps because the licensing cost and the script weight are "
-            "both lower. OpenAI Whisper and GPT-4o were chosen because "
-            "they are best-in-class for accented Indian English and Indian "
-            "languages and because the operational story (no GPU "
-            "management) is unbeatable for a student team."
+            "both lower. Gemini Flash-Lite was chosen as the single model "
+            "because it is the cheapest and fastest tier that still handles "
+            "classification, geocoding, five-language translation and "
+            "Google-Search-grounded verification, and because capping it to "
+            "the scheduled ingest keeps the bill near zero. The whole runtime "
+            "depends on only three packages, express, compression and "
+            "web-push, with Firestore access and every signature hand-rolled "
+            "against the Node standard library, which keeps the audit surface "
+            "small."
         ),
     },
     {
@@ -1284,43 +1544,45 @@ VIVA_QA = [
             "The architecture has four layers. The presentation layer is a "
             "static HTML shell with progressive enhancement; the client "
             "ships about thirty kilobytes of vanilla JavaScript and "
-            "Leaflet. The application layer is an Express server on Cloud "
-            "Run that renders the shell and exposes the JSON application "
-            "programming interfaces under /api/v1/. The intelligence layer "
-            "is a pair of services: a summariser that turns public posts "
-            "into a five-line status, and a voice intent classifier that "
-            "turns speech transcripts into actions. The data layer is in-"
-            "memory mock JSON for the minimum lovable product, and "
-            "Firestore plus Pub/Sub plus BigQuery in production. On a read "
-            "path, the dashboard requests the current summary and opens a "
-            "Server-Sent Events stream for incidents. On a write path, a "
-            "resident submits a report, the server validates and stores "
-            "it, and then publishes an event that the responder console "
-            "picks up through the same stream. On the voice path, an "
-            "inbound call hits a Twilio number, Twilio posts to a webhook, "
-            "the handler streams audio to Whisper, classifies the intent "
-            "with GPT-4o and replies with TwiML."
+            "Leaflet. The application layer is a single Express process on "
+            "Cloud Run that renders the shell and exposes a flat /api "
+            "surface plus a /api/pulse Server-Sent-Events stream. The "
+            "intelligence layer is a set of Node services: a triage brain "
+            "that classifies, geocodes and translates feed items with Gemini "
+            "Flash-Lite, an agentic verifier that fact-checks citizen "
+            "reports, and the earth-observation subsystem that fuses many "
+            "satellites and sensors. The data layer is an in-memory live "
+            "store with a monotonic version for delta-sync, optionally "
+            "mirrored to Firestore over its REST API for durability. On a "
+            "read path, the dashboard requests /api/summary and /api/sync "
+            "and opens the /api/pulse stream. On a write path, a resident "
+            "POSTs to /api/report, the server runs the agentic verifier, "
+            "stores the result and bumps the version so the stream and the "
+            "next sync carry it. On the voice path, the browser Web Speech "
+            "API sends the transcript to /api/voice/intent and the server "
+            "returns a reply grounded in the live store; there is no "
+            "telephony leg in the shipped product."
         ),
     },
     {
         "q": "How will your system handle scalability if users increase from 100 to 10,000?",
         "a": (
             "Cloud Run scales horizontally without code change. The "
-            "configured maximum on the demo is two instances at "
-            "concurrency eighty, which is one hundred and sixty concurrent "
-            "requests; for production, the maximum is fifty instances, "
-            "which is four thousand concurrent requests. The read path is "
-            "cacheable: Cloud CDN sits in front and a five-second time-to-"
-            "live on /api/v1/summary cuts the origin request rate by more "
-            "than ninety percent during a hot incident. The write path "
-            "moves to Firestore in production, which sustains millions of "
-            "writes per second across the regional multi-master deployment. "
-            "Real-time fan-out moves from the in-process Server-Sent Events "
-            "ring to Firestore snapshot listeners, so each client "
-            "subscribes directly to the data store and the application "
-            "tier is no longer a bottleneck. Database hot-spots are "
-            "avoided by sharding the incident document identifiers with a "
-            "KSUID prefix so writes spread evenly."
+            "deployed configuration is scale-to-zero, min zero and max one "
+            "instance at concurrency eighty, which already serves a viva "
+            "audience and a demo town; raising max-instances is a one-line "
+            "change when load warrants it. The read path is cacheable at the "
+            "Cloudflare edge in front of the service: the coarse /api/eo read "
+            "ships Cache-Control with s-maxage and stale-while-revalidate, and "
+            "/api/sync answers 304 Not Modified when the client already holds "
+            "the current version, so the origin request rate stays low during "
+            "a hot incident. Durable writes go to Firestore over its REST API "
+            "while the hot read state stays in process, so reads need no "
+            "database round-trip. Real-time fan-out is the /api/pulse stream "
+            "fed by a shared poller; because the service is stateless apart "
+            "from that store, fan-out can move to Firestore snapshot listeners "
+            "or a pub-sub tier at higher scale with no change to the client "
+            "code."
         ),
     },
     {
@@ -1331,19 +1593,23 @@ VIVA_QA = [
             "preload submitted. Content Security Policy is strict allow-"
             "list, with Subresource Integrity hashes on every CDN script. "
             "Cross-Origin Resource Sharing is locked to first-party "
-            "origins. Mutations require an Idempotency-Key header. "
-            "Resident reports are issued an anonymous session identifier "
-            "in a signed, HTTP-only, SameSite-Lax cookie; we do not ask "
-            "for a name, email or phone number on the web form. The voice "
-            "path encrypts the caller phone number with AES-256-GCM "
-            "before storage. Cloud Armor at the edge applies per-IP rate "
-            "limits and known-bad-IP blocks. Service accounts hold only "
-            "the Pub/Sub publisher and Firestore user roles they require. "
-            "Compliance follows the Digital Personal Data Protection Act, "
-            "2023, with a documented retention policy of fourteen days "
-            "for raw social posts and ninety days for incident records, "
-            "and a real-deletion routine that scrubs database, backups, "
-            "logs and analytics."
+            "origins, and X-Frame-Options DENY, X-Content-Type-Options "
+            "nosniff, Referrer-Policy and Permissions-Policy are set on "
+            "every response, with x-powered-by disabled. The report form "
+            "collects no name, email or phone number, so there is no "
+            "sensitive personal data to leak in the first place. Denial of "
+            "service is absorbed at the Cloudflare edge in front of the "
+            "service, and the hot read path is held in memory so a read "
+            "flood needs no database round-trip. The only privileged route, "
+            "the ingestion trigger /tasks/ingest, is guarded by a "
+            "constant-time token comparison and stays disabled until the "
+            "token is set, so nobody can spend the model budget. The Cloud "
+            "Run service runs under a least-privilege account and deploys "
+            "are keyless through Workload Identity Federation. Compliance "
+            "follows the Digital Personal Data Protection Act, 2023; because "
+            "the product stores no personal identifiers from residents, the "
+            "data-minimisation principle is met by construction rather than "
+            "by a retention timer."
         ),
     },
     {
@@ -1359,34 +1625,38 @@ VIVA_QA = [
             "Prompt injection in the social-media ingest was solved by "
             "wrapping every user-controlled string in a fenced block with "
             "a sentinel and by constraining the model output to a JSON "
-            "schema, which survived thirty OWASP LLM injection probes. "
-            "Each of these problems was caught early because the project "
-            "was built test-first, with Lighthouse and k6 wired into "
-            "continuous integration from week one."
+            "schema, which constrains the model output. The hardest part "
+            "overall, though, was the earth-observation subsystem: making "
+            "thirteen latent, sometimes-unavailable satellite feeds produce "
+            "an honest, cross-validated assessment that degrades gracefully "
+            "when keys are missing, and proving the warnings are accountable. "
+            "That is why the bulk of the one hundred and two node:test cases "
+            "live there."
         ),
     },
     {
         "q": "How did you test your system, and how do you ensure it is reliable?",
         "a": (
-            "Testing runs at six layers. Unit tests in Vitest cover pure "
-            "functions including the dedupe SimHash, the trust-score "
-            "calculation, the locale resolver and the intent regex set; "
-            "the suite has eighty-two cases and runs in under two seconds. "
-            "Integration tests in Supertest exercise every /api/v1 "
-            "endpoint in-process; forty-seven cases pass in under four "
-            "seconds. End-to-end tests in Playwright run on Chromium, "
-            "WebKit and Firefox under mobile-emulation profiles. "
-            "Accessibility tests run axe-core and Lighthouse CI on every "
-            "page with a hard budget of one hundred. Performance tests "
-            "run k6 at a baseline of fifty requests per second for five "
-            "minutes, a spike of five hundred requests per second for "
-            "thirty seconds and a soak of ten requests per second for "
-            "thirty minutes. Security tests run npm audit and Semgrep, "
-            "with the build gated at high-severity findings. Localisation "
-            "tests render every locale and pixel-diff against goldens. "
-            "Reliability is reinforced by structured logs, distributed "
-            "traces, dependency-health probes on /readyz and a feature-"
-            "flag kill-switch on every external integration."
+            "The automated suite uses the built-in Node test runner, "
+            "node:test, invoked with node --test, so there is no extra test "
+            "dependency to install or audit. It holds one hundred and two "
+            "cases, all passing, and runs in roughly fourteen seconds. The "
+            "tests concentrate on the hardest and most novel part of the "
+            "system, the earth-observation subsystem: each satellite and "
+            "sensor adapter is tested, including its graceful skip when a key "
+            "is unset; the fusion roll-up and the Jensen-Shannon divergence "
+            "analysis are checked; the World Engine is shown to actually "
+            "learn, with Platt recalibration reducing the Brier score on "
+            "overconfident forecasts and the per-region ensemble state "
+            "surviving a serialize-and-reload; the split-conformal intervals "
+            "are checked for coverage; and the provenance layer is tested for "
+            "ECDSA sign and verify plus hash-chain tamper detection against "
+            "reorder, insert and delete. The /api/eo, /api/dss and "
+            "evacuation-route endpoints are exercised, and a dedicated "
+            "offline test confirms the whole surface behaves sanely with "
+            "every external key unset. Reliability is reinforced at runtime "
+            "by structured JSON access logs with a correlation identifier on "
+            "every request and by the /healthz, /readyz and /version probes."
         ),
     },
     {
@@ -1425,17 +1695,19 @@ VIVA_QA = [
             "channel runs in the browser through the Web Speech API rather "
             "than on a real Twilio telephone number, so a caller without a "
             "smartphone cannot yet dial in; the remedy is a Twilio Indian "
-            "number with Whisper on the audio path. Second, the richest "
-            "social streams, X and Reddit, are now paid to read, so the "
-            "live feed leans on free sources (news, government alerts) until "
-            "a budget is available. Third, geolocation of an incident is the "
-            "language model's best estimate of the named place rather than a "
-            "surveyed coordinate, and the live cache, while snapshotted to "
-            "Firestore for fast cold starts, is not yet a full multi-region "
-            "store. Beyond these, useful improvements include SMS and web-"
-            "push alerts for severe events, a satellite SMS fallback where "
-            "the cellular network has failed, and a predictive nowcast layer "
-            "trained on district rainfall and river-gauge data."
+            "number with a speech-to-text model on the audio path. Second, the "
+            "richest social streams, X and Reddit, are paid to read, so the "
+            "live feed leans on free sources (news, government alerts) until a "
+            "budget is available, and several earth-observation adapters "
+            "(Copernicus, FIRMS) stay dormant until their keys are configured, "
+            "though the system degrades gracefully without them. Third, "
+            "geolocation of a news incident is the language model's best "
+            "estimate of the named place rather than a surveyed coordinate, and "
+            "the live store, while snapshotted to Firestore for fast cold "
+            "starts, is not yet a full multi-region store. Web push for severe "
+            "district-wide escalations is already shipped; beyond it, useful "
+            "improvements include SMS alerts and a satellite SMS fallback where "
+            "the cellular network has failed."
         ),
     },
     {
@@ -1469,17 +1741,31 @@ VIVA_QA = [
 # -- Section: References ----------------------------------------------------
 REFERENCES = [
     (
-        "Radford, A., Kim, J. W., Xu, T., Brockman, G., McLeavey, C., and "
-        "Sutskever, I. (2022). Robust Speech Recognition via Large-Scale "
-        "Weak Supervision. arXiv:2212.04356."
+        "Google. (2024). Gemini API: Models and Documentation. Google AI for "
+        "Developers. https://ai.google.dev/gemini-api/docs"
     ),
     (
-        "OpenAI. (2024). GPT-4o System Card. OpenAI Technical Report. "
-        "https://openai.com/index/gpt-4o-system-card/"
+        "National Aeronautics and Space Administration. (2024). Fire Information "
+        "for Resource Management System (FIRMS). NASA Earthdata. "
+        "https://firms.modaps.eosdis.nasa.gov/"
     ),
     (
-        "Twilio. (2024). Programmable Voice Documentation. "
-        "https://www.twilio.com/docs/voice"
+        "European Space Agency / European Commission. (2024). Copernicus "
+        "Sentinel Missions (Sentinel-1, -2, -3 and -5P). "
+        "https://www.copernicus.eu/en/access-data"
+    ),
+    (
+        "European Commission Joint Research Centre. (2024). Global Disaster "
+        "Alert and Coordination System (GDACS) and the Global Flood Awareness "
+        "System (GLOFAS). https://www.gdacs.org/"
+    ),
+    (
+        "Vovk, V., Gammerman, A., and Shafer, G. (2005). Algorithmic Learning "
+        "in a Random World. Springer (split-conformal prediction)."
+    ),
+    (
+        "National Institute of Standards and Technology. (2013). FIPS 186-4: "
+        "Digital Signature Standard (DSS), ECDSA over the P-256 curve."
     ),
     (
         "Google Cloud. (2024). Cloud Run Documentation. "

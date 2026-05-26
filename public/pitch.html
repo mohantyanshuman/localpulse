@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0A0A0B" />
 <meta name="description" content="LocalPulse — AI crisis management for small communities. Capstone pitch by Anshuman Mohanty, Shoolini University." />
 <meta property="og:title" content="LocalPulse — AI crisis management for small communities" />
-<meta property="og:description" content="Mobile-first AI crisis dashboard. Social-feed summaries, multilingual voice line, runs on slow phones and bad internet." />
+<meta property="og:description" content="Mobile-first AI crisis dashboard. Satellite fusion, self-learning forecasts, offline-verifiable warning certificates, multilingual voice line. Runs on slow phones and bad internet." />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://localpulse.dmj.one/pitch" />
 <title>LocalPulse — Pitch</title>
@@ -686,10 +686,166 @@
       </div>
     </section>
 
-    <!-- 8. ARCHITECTURE -->
-    <section class="slide" role="group" aria-roledescription="slide" aria-label="Slide 8: Architecture">
+    <!-- 8. FEATURE 3 - EARTH OBSERVATION -->
+    <section class="slide" role="group" aria-roledescription="slide" aria-label="Slide 8: Satellite Fusion Engine and the Self-learning World Engine">
       <div class="slide-inner">
-        <div class="anim anim-1 h-eyebrow mb-3">07 &mdash; Architecture</div>
+        <div class="anim anim-1 h-eyebrow mb-3">07 &mdash; Feature 03</div>
+        <h2 class="anim anim-2 h-section mb-5 max-w-3xl">Eyes in orbit. <span class="accent">A planet that watches itself.</span></h2>
+        <p class="anim anim-3 body-lg mb-10 max-w-2xl">Citizens and news tell you what people noticed. Satellites tell you what is physically true. LocalPulse fuses 13 Earth-observation feeds per hazard with near-term forecasts, then a self-learning engine grades its own past warnings until the forecast gets sharper on its own.</p>
+
+        <div class="grid lg:grid-cols-5 gap-5 items-stretch">
+          <!-- Satellite Fusion -->
+          <div class="anim anim-4 lg:col-span-3 card-hi p-6">
+            <div class="flex items-center gap-2.5 mb-4">
+              <svg class="w-6 h-6 accent" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9 9 0 100-18 9 9 0 000 18zM3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18"/></svg>
+              <div class="font-display font-semibold text-xl">Satellite Fusion Engine</div>
+            </div>
+            <p class="body-sm mb-5">Thirteen worldwide sensors are cross-validated for each hazard, so one rogue feed cannot raise a false alarm. Disagreement attenuates confidence; agreement amplifies it.</p>
+
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
+              <div class="card px-3 py-2.5 text-center">
+                <div class="text-[10px] accent font-medium mb-0.5">FIRE</div>
+                <div class="text-[11px] text-mist-100">NASA FIRMS</div>
+              </div>
+              <div class="card px-3 py-2.5 text-center">
+                <div class="text-[10px] accent font-medium mb-0.5">RADAR &middot; OPTICAL</div>
+                <div class="text-[11px] text-mist-100">Sentinel-1/2/3</div>
+              </div>
+              <div class="card px-3 py-2.5 text-center">
+                <div class="text-[10px] accent font-medium mb-0.5">AIR</div>
+                <div class="text-[11px] text-mist-100">Sentinel-5P</div>
+              </div>
+              <div class="card px-3 py-2.5 text-center">
+                <div class="text-[10px] accent font-medium mb-0.5">FLOOD</div>
+                <div class="text-[11px] text-mist-100">GLOFAS</div>
+              </div>
+              <div class="card px-3 py-2.5 text-center">
+                <div class="text-[10px] accent font-medium mb-0.5">SEISMIC</div>
+                <div class="text-[11px] text-mist-100">USGS</div>
+              </div>
+              <div class="card px-3 py-2.5 text-center">
+                <div class="text-[10px] accent font-medium mb-0.5">WEATHER</div>
+                <div class="text-[11px] text-mist-100">NASA POWER</div>
+              </div>
+              <div class="card px-3 py-2.5 text-center">
+                <div class="text-[10px] accent font-medium mb-0.5">AIR QUALITY</div>
+                <div class="text-[11px] text-mist-100">Open-Meteo</div>
+              </div>
+              <div class="card px-3 py-2.5 text-center">
+                <div class="text-[10px] accent font-medium mb-0.5">STORM</div>
+                <div class="text-[11px] text-mist-100">Cyclone track</div>
+              </div>
+            </div>
+
+            <div class="h-eyebrow mb-2">Confidence-weighted output</div>
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="card px-3 py-1.5 text-[11px]"><span class="w-1.5 h-1.5 rounded-full bg-mist-400 inline-block mr-1.5 align-middle"></span>ok</span>
+              <span class="text-pulse-500">&rarr;</span>
+              <span class="card px-3 py-1.5 text-[11px]"><span class="w-1.5 h-1.5 rounded-full bg-pulse-300 inline-block mr-1.5 align-middle"></span>elevated</span>
+              <span class="text-pulse-500">&rarr;</span>
+              <span class="card px-3 py-1.5 text-[11px]"><span class="w-1.5 h-1.5 rounded-full bg-pulse-500 inline-block mr-1.5 align-middle"></span>high</span>
+              <span class="text-pulse-500">&rarr;</span>
+              <span class="card px-3 py-1.5 text-[11px] border-pulse-500/40 bg-pulse-500/10"><span class="w-1.5 h-1.5 rounded-full bg-pulse-600 inline-block mr-1.5 align-middle"></span>severe</span>
+            </div>
+          </div>
+
+          <!-- World Engine -->
+          <div class="anim anim-5 lg:col-span-2 card p-6 flex flex-col">
+            <div class="flex items-center gap-2.5 mb-4">
+              <svg class="w-6 h-6 accent" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v3m0 12v3m9-9h-3M6 12H3m12.7-6.7l-2.1 2.1m-3.2 3.2l-2.1 2.1m9.5 1.4l-2.1-2.1m-3.2-3.2L8.3 6.7M12 9a3 3 0 100 6 3 3 0 000-6z"/></svg>
+              <div class="font-display font-semibold text-xl">Self-learning World Engine</div>
+            </div>
+            <p class="body-sm mb-5">An ensemble of competing per-region calibration engines learns from real outcomes. Every past warning is Brier-scored against what actually happened, then confirmed against official alerts. It also reports split-conformal prediction intervals, so the uncertainty is honest, not hidden.</p>
+
+            <ul class="space-y-2.5 body-sm mb-5">
+              <li class="flex items-start gap-3"><span class="mt-2 w-1.5 h-1.5 rounded-full bg-pulse-500 shrink-0"></span><span class="text-mist-100">Gets more accurate over time, per region.</span></li>
+              <li class="flex items-start gap-3"><span class="mt-2 w-1.5 h-1.5 rounded-full bg-pulse-500 shrink-0"></span><span class="text-mist-100">Learning and intervals survive restarts; it never forgets.</span></li>
+            </ul>
+
+            <div class="mt-auto card-hi p-3.5">
+              <div class="h-eyebrow mb-2">Confirmed against</div>
+              <div class="flex flex-wrap gap-1.5 text-[11px]">
+                <span class="px-2.5 py-1 rounded-md border border-white/10">GDACS &middot; world</span>
+                <span class="px-2.5 py-1 rounded-md border border-white/10">NDMA Sachet &middot; India</span>
+                <span class="px-2.5 py-1 rounded-md border border-white/10">NWS &middot; US</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 9. FEATURE 4 - FORENSIC ACCOUNTABILITY -->
+    <section class="slide" role="group" aria-roledescription="slide" aria-label="Slide 9: Forensic Warning Certificate and Evacuation Route Clearance">
+      <div class="slide-inner">
+        <div class="anim anim-1 h-eyebrow mb-3">08 &mdash; Feature 04</div>
+        <h2 class="anim anim-2 h-section mb-5 max-w-3xl">Proof a warning was given. <span class="accent">Verifiable on any phone, offline.</span></h2>
+        <p class="anim anim-3 body-lg mb-10 max-w-2xl">After a disaster, the question is always the same: who knew, and when. LocalPulse signs every warning so that question has a tamper-evident answer, checkable in a browser with no server and no shared secret.</p>
+
+        <div class="grid lg:grid-cols-2 gap-5">
+          <!-- Warning Certificate -->
+          <div class="anim anim-4 card-hi p-6">
+            <div class="flex items-center gap-2.5 mb-4">
+              <svg class="w-6 h-6 accent" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 2l7 3v6c0 4.2-2.9 8.1-7 9-4.1-.9-7-4.8-7-9V5l7-3zM9.5 12l1.8 1.8L15 10"/></svg>
+              <div class="font-display font-semibold text-xl">Forensic Warning Certificate</div>
+            </div>
+            <p class="body-sm mb-5">Each hazard warning is signed and hash-chained to the one before it, from genesis to chain head. Alter any past record and every later signature breaks. This is classical ECDSA on a single-issuer hash chain. It is not post-quantum, and it is not a blockchain or distributed ledger.</p>
+
+            <div class="space-y-2 mb-5">
+              <div class="flex items-center gap-3 rounded-lg border border-white/10 p-2.5">
+                <svg class="w-4 h-4 accent shrink-0" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15a3 3 0 100-6 3 3 0 000 6zM6 21h12a2 2 0 002-2v-7a2 2 0 00-2-2H6a2 2 0 00-2 2v7a2 2 0 002 2zM8 10V7a4 4 0 018 0v3"/></svg>
+                <div class="text-[12px] text-mist-100">ECDSA P-256 (ES256), classical</div>
+              </div>
+              <div class="flex items-center gap-3 rounded-lg border border-white/10 p-2.5">
+                <svg class="w-4 h-4 accent shrink-0" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H7a2 2 0 00-2 2v8a2 2 0 002 2h6m4-12h0a2 2 0 012 2v8a2 2 0 01-2 2h0m-4-9l3-3-3-3"/></svg>
+                <div class="text-[12px] text-mist-100">Hash-chained, append-only</div>
+              </div>
+              <div class="flex items-center gap-3 rounded-lg border border-pulse-500/40 bg-pulse-500/10 p-2.5">
+                <svg class="w-4 h-4 accent shrink-0" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <div class="text-[12px] text-mist-100">Self-contained, verifies offline via WebCrypto</div>
+              </div>
+            </div>
+            <p class="body-sm">Non-repudiable, tamper-evident disaster-accountability evidence. No server, no secret, no trust required.</p>
+          </div>
+
+          <!-- Route Clearance -->
+          <div class="anim anim-5 card p-6">
+            <div class="flex items-center gap-2.5 mb-4">
+              <svg class="w-6 h-6 accent" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21s-7-5.3-7-11a7 7 0 1114 0c0 5.7-7 11-7 11zM12 13a3 3 0 100-6 3 3 0 000 6z"/></svg>
+              <div class="font-display font-semibold text-xl">Evacuation Route Clearance</div>
+            </div>
+            <p class="body-sm mb-5">For the path to the nearest shelter, the system returns one honest verdict and signs it, so the decision to move, or to wait, is on the record too.</p>
+
+            <div class="grid grid-cols-3 gap-2 mb-5">
+              <div class="card px-3 py-3 text-center">
+                <div class="font-display font-semibold text-sm text-mist-100">GO</div>
+                <div class="text-[10px] text-mist-400 mt-0.5">path clear</div>
+              </div>
+              <div class="card px-3 py-3 text-center border-pulse-300/40">
+                <div class="font-display font-semibold text-sm accent">CAUTION</div>
+                <div class="text-[10px] text-mist-400 mt-0.5">degraded</div>
+              </div>
+              <div class="card px-3 py-3 text-center border-pulse-500/40 bg-pulse-500/10">
+                <div class="font-display font-semibold text-sm text-pulse-500">NO-GO</div>
+                <div class="text-[10px] text-mist-400 mt-0.5">hazard on route</div>
+              </div>
+            </div>
+
+            <div class="card-hi p-3.5 flex items-center gap-3">
+              <svg class="w-5 h-5 accent shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m1-5l2 1 1 2 2 1-1 2 1 2-2 1-1 2-2 1-2-1-2 1-2-1-1-2-2-1 1-2-1-2 2-1 1-2 2-1 2 1z"/></svg>
+              <div class="text-[12px] text-mist-100">Signed Route Clearance Certificate</div>
+            </div>
+          </div>
+        </div>
+
+        <p class="anim anim-5 mt-8 body-sm max-w-3xl">Every claim above is exercised by the test suite: <span class="text-mist-100">102 automated tests, all passing</span>. Same zero-cost stack as the rest of LocalPulse, only three npm dependencies, free public data.</p>
+      </div>
+    </section>
+
+    <!-- 10. ARCHITECTURE -->
+    <section class="slide" role="group" aria-roledescription="slide" aria-label="Slide 10: Architecture">
+      <div class="slide-inner">
+        <div class="anim anim-1 h-eyebrow mb-3">09 &mdash; Architecture</div>
         <h2 class="anim anim-2 h-section mb-10 max-w-3xl">One container. <span class="accent">Zero idle cost.</span> Sovereign by default.</h2>
 
         <div class="grid lg:grid-cols-3 gap-5 mb-6">
@@ -745,10 +901,10 @@
       </div>
     </section>
 
-    <!-- 9. MOBILE-FIRST DEMO -->
-    <section class="slide" role="group" aria-roledescription="slide" aria-label="Slide 9: Mobile-first demo">
+    <!-- 11. MOBILE-FIRST DEMO -->
+    <section class="slide" role="group" aria-roledescription="slide" aria-label="Slide 11: Mobile-first demo">
       <div class="slide-inner">
-        <div class="anim anim-1 h-eyebrow mb-3">08 &mdash; Demo</div>
+        <div class="anim anim-1 h-eyebrow mb-3">10 &mdash; Demo</div>
         <h2 class="anim anim-2 h-section mb-10 max-w-3xl">Mobile-first, every screen. <span class="accent">Three users, one system.</span></h2>
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 justify-items-center">
@@ -828,10 +984,10 @@
       </div>
     </section>
 
-    <!-- 10. WHY IT WORKS FOR SMALL TOWNS -->
-    <section class="slide" role="group" aria-roledescription="slide" aria-label="Slide 10: Why It Works for Small Towns">
+    <!-- 12. WHY IT WORKS FOR SMALL TOWNS -->
+    <section class="slide" role="group" aria-roledescription="slide" aria-label="Slide 12: Why It Works for Small Towns">
       <div class="slide-inner">
-        <div class="anim anim-1 h-eyebrow mb-3">09 &mdash; Built for Bharat</div>
+        <div class="anim anim-1 h-eyebrow mb-3">11 &mdash; Built for Bharat</div>
         <h2 class="anim anim-2 h-section mb-10 max-w-3xl">Why it works <span class="accent">where others don&rsquo;t</span>.</h2>
 
         <div class="grid md:grid-cols-2 gap-5">
@@ -875,10 +1031,10 @@
       </div>
     </section>
 
-    <!-- 11. ROADMAP -->
-    <section class="slide" role="group" aria-roledescription="slide" aria-label="Slide 11: Roadmap">
+    <!-- 13. ROADMAP -->
+    <section class="slide" role="group" aria-roledescription="slide" aria-label="Slide 13: Roadmap">
       <div class="slide-inner">
-        <div class="anim anim-1 h-eyebrow mb-3">10 &mdash; Roadmap</div>
+        <div class="anim anim-1 h-eyebrow mb-3">12 &mdash; Roadmap</div>
         <h2 class="anim anim-2 h-section mb-10 max-w-3xl">Ship the MLP. <span class="accent">Then ship Bharat.</span></h2>
 
         <div class="relative">
@@ -927,10 +1083,10 @@
       </div>
     </section>
 
-    <!-- 12. KPIs -->
-    <section class="slide" role="group" aria-roledescription="slide" aria-label="Slide 12: KPIs and Impact">
+    <!-- 14. KPIs -->
+    <section class="slide" role="group" aria-roledescription="slide" aria-label="Slide 14: KPIs and Impact">
       <div class="slide-inner">
-        <div class="anim anim-1 h-eyebrow mb-3">11 &mdash; Impact &middot; KPIs</div>
+        <div class="anim anim-1 h-eyebrow mb-3">13 &mdash; Impact &middot; KPIs</div>
         <h2 class="anim anim-2 h-section mb-10 max-w-3xl">What good looks like. <span class="accent">Measured, not promised.</span></h2>
 
         <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -965,8 +1121,8 @@
       </div>
     </section>
 
-    <!-- 13. MISSION -->
-    <section class="slide" role="group" aria-roledescription="slide" aria-label="Slide 13: Mission">
+    <!-- 15. MISSION -->
+    <section class="slide" role="group" aria-roledescription="slide" aria-label="Slide 15: Mission">
       <div class="slide-inner text-center">
         <div class="anim anim-1 pulse-mark justify-center mb-10">
           <span class="pulse-dot" aria-hidden="true"></span>
@@ -986,10 +1142,10 @@
       </div>
     </section>
 
-    <!-- 14. THANK YOU -->
-    <section class="slide" role="group" aria-roledescription="slide" aria-label="Slide 14: Thank you and links">
+    <!-- 16. THANK YOU -->
+    <section class="slide" role="group" aria-roledescription="slide" aria-label="Slide 16: Thank you and links">
       <div class="slide-inner">
-        <div class="anim anim-1 h-eyebrow mb-3">14 &mdash; Thank you</div>
+        <div class="anim anim-1 h-eyebrow mb-3">16 &mdash; Thank you</div>
         <h2 class="anim anim-2 h-display mb-8">Questions?</h2>
         <p class="anim anim-3 body-lg max-w-xl mb-12">LocalPulse is live. Open the URL on your phone, call the demo line, or read the code. Everything below is real.</p>
 
@@ -1042,7 +1198,7 @@
 
 <!-- chrome -->
 <div class="progress" role="presentation"><div id="bar" class="progress-bar"></div></div>
-<div class="counter" aria-live="polite"><b id="cur">01</b> <span class="opacity-60">/</span> <span id="tot">14</span></div>
+<div class="counter" aria-live="polite"><b id="cur">01</b> <span class="opacity-60">/</span> <span id="tot">16</span></div>
 <div class="nav-fab" role="group" aria-label="Slide navigation">
   <button id="prev" type="button" aria-label="Previous slide">
     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 18l-6-6 6-6"/></svg>

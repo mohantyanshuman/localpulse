@@ -650,8 +650,10 @@ def add_front_matter(doc) -> None:
     head.font.size = Pt(12)
     head.bold = True
     body = p.add_run(
-        "crisis management, disaster response, NLP summarisation, multilingual "
-        "voice assistant, Twilio, Whisper, GPT-4o, Cloud Run, accessibility, "
+        "crisis management, disaster response, earth observation, satellite "
+        "data fusion, sensor cross-validation, self-learning calibration, "
+        "conformal prediction, ECDSA P-256 provenance, multilingual voice "
+        "assistant, Gemini Flash-Lite, Node.js, Cloud Run, accessibility, "
         "WCAG 2.2, DPDP Act 2023, Aatmanirbhar Bharat."
     )
     _set_run_font(body, BODY_FONT)
@@ -727,17 +729,17 @@ def add_body(doc) -> None:
     rows = [
         ("Threat (STRIDE)", "Vector", "Mitigation"),
         ("Spoofing", "Fake resident reports",
-         "Anonymous signed-cookie session, CAPTCHA gate on spike."),
-        ("Tampering", "Man-in-the-middle on transit",
-         "TLS 1.3, HSTS preload, SRI hashes on CDN scripts."),
-        ("Repudiation", "Disputed actions",
-         "Structured audit logs with correlation identifier."),
-        ("Information Disclosure", "Leak of caller phone numbers",
-         "AES-256-GCM at rest, no PII in logs/URLs."),
-        ("Denial of Service", "Flood of fake reports",
-         "Cloud Armor edge limits, per-route token bucket."),
-        ("Elevation of Privilege", "Compromised service account",
-         "Least-privilege IAM, no long-lived keys, WIF."),
+         "Agentic verifier drops contradicted reports; cross-source corroboration gates trust."),
+        ("Tampering", "Man-in-the-middle; forged hazard warning",
+         "TLS 1.3, HSTS preload, SRI; ECDSA P-256 hash-chained provenance on every EO warning."),
+        ("Repudiation", "Disputed or backdated warning",
+         "Structured audit logs with correlation IDs; tamper-evident, offline-verifiable certificate chain."),
+        ("Information Disclosure", "Leak of personal data",
+         "Report form collects no name, email or phone; no PII in logs or URLs."),
+        ("Denial of Service", "Flood of requests",
+         "Cloudflare edge absorbs floods; hot read path served from memory, no DB round-trip."),
+        ("Elevation of Privilege", "Compromised account; budget abuse",
+         "Least-privilege Cloud Run SA, keyless WIF; /tasks/ingest gated by constant-time token."),
     ]
     add_table(doc, rows, widths_in=[1.6, 2.1, 2.5])
 
@@ -787,7 +789,7 @@ def add_body(doc) -> None:
     add_heading(doc, "5.7 Voice Bot Flow", level=2)
     add_paragraphs(doc, C.IMPL_VOICE_FLOW)
     add_figure_placeholder(
-        doc, "Figure 3", "Voice Bot Call Flow over Twilio with Whisper and GPT-4o"
+        doc, "Figure 3", "In-Browser Voice Flow over the Web Speech API, Grounded in Live Data"
     )
 
     add_heading(doc, "5.8 Selected Code Listings", level=2)
@@ -805,15 +807,37 @@ def add_body(doc) -> None:
     add_heading(doc, "6.4 Language Identification", level=2)
     add_paragraphs(doc, C.ALGO_LANGID)
 
+    add_heading(doc, "6.5 Earth-Observation Subsystem", level=2)
+    add_paragraphs(doc, C.EO_OVERVIEW)
+    add_figure_placeholder(
+        doc, "Figure 7",
+        "Earth-Observation Fusion, Cross-Validation and Signed Provenance"
+    )
+    add_heading(doc, "6.5.1 Multi-sensor Satellite Fusion", level=3)
+    add_paragraphs(doc, C.EO_FUSION)
+    add_table_caption(doc, "Table 7: Earth-Observation Sensor Adapters and Hazard Axes")
+    add_table(doc, list(C.EO_ADAPTERS), widths_in=[1.7, 1.6, 1.3, 1.6])
+    add_heading(doc, "6.5.2 Cross-validation and Anti-spoofing", level=3)
+    add_paragraphs(doc, C.EO_DIVERGENCE)
+    add_heading(doc, "6.5.3 Forecasting and the Self-learning World Engine", level=3)
+    add_paragraphs(doc, C.EO_FORECAST_WORLD)
+    add_heading(doc, "6.5.4 Tamper-evident, Offline-verifiable Provenance", level=3)
+    add_paragraphs(doc, C.EO_PROVENANCE)
+    add_heading(doc, "6.5.5 Forensic Warning Certificate and Route Clearance", level=3)
+    add_paragraphs(doc, C.EO_CERTIFICATE_ROUTE)
+
     # ---- Chapter 7 ----------------------------------------------------------
     add_heading(doc, "Chapter 7. Testing", level=1)
     add_paragraphs(doc, [
-        "Tests run at six layers, each chosen to catch a specific class of "
-        "regression as early as possible in the development cycle."
+        "The automated suite uses the built-in Node test runner, node:test, "
+        "invoked with node --test: one hundred and two cases, all passing, in "
+        "roughly fourteen seconds, with no third-party test dependency to "
+        "install or audit. The cases concentrate on the hardest and most novel "
+        "subsystem, earth observation, across the focus areas below."
     ])
     add_table_caption(doc, "Table 5: Test Suite Coverage and Sample Results")
-    rows = [("Layer", "Tooling", "Coverage")] + list(C.TEST_LAYERS)
-    add_table(doc, rows, widths_in=[1.4, 1.6, 3.4])
+    rows = [("Focus area", "Runner", "Coverage")] + list(C.TEST_LAYERS)
+    add_table(doc, rows, widths_in=[1.4, 1.2, 3.8])
     add_heading(doc, "7.1 Sample Test Results", level=2)
     add_table(doc, C.TEST_SAMPLE_RESULTS, widths_in=[2.0, 1.2, 1.2, 1.6])
 

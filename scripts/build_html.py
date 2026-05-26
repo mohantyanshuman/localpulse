@@ -86,7 +86,7 @@ def code_block(code: str, *, lang: str = "javascript", caption: str | None = Non
 FIG_ARCHITECTURE = """
 <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 380' role='img' aria-labelledby='fig1-title fig1-desc'>
   <title id='fig1-title'>LocalPulse high-level architecture</title>
-  <desc id='fig1-desc'>Four layers stacked vertically. Presentation, Application, Intelligence and Data, with Cloud Run hosting Express. Twilio and OpenAI are external. Pub/Sub fans out to Firestore and BigQuery.</desc>
+  <desc id='fig1-desc'>Four layers. Presentation in the browser, a single Express process on Cloud Run behind Cloudflare, Node intelligence services including the earth-observation fusion engine, and an in-memory live store with optional Firestore durability.</desc>
   <defs>
     <marker id='arr' viewBox='0 0 10 10' refX='10' refY='5' markerWidth='8' markerHeight='8' orient='auto-start-reverse'>
       <path d='M 0 0 L 10 5 L 0 10 z' fill='currentColor' />
@@ -94,43 +94,37 @@ FIG_ARCHITECTURE = """
   </defs>
   <g font-family='Inter,Arial,sans-serif' font-size='13'>
     <rect x='20' y='20' width='760' height='60' rx='10' fill='#eef2ff' stroke='#6366f1' />
-    <text x='400' y='55' text-anchor='middle' font-weight='700' fill='#1e1b4b'>Resident phones, responder tablets, voice callers</text>
-    <text x='400' y='72' text-anchor='middle' fill='#3730a3'>Presentation: HTML + Tailwind + Leaflet + Web Speech API</text>
+    <text x='400' y='55' text-anchor='middle' font-weight='700' fill='#1e1b4b'>Resident phones, responder tablets, in-browser voice</text>
+    <text x='400' y='72' text-anchor='middle' fill='#3730a3'>Presentation: HTML + Tailwind + Leaflet + Web Speech API (PWA)</text>
 
     <rect x='20' y='110' width='400' height='80' rx='10' fill='#fef3c7' stroke='#d97706' />
-    <text x='220' y='140' text-anchor='middle' font-weight='700' fill='#78350f'>Cloud Run (asia-east1)</text>
-    <text x='220' y='160' text-anchor='middle' fill='#78350f'>Express server, /api/v1/*, SSE, /healthz</text>
-    <text x='220' y='178' text-anchor='middle' fill='#78350f'>scale 0–2 instances · 1 vCPU · 512 MiB</text>
+    <text x='220' y='140' text-anchor='middle' font-weight='700' fill='#78350f'>Cloud Run (asia-east1) · Cloudflare in front</text>
+    <text x='220' y='160' text-anchor='middle' fill='#78350f'>One Express process · flat /api/* · SSE /api/pulse</text>
+    <text x='220' y='178' text-anchor='middle' fill='#78350f'>min 0 / max 1 · 1 vCPU · 512 MiB · concurrency 80</text>
 
     <rect x='450' y='110' width='330' height='80' rx='10' fill='#dcfce7' stroke='#16a34a' />
-    <text x='615' y='140' text-anchor='middle' font-weight='700' fill='#14532d'>Intelligence services</text>
-    <text x='615' y='160' text-anchor='middle' fill='#14532d'>OpenAI Whisper · GPT-4o · Twilio</text>
-    <text x='615' y='178' text-anchor='middle' fill='#14532d'>Summariser worker · Intent classifier</text>
+    <text x='615' y='138' text-anchor='middle' font-weight='700' fill='#14532d'>Intelligence services (Node)</text>
+    <text x='615' y='157' text-anchor='middle' fill='#14532d'>EO fusion (13 sensors) · Gemini triage</text>
+    <text x='615' y='176' text-anchor='middle' fill='#14532d'>agentic verify · DSS · voice intent</text>
 
-    <rect x='20' y='220' width='220' height='80' rx='10' fill='#e0f2fe' stroke='#0284c7' />
-    <text x='130' y='250' text-anchor='middle' font-weight='700' fill='#0c4a6e'>Pub/Sub</text>
-    <text x='130' y='270' text-anchor='middle' fill='#0c4a6e'>incidents-v1</text>
-    <text x='130' y='287' text-anchor='middle' fill='#0c4a6e'>incidents-classified</text>
+    <rect x='20' y='220' width='360' height='80' rx='10' fill='#ede9fe' stroke='#7c3aed' />
+    <text x='200' y='250' text-anchor='middle' font-weight='700' fill='#3b0764'>In-memory live store</text>
+    <text x='200' y='270' text-anchor='middle' fill='#3b0764'>incidents · facilities · monotonic version</text>
+    <text x='200' y='287' text-anchor='middle' fill='#3b0764'>delta-sync via /api/sync (ETag/304)</text>
 
-    <rect x='270' y='220' width='220' height='80' rx='10' fill='#ede9fe' stroke='#7c3aed' />
-    <text x='380' y='250' text-anchor='middle' font-weight='700' fill='#3b0764'>Firestore (Native)</text>
-    <text x='380' y='270' text-anchor='middle' fill='#3b0764'>incidents · summaries</text>
-    <text x='380' y='287' text-anchor='middle' fill='#3b0764'>reports</text>
-
-    <rect x='520' y='220' width='260' height='80' rx='10' fill='#fee2e2' stroke='#dc2626' />
-    <text x='650' y='250' text-anchor='middle' font-weight='700' fill='#7f1d1d'>BigQuery analytics</text>
-    <text x='650' y='270' text-anchor='middle' fill='#7f1d1d'>localpulse_analytics</text>
-    <text x='650' y='287' text-anchor='middle' fill='#7f1d1d'>partitioned by day</text>
+    <rect x='410' y='220' width='370' height='80' rx='10' fill='#e0f2fe' stroke='#0284c7' />
+    <text x='595' y='250' text-anchor='middle' font-weight='700' fill='#0c4a6e'>Firestore over REST (optional)</text>
+    <text x='595' y='270' text-anchor='middle' fill='#0c4a6e'>reports · registries · push subs · snapshot</text>
+    <text x='595' y='287' text-anchor='middle' fill='#0c4a6e'>metadata-token auth · no-op off GCP</text>
 
     <rect x='20' y='330' width='760' height='38' rx='8' fill='#f1f5f9' stroke='#475569' />
-    <text x='400' y='355' text-anchor='middle' fill='#0f172a'>Cloud Logging · Cloud Trace · OpenTelemetry · Cloud Armor at the edge</text>
+    <text x='400' y='355' text-anchor='middle' fill='#0f172a'>Structured JSON access logs · correlation IDs · CSP / HSTS / security headers on every response</text>
 
     <g stroke='currentColor' stroke-width='1.5' fill='none' marker-end='url(#arr)' color='#475569'>
       <line x1='400' y1='90' x2='400' y2='108' />
       <line x1='420' y1='150' x2='448' y2='150' />
-      <line x1='130' y1='195' x2='130' y2='218' />
-      <line x1='240' y1='260' x2='268' y2='260' />
-      <line x1='490' y1='260' x2='518' y2='260' />
+      <line x1='200' y1='195' x2='200' y2='218' />
+      <line x1='380' y1='260' x2='408' y2='260' />
     </g>
   </g>
 </svg>
@@ -152,11 +146,13 @@ FIG_DATAFLOW = """
       <rect x='140' y='90' width='110' height='44' rx='8' fill='#eef2ff' stroke='#4f46e5' />
       <text x='195' y='117' text-anchor='middle'>Ingest</text>
       <rect x='270' y='90' width='110' height='44' rx='8' fill='#eef2ff' stroke='#4f46e5' />
-      <text x='325' y='117' text-anchor='middle'>Dedupe (SimHash)</text>
+      <text x='325' y='117' text-anchor='middle'>Dedupe &amp; cluster</text>
       <rect x='400' y='90' width='110' height='44' rx='8' fill='#eef2ff' stroke='#4f46e5' />
-      <text x='455' y='117' text-anchor='middle'>Classify</text>
+      <text x='455' y='110' text-anchor='middle'>Classify</text>
+      <text x='455' y='126' text-anchor='middle' font-size='10' fill='#4f46e5'>Gemini Flash-Lite</text>
       <rect x='530' y='90' width='120' height='44' rx='8' fill='#eef2ff' stroke='#4f46e5' />
-      <text x='590' y='117' text-anchor='middle'>Summarise (GPT-4o)</text>
+      <text x='590' y='110' text-anchor='middle'>Live store</text>
+      <text x='590' y='126' text-anchor='middle' font-size='10' fill='#4f46e5'>+ /api/pulse SSE</text>
       <rect x='670' y='90' width='120' height='44' rx='8' fill='#eef2ff' stroke='#4f46e5' />
       <text x='730' y='117' text-anchor='middle'>Resident dashboard</text>
     </g>
@@ -167,53 +163,48 @@ FIG_DATAFLOW = """
       <line x1='510' y1='112' x2='528' y2='112' />
       <line x1='650' y1='112' x2='668' y2='112' />
     </g>
-    <text x='400' y='40' text-anchor='middle' font-weight='700'>Twitter / Reddit / WhatsApp listener  →  status summary in five locales</text>
-    <text x='400' y='190' text-anchor='middle' fill='#475569'>Trust score (source × confirmation × recency) gates what residents see.</text>
+    <text x='400' y='40' text-anchor='middle' font-weight='700'>40+ free feeds (Google News, IMD/NDMA RSS, optional Reddit)  →  status in five locales</text>
+    <text x='400' y='190' text-anchor='middle' fill='#475569'>Cross-source corroboration gates trust; agentic verify drops contradicted reports.</text>
   </g>
 </svg>
 """
 
 FIG_VOICE = """
 <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 220' role='img' aria-labelledby='fig3-title fig3-desc'>
-  <title id='fig3-title'>Voice bot call flow</title>
-  <desc id='fig3-desc'>Caller dials Twilio, audio streams to Whisper, intent classified by GPT-4o, response spoken with Polly.</desc>
+  <title id='fig3-title'>In-browser voice flow</title>
+  <desc id='fig3-desc'>The browser Web Speech API recognises speech, posts the transcript to the server, which classifies the intent and grounds the reply in the live store, then SpeechSynthesis speaks it back.</desc>
   <defs>
     <marker id='arr3' viewBox='0 0 10 10' refX='10' refY='5' markerWidth='8' markerHeight='8' orient='auto-start-reverse'>
       <path d='M 0 0 L 10 5 L 0 10 z' fill='currentColor' />
     </marker>
   </defs>
   <g font-family='Inter,Arial,sans-serif' font-size='12'>
-    <rect x='20'  y='80' width='110' height='60' rx='8' fill='#fef3c7' stroke='#d97706' />
-    <text x='75'  y='110' text-anchor='middle'>Caller</text>
-    <text x='75'  y='128' text-anchor='middle' font-size='10' fill='#78350f'>feature phone</text>
+    <rect x='20'  y='80' width='120' height='60' rx='8' fill='#fef3c7' stroke='#d97706' />
+    <text x='80'  y='106' text-anchor='middle'>Resident</text>
+    <text x='80'  y='124' text-anchor='middle' font-size='10' fill='#78350f'>speaks in the browser</text>
 
-    <rect x='160' y='80' width='110' height='60' rx='8' fill='#fef3c7' stroke='#d97706' />
-    <text x='215' y='110' text-anchor='middle'>Twilio Voice</text>
-    <text x='215' y='128' text-anchor='middle' font-size='10' fill='#78350f'>media stream</text>
+    <rect x='170' y='80' width='140' height='60' rx='8' fill='#e0f2fe' stroke='#0284c7' />
+    <text x='240' y='106' text-anchor='middle'>SpeechRecognition</text>
+    <text x='240' y='124' text-anchor='middle' font-size='10' fill='#0c4a6e'>Web Speech API</text>
 
-    <rect x='300' y='80' width='130' height='60' rx='8' fill='#dcfce7' stroke='#16a34a' />
-    <text x='365' y='110' text-anchor='middle'>Cloud Run handler</text>
-    <text x='365' y='128' text-anchor='middle' font-size='10' fill='#14532d'>/voice/webhook</text>
+    <rect x='340' y='80' width='160' height='60' rx='8' fill='#dcfce7' stroke='#16a34a' />
+    <text x='420' y='106' text-anchor='middle'>POST /api/voice/intent</text>
+    <text x='420' y='124' text-anchor='middle' font-size='10' fill='#14532d'>classify + ground in live store</text>
 
-    <rect x='460' y='30' width='130' height='50' rx='8' fill='#e0f2fe' stroke='#0284c7' />
-    <text x='525' y='60' text-anchor='middle'>Whisper STT</text>
+    <rect x='530' y='80' width='130' height='60' rx='8' fill='#ede9fe' stroke='#7c3aed' />
+    <text x='595' y='106' text-anchor='middle'>SpeechSynthesis</text>
+    <text x='595' y='124' text-anchor='middle' font-size='10' fill='#3b0764'>spoken reply</text>
 
-    <rect x='460' y='120' width='130' height='50' rx='8' fill='#ede9fe' stroke='#7c3aed' />
-    <text x='525' y='150' text-anchor='middle'>GPT-4o intent</text>
-
-    <rect x='620' y='80' width='150' height='60' rx='8' fill='#fee2e2' stroke='#dc2626' />
-    <text x='695' y='110' text-anchor='middle'>TwiML reply</text>
-    <text x='695' y='128' text-anchor='middle' font-size='10' fill='#7f1d1d'>Polly Neural / &lt;Dial&gt;</text>
+    <rect x='690' y='80' width='90' height='60' rx='8' fill='#fef3c7' stroke='#d97706' />
+    <text x='735' y='114' text-anchor='middle'>Resident</text>
 
     <g stroke='currentColor' stroke-width='1.5' fill='none' marker-end='url(#arr3)' color='#475569'>
-      <line x1='130' y1='110' x2='158' y2='110' />
-      <line x1='270' y1='110' x2='298' y2='110' />
-      <line x1='430' y1='100' x2='458' y2='60' />
-      <line x1='430' y1='118' x2='458' y2='145' />
-      <line x1='590' y1='55'  x2='618' y2='100' />
-      <line x1='590' y1='145' x2='618' y2='120' />
+      <line x1='140' y1='110' x2='168' y2='110' />
+      <line x1='310' y1='110' x2='338' y2='110' />
+      <line x1='500' y1='110' x2='528' y2='110' />
+      <line x1='660' y1='110' x2='688' y2='110' />
     </g>
-    <text x='400' y='200' text-anchor='middle' fill='#475569'>End to end target: under 1.6 s from caller speaking to first audio.</text>
+    <text x='400' y='200' text-anchor='middle' fill='#475569'>No audio leaves the device; the reply is grounded in the same live data the map shows.</text>
   </g>
 </svg>
 """
@@ -280,41 +271,89 @@ FIG_RESPONDER = """
 FIG_DEPLOY = """
 <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 320' role='img' aria-labelledby='fig6-title fig6-desc'>
   <title id='fig6-title'>Cloud Run deployment topology in asia-east1</title>
-  <desc id='fig6-desc'>User → Cloud DNS → Google Front-End → Cloud Armor → Cloud Run service backed by Artifact Registry. CI/CD via GitHub Actions.</desc>
+  <desc id='fig6-desc'>User to Cloudflare edge to the Cloud Run service in asia-east1. On push to main, GitHub Actions authenticates via Workload Identity Federation and runs gcloud run deploy --source=., which Cloud Build turns into the deployed revision.</desc>
   <g font-family='Inter,Arial,sans-serif' font-size='12'>
-    <rect x='10'  y='130' width='110' height='60' rx='8' fill='#eef2ff' stroke='#4f46e5' />
-    <text x='65'  y='160' text-anchor='middle'>User device</text>
-    <text x='65'  y='178' text-anchor='middle' font-size='10' fill='#475569'>localpulse.dmj.one</text>
+    <rect x='10'  y='130' width='120' height='60' rx='8' fill='#eef2ff' stroke='#4f46e5' />
+    <text x='70'  y='160' text-anchor='middle'>User device</text>
+    <text x='70'  y='178' text-anchor='middle' font-size='10' fill='#475569'>localpulse.dmj.one</text>
 
-    <rect x='140' y='130' width='110' height='60' rx='8' fill='#fef3c7' stroke='#d97706' />
-    <text x='195' y='160' text-anchor='middle'>Cloud DNS</text>
+    <rect x='160' y='130' width='150' height='60' rx='8' fill='#fef3c7' stroke='#d97706' />
+    <text x='235' y='158' text-anchor='middle'>Cloudflare edge</text>
+    <text x='235' y='176' text-anchor='middle' font-size='10'>DNS · TLS 1.3 · DDoS · cache</text>
 
-    <rect x='270' y='130' width='130' height='60' rx='8' fill='#fef3c7' stroke='#d97706' />
-    <text x='335' y='160' text-anchor='middle'>Google Front-End</text>
-    <text x='335' y='178' text-anchor='middle' font-size='10'>TLS 1.3 · HSTS</text>
+    <rect x='340' y='130' width='200' height='60' rx='8' fill='#dcfce7' stroke='#16a34a' />
+    <text x='440' y='158' text-anchor='middle'>Cloud Run service</text>
+    <text x='440' y='176' text-anchor='middle' font-size='10'>asia-east1 · min 0 / max 1</text>
 
-    <rect x='420' y='130' width='130' height='60' rx='8' fill='#fee2e2' stroke='#dc2626' />
-    <text x='485' y='160' text-anchor='middle'>Cloud Armor</text>
-    <text x='485' y='178' text-anchor='middle' font-size='10'>edge rate limit</text>
+    <rect x='600' y='130' width='170' height='60' rx='8' fill='#ede9fe' stroke='#7c3aed' />
+    <text x='685' y='158' text-anchor='middle'>Firestore (optional)</text>
+    <text x='685' y='176' text-anchor='middle' font-size='10'>durability over REST</text>
 
-    <rect x='570' y='130' width='200' height='60' rx='8' fill='#dcfce7' stroke='#16a34a' />
-    <text x='670' y='160' text-anchor='middle'>Cloud Run service</text>
-    <text x='670' y='178' text-anchor='middle' font-size='10'>asia-east1 · 0–2 inst</text>
+    <rect x='160' y='40' width='200' height='50' rx='8' fill='#e0f2fe' stroke='#0284c7' />
+    <text x='260' y='62' text-anchor='middle'>GitHub Actions (WIF)</text>
+    <text x='260' y='80' text-anchor='middle' font-size='10'>build report + deploy</text>
 
-    <rect x='420' y='40' width='200' height='50' rx='8' fill='#ede9fe' stroke='#7c3aed' />
-    <text x='520' y='70' text-anchor='middle'>Artifact Registry</text>
-
-    <rect x='220' y='240' width='200' height='50' rx='8' fill='#e0f2fe' stroke='#0284c7' />
-    <text x='320' y='270' text-anchor='middle'>GitHub Actions CI/CD</text>
+    <rect x='400' y='40' width='200' height='50' rx='8' fill='#fee2e2' stroke='#dc2626' />
+    <text x='500' y='62' text-anchor='middle'>Cloud Build</text>
+    <text x='500' y='80' text-anchor='middle' font-size='10'>--source=. from Dockerfile</text>
 
     <g stroke='currentColor' stroke-width='1.5' fill='none' color='#475569'>
-      <line x1='120' y1='160' x2='138' y2='160' marker-end='url(#arr2)' />
-      <line x1='250' y1='160' x2='268' y2='160' marker-end='url(#arr2)' />
-      <line x1='400' y1='160' x2='418' y2='160' marker-end='url(#arr2)' />
-      <line x1='550' y1='160' x2='568' y2='160' marker-end='url(#arr2)' />
-      <line x1='620' y1='65'  x2='670' y2='128' marker-end='url(#arr2)' />
-      <line x1='320' y1='240' x2='420' y2='90'  marker-end='url(#arr2)' />
+      <line x1='130' y1='160' x2='158' y2='160' marker-end='url(#arr2)' />
+      <line x1='310' y1='160' x2='338' y2='160' marker-end='url(#arr2)' />
+      <line x1='540' y1='160' x2='598' y2='160' marker-end='url(#arr2)' />
+      <line x1='360' y1='65'  x2='398' y2='65'  marker-end='url(#arr2)' />
+      <line x1='500' y1='90'  x2='450' y2='128' marker-end='url(#arr2)' />
     </g>
+  </g>
+</svg>
+"""
+
+FIG_EO = """
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 320' role='img' aria-labelledby='fig7-title fig7-desc'>
+  <title id='fig7-title'>Earth-observation fusion, cross-validation and signed provenance</title>
+  <desc id='fig7-desc'>Thirteen satellite and sensor adapters run in parallel through a per-geocell cache into a fusion engine, cross-validated by Jensen-Shannon divergence, calibrated by a per-region self-learning World Engine, then signed with ECDSA P-256 into a hash-chained, offline-verifiable warning certificate.</desc>
+  <defs>
+    <marker id='arr7' viewBox='0 0 10 10' refX='10' refY='5' markerWidth='8' markerHeight='8' orient='auto-start-reverse'>
+      <path d='M 0 0 L 10 5 L 0 10 z' fill='currentColor' />
+    </marker>
+  </defs>
+  <g font-family='Inter,Arial,sans-serif' font-size='12'>
+    <rect x='10' y='30' width='160' height='220' rx='10' fill='#e0f2fe' stroke='#0284c7' />
+    <text x='90' y='52' text-anchor='middle' font-weight='700' fill='#0c4a6e'>13 adapters</text>
+    <text x='90' y='74' text-anchor='middle' font-size='10' fill='#0c4a6e'>FIRMS · Open-Meteo air</text>
+    <text x='90' y='90' text-anchor='middle' font-size='10' fill='#0c4a6e'>NASA POWER · USGS</text>
+    <text x='90' y='106' text-anchor='middle' font-size='10' fill='#0c4a6e'>Sentinel-1/-2/-3</text>
+    <text x='90' y='122' text-anchor='middle' font-size='10' fill='#0c4a6e'>Sentinel-5P NO2/SO2/CO</text>
+    <text x='90' y='138' text-anchor='middle' font-size='10' fill='#0c4a6e'>storm · GLOFAS flood</text>
+    <text x='90' y='168' text-anchor='middle' font-size='10' fill='#0c4a6e'>per-geocell TTL cache</text>
+    <text x='90' y='184' text-anchor='middle' font-size='10' fill='#0c4a6e'>missing keys skipped</text>
+
+    <rect x='200' y='60' width='150' height='70' rx='10' fill='#dcfce7' stroke='#16a34a' />
+    <text x='275' y='88' text-anchor='middle' font-weight='700' fill='#14532d'>Fusion</text>
+    <text x='275' y='108' text-anchor='middle' font-size='10' fill='#14532d'>confidence-weighted level</text>
+
+    <rect x='200' y='150' width='150' height='70' rx='10' fill='#fef3c7' stroke='#d97706' />
+    <text x='275' y='176' text-anchor='middle' font-weight='700' fill='#78350f'>Divergence</text>
+    <text x='275' y='196' text-anchor='middle' font-size='10' fill='#78350f'>blindspot / suspect (JS)</text>
+
+    <rect x='380' y='105' width='160' height='70' rx='10' fill='#ede9fe' stroke='#7c3aed' />
+    <text x='460' y='130' text-anchor='middle' font-weight='700' fill='#3b0764'>World Engine</text>
+    <text x='460' y='148' text-anchor='middle' font-size='10' fill='#3b0764'>per-region Platt ensemble</text>
+    <text x='460' y='164' text-anchor='middle' font-size='10' fill='#3b0764'>Brier · conformal interval</text>
+
+    <rect x='570' y='105' width='215' height='70' rx='10' fill='#fee2e2' stroke='#dc2626' />
+    <text x='677' y='128' text-anchor='middle' font-weight='700' fill='#7f1d1d'>ECDSA P-256 provenance</text>
+    <text x='677' y='146' text-anchor='middle' font-size='10' fill='#7f1d1d'>hash-chained receipts</text>
+    <text x='677' y='162' text-anchor='middle' font-size='10' fill='#7f1d1d'>offline-verifiable certificate</text>
+
+    <g stroke='currentColor' stroke-width='1.5' fill='none' marker-end='url(#arr7)' color='#475569'>
+      <line x1='170' y1='95'  x2='198' y2='95' />
+      <line x1='170' y1='185' x2='198' y2='185' />
+      <line x1='350' y1='95'  x2='378' y2='128' />
+      <line x1='350' y1='185' x2='378' y2='152' />
+      <line x1='540' y1='140' x2='568' y2='140' />
+    </g>
+    <text x='400' y='290' text-anchor='middle' fill='#475569'>Classical ECDSA over a single-issuer hash chain: integrity and accountability, not post-quantum and not a ledger.</text>
   </g>
 </svg>
 """
@@ -332,9 +371,11 @@ def render_abstract():
     body = paras(C.ABSTRACT)
     body += (
         "<p><strong>Keywords.</strong> crisis management, disaster response, "
-        "NLP summarisation, multilingual voice assistant, Twilio, Whisper, "
-        "GPT-4o, Cloud Run, accessibility, WCAG 2.2, DPDP Act 2023, "
-        "Aatmanirbhar Bharat.</p>"
+        "earth observation, satellite data fusion, sensor cross-validation, "
+        "self-learning calibration, conformal prediction, ECDSA P-256 "
+        "provenance, multilingual voice assistant, Gemini Flash-Lite, Node.js, "
+        "Cloud Run, accessibility, WCAG 2.2, DPDP Act 2023, Aatmanirbhar "
+        "Bharat.</p>"
     )
     return f"<section id='abstract'><h2>Abstract</h2>{body}</section>"
 
@@ -405,17 +446,17 @@ def render_architecture():
     stride_rows = [
         ("Threat (STRIDE)", "Vector", "Mitigation"),
         ("Spoofing", "Fake resident reports",
-         "Anonymous signed-cookie session, CAPTCHA gate on spike."),
-        ("Tampering", "Man-in-the-middle on transit",
-         "TLS 1.3, HSTS preload, SRI hashes on CDN scripts."),
-        ("Repudiation", "Disputed actions",
-         "Structured audit logs with correlation identifier."),
-        ("Information Disclosure", "Leak of caller phone numbers",
-         "AES-256-GCM at rest, no PII in logs/URLs."),
-        ("Denial of Service", "Flood of fake reports",
-         "Cloud Armor edge limits, per-route token bucket."),
-        ("Elevation of Privilege", "Compromised service account",
-         "Least-privilege IAM, no long-lived keys, WIF."),
+         "Agentic verifier drops contradicted reports; cross-source corroboration gates trust."),
+        ("Tampering", "Man-in-the-middle; forged hazard warning",
+         "TLS 1.3, HSTS preload, SRI; ECDSA P-256 hash-chained provenance on every EO warning."),
+        ("Repudiation", "Disputed or backdated warning",
+         "Structured audit logs with correlation IDs; tamper-evident, offline-verifiable certificate chain."),
+        ("Information Disclosure", "Leak of personal data",
+         "Report form collects no name, email or phone; no PII in logs or URLs."),
+        ("Denial of Service", "Flood of requests",
+         "Cloudflare edge absorbs floods; hot read path served from memory, no DB round-trip."),
+        ("Elevation of Privilege", "Compromised account; budget abuse",
+         "Least-privilege Cloud Run SA, keyless WIF; /tasks/ingest gated by constant-time token."),
     ]
     return f"""
 <section id='architecture'>
@@ -497,7 +538,7 @@ def render_implementation():
   {paras(C.IMPL_VOICE_FLOW)}
   <figure class='diagram'>
     {FIG_VOICE}
-    <figcaption>Figure 3. Voice bot call flow over Twilio with Whisper and GPT-4o.</figcaption>
+    <figcaption>Figure 3. In-browser voice flow over the Web Speech API, grounded in live data.</figcaption>
   </figure>
   <h3>5.8 Selected Code Listings</h3>
   {snips}
@@ -506,17 +547,35 @@ def render_implementation():
 
 
 def render_algorithms():
+    eo_adapters_rows = list(C.EO_ADAPTERS)
     return f"""
 <section id='algorithms'>
   <h2>6. Algorithms and Models</h2>
-  <h3>6.1 Social-media Summarisation Pipeline</h3>
+  <h3>6.1 Feed Triage and Classification Pipeline</h3>
   {paras(C.ALGO_SUMMARISATION)}
   <h3>6.2 Voice Intent Classification</h3>
   {paras(C.ALGO_INTENT)}
-  <h3>6.3 Trust Score</h3>
+  <h3>6.3 Trust and Corroboration</h3>
   {paras(C.ALGO_TRUST)}
-  <h3>6.4 Language Identification</h3>
+  <h3>6.4 Language Selection</h3>
   {paras(C.ALGO_LANGID)}
+  <h3>6.5 Earth-Observation Subsystem</h3>
+  {paras(C.EO_OVERVIEW)}
+  <figure class='diagram'>
+    {FIG_EO}
+    <figcaption>Figure 7. Earth-observation fusion, cross-validation and signed provenance.</figcaption>
+  </figure>
+  <h4>6.5.1 Multi-sensor Satellite Fusion</h4>
+  {paras(C.EO_FUSION)}
+  {table(eo_adapters_rows, caption='Table 7. Earth-observation sensor adapters and hazard axes.')}
+  <h4>6.5.2 Cross-validation and Anti-spoofing</h4>
+  {paras(C.EO_DIVERGENCE)}
+  <h4>6.5.3 Forecasting and the Self-learning World Engine</h4>
+  {paras(C.EO_FORECAST_WORLD)}
+  <h4>6.5.4 Tamper-evident, Offline-verifiable Provenance</h4>
+  {paras(C.EO_PROVENANCE)}
+  <h4>6.5.5 Forensic Warning Certificate and Route Clearance</h4>
+  {paras(C.EO_CERTIFICATE_ROUTE)}
 </section>
 """
 
@@ -526,8 +585,11 @@ def render_testing():
     return f"""
 <section id='testing'>
   <h2>7. Testing</h2>
-  <p>Tests run at six layers, each chosen to catch a specific class of
-  regression as early as possible in the development cycle.</p>
+  <p>The suite runs with the built-in Node test runner via
+  <code>node --test</code>: one hundred and two cases, all passing, in roughly
+  fourteen seconds, with no third-party test dependency to install or audit. The
+  cases concentrate on the hardest and most novel subsystem, earth observation,
+  across the focus areas below.</p>
   {table(layers_rows)}
   <h3>7.1 Sample Test Results</h3>
   {table(C.TEST_SAMPLE_RESULTS, caption='Table 5. Test suite coverage and sample results.')}
