@@ -504,29 +504,116 @@ body.big-text .muted.small, body.big-text .small { font-size: 14px; }
   .card { break-inside: avoid; box-shadow: none; }
 }
 
-/* Satellite Intelligence panel */
-.eo-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
-.eo-card { border-radius: 12px; padding: 12px; background: var(--card, var(--bg-card, #fff)); box-shadow: 0 1px 3px rgba(0,0,0,.12); min-width: 0; }
-.eo-axis { text-transform: capitalize; font-weight: 700; }
-.eo-headline.lv-high, .eo-card.lv-high { border-left: 4px solid #e67700; }
-.eo-headline.lv-severe, .eo-card.lv-severe { border-left: 4px solid #c92a2a; }
-.eo-headline.lv-elevated, .eo-card.lv-elevated { border-left: 4px solid #f59f00; }
-.eo-headline.lv-ok, .eo-card.lv-ok { border-left: 4px solid #2f9e44; }
-.eo-coverage { font-size: 12px; margin-top: 8px; }
+/* ── Satellite Intelligence / Route / World — shared hazard telemetry ───── */
+/* Per-level accent var drives stripe, pill, meter fill, and tint everywhere. */
+.eo-card.lv-ok,       .eo-headline.lv-ok       { --lv: var(--ok); }
+.eo-card.lv-elevated, .eo-headline.lv-elevated { --lv: var(--warn); }
+.eo-card.lv-high,     .eo-headline.lv-high     { --lv: #E8590C; }
+.eo-card.lv-severe,   .eo-headline.lv-severe   { --lv: var(--danger); }
+[data-theme="dark"] .eo-card.lv-high,
+[data-theme="dark"] .eo-headline.lv-high       { --lv: #FF922B; }
 
-/* Satellite forecast (Phase 4) */
-.eo-forecast-title { font-size: 14px; margin: 14px 0 6px; }
+/* Status banner above the grid */
+.eo-headline {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px;
+  margin: 4px 0 14px; font-size: 14px; color: var(--fg-muted);
+}
+.eo-hl-level {
+  font-family: var(--font-head); font-size: 12px; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase; color: #fff;
+  padding: 4px 11px; border-radius: var(--radius-pill);
+  background: var(--lv, var(--fg-muted));
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--lv, #000) 45%, transparent);
+}
+.eo-hl-meta { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.eo-hl-place { font-weight: 600; color: var(--fg); }
+.eo-hl-dot { color: var(--fg-soft); }
+.eo-shield {
+  display: inline-flex; align-items: center; gap: 5px; margin-left: auto;
+  font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: var(--radius-pill);
+  border: 1px solid transparent; white-space: nowrap;
+}
+.eo-shield.ok  { color: var(--ok);     background: color-mix(in srgb, var(--ok) 12%, transparent);     border-color: color-mix(in srgb, var(--ok) 35%, transparent); }
+.eo-shield.bad { color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); border-color: color-mix(in srgb, var(--danger) 35%, transparent); }
+
+/* Hazard card grid */
+.eo-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(205px, 1fr)); gap: 12px; align-items: stretch; }
+.eo-card {
+  position: relative; display: flex; flex-direction: column; gap: 11px; min-width: 0;
+  padding: 15px 15px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--lv, transparent) 6%, var(--bg-card)), var(--bg-card) 72%);
+  box-shadow: var(--shadow-1);
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.eo-card::before {
+  content: ""; position: absolute; inset: 0 0 auto 0; height: 3px;
+  background: var(--lv, var(--border-strong));
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+.eo-card:hover {
+  transform: translateY(-2px); box-shadow: var(--shadow-2);
+  border-color: color-mix(in srgb, var(--lv, var(--border-strong)) 40%, var(--border));
+}
+.eo-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.eo-axis { font-family: var(--font-head); font-size: 15px; font-weight: 600; letter-spacing: -.01em; text-transform: capitalize; overflow-wrap: anywhere; }
+.eo-badge {
+  flex: 0 0 auto; font-family: var(--font-head); font-size: 10.5px; font-weight: 700;
+  letter-spacing: .07em; text-transform: uppercase; color: #fff; white-space: nowrap;
+  padding: 3px 9px; border-radius: var(--radius-pill); background: var(--lv, var(--fg-muted));
+}
+
+/* Confidence meter */
+.eo-meter { display: flex; flex-direction: column; gap: 5px; }
+.eo-meter-label { display: flex; align-items: baseline; justify-content: space-between; }
+.eo-meter-cap { font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--fg-soft); }
+.eo-meter-val { font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--fg); }
+.eo-meter-track { height: 6px; border-radius: var(--radius-pill); background: var(--border); overflow: hidden; }
+.eo-meter-fill { height: 100%; border-radius: var(--radius-pill); background: var(--lv, var(--accent)); transition: width .6s cubic-bezier(.2,.7,.2,1); }
+
+/* Sensor chips (mono codes), capped with a "+N" overflow */
+.eo-sensors { display: flex; flex-wrap: wrap; gap: 5px; }
+.eo-sensor {
+  font-family: var(--font-mono); font-size: 11px; line-height: 1.5; white-space: nowrap;
+  padding: 2px 8px; border-radius: var(--radius-pill);
+  background: var(--bg); border: 1px solid var(--border); color: var(--fg-muted);
+}
+.eo-sensor-more { cursor: help; font-family: var(--font-body); font-weight: 600; color: var(--fg-soft); }
+
+/* Divergence flag */
+.eo-div {
+  display: inline-flex; align-items: center; gap: 6px; align-self: flex-start;
+  font-size: 11.5px; font-weight: 600; line-height: 1.3; padding: 4px 9px; border-radius: var(--radius-sm);
+}
+.eo-div.warn   { color: var(--warn);   background: color-mix(in srgb, var(--warn) 13%, transparent); }
+.eo-div.danger { color: var(--danger); background: color-mix(in srgb, var(--danger) 13%, transparent); }
+
+/* Footnote + plain-text fields reused by World/Route panels */
+.eo-gap { font-size: 12px; line-height: 1.45; color: var(--fg-muted); }
+.eo-foot {
+  margin-top: auto; padding-top: 9px; border-top: 1px dashed var(--border);
+  display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.eo-level { font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--fg); }
+.eo-conf { font-size: 12.5px; color: var(--fg-muted); }
+.eo-coverage { font-size: 12.5px; line-height: 1.5; margin-top: 12px; color: var(--fg-muted); }
+
+/* Near-term forecast cards */
+.eo-forecast-title { font-family: var(--font-head); font-size: 14px; font-weight: 600; margin: 16px 0 8px; }
 .eo-forecast { display: grid; gap: 8px; }
-.eo-pred { border-radius: 12px; padding: 10px 12px; background: var(--bg-card, #fff); box-shadow: 0 1px 3px rgba(0,0,0,.1); border-left: 4px solid #2f9e44; }
-.eo-pred.lk-moderate { border-left-color: #f59f00; }
-.eo-pred.lk-high { border-left-color: #c92a2a; }
+.eo-pred {
+  --lv: var(--ok); position: relative; padding: 11px 13px; border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--lv) 6%, var(--bg-card)), var(--bg-card) 75%);
+  border: 1px solid var(--border); border-left: 3px solid var(--lv);
+}
+.eo-pred.lk-moderate { --lv: var(--warn); }
+.eo-pred.lk-high { --lv: var(--danger); }
 .eo-pred-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.eo-pred-headline { font-weight: 700; }
-.eo-pred-chip { text-transform: uppercase; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: #e6f4ea; color: #2f9e44; }
-.eo-pred-chip.lk-moderate { background: #fff3bf; color: #b8860b; }
-.eo-pred-chip.lk-high { background: #ffe3e3; color: #c92a2a; }
-.eo-pred-why { font-size: 13px; margin-top: 4px; }
-.eo-pred-meta { font-size: 12px; margin-top: 4px; }
-
-/* Phase 5: divergence flag */
-.eo-div { font-size: 12px; margin-top: 4px; color: #c92a2a; font-weight: 600; }
+.eo-pred-headline { font-family: var(--font-head); font-weight: 600; }
+.eo-pred-chip {
+  flex: 0 0 auto; text-transform: uppercase; font-size: 10.5px; font-weight: 700; letter-spacing: .05em;
+  padding: 3px 9px; border-radius: var(--radius-pill); color: #fff; background: var(--lv);
+}
+.eo-pred-why { font-size: 13px; margin-top: 5px; color: var(--fg-muted); }
+.eo-pred-meta { font-family: var(--font-mono); font-size: 11.5px; margin-top: 5px; color: var(--fg-soft); }

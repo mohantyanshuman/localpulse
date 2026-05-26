@@ -602,26 +602,51 @@
     const coverage = document.getElementById('eo-coverage');
     if (!headline || !cards) return;
     const place = (data.location && data.location.place) || 'your area';
-    let head = `${place}: ${data.level.toUpperCase()} — ${data.sensorsUsed.length} sensors reporting`;
-    if (offline && window.EOOffline) head += ` · offline (${window.EOOffline.ageLabel(cachedTs)})`;
-    if (verified === true) head += ' · ✓ cryptographically verified';
-    else if (verified === false) head += ' · ⚠ unverified signature';
-    headline.textContent = head;
-    headline.className = `eo-headline ${eoLevelClass(data.level)}`;
+    const lvc = eoLevelClass(data.level);
+    headline.className = `eo-headline ${lvc}`;
+    headline.innerHTML = '';
+    headline.appendChild(el('span', { class: `eo-hl-level ${lvc}` }, data.level.toUpperCase()));
+    const metaEl = el('span', { class: 'eo-hl-meta' }, [
+      el('span', { class: 'eo-hl-place' }, place),
+      el('span', { class: 'eo-hl-dot' }, '·'),
+      el('span', null, `${data.sensorsUsed.length} sensors reporting`),
+    ]);
+    if (offline && window.EOOffline) {
+      metaEl.appendChild(el('span', { class: 'eo-hl-dot' }, '·'));
+      metaEl.appendChild(el('span', null, `offline (${window.EOOffline.ageLabel(cachedTs)})`));
+    }
+    headline.appendChild(metaEl);
+    if (verified === true) headline.appendChild(el('span', { class: 'eo-shield ok' }, '✓ cryptographically verified'));
+    else if (verified === false) headline.appendChild(el('span', { class: 'eo-shield bad' }, '⚠ unverified signature'));
     cards.innerHTML = '';
     for (const h of data.perHazard) {
-      const card = el('div', { class: `eo-card ${eoLevelClass(h.level)}` });
-      card.appendChild(el('div', { class: 'eo-axis' }, h.axis));
-      card.appendChild(el('div', { class: 'eo-level' }, h.level));
-      card.appendChild(el('div', { class: 'eo-conf' }, 'confidence ' + Math.round(h.confidence * 100) + '%'));
-      card.appendChild(el('div', { class: 'eo-sensors' }, h.sensorsUsed.join(', ')));
-      card.appendChild(el('div', { class: 'eo-gap muted' }, h.gapNote));
-      if (h.divergenceFlag && h.divergenceFlag !== 'consensus' && h.divergenceFlag !== 'single') {
-        const label = h.divergenceFlag === 'blindspot'
-          ? `⚠ sensor blindspot (only ${h.divergenceOutlier} sees it)`
-          : `⚠ suspect feed (${h.divergenceOutlier})`;
-        card.appendChild(el('div', { class: 'eo-div' }, label));
+      const lc = eoLevelClass(h.level);
+      const pct = Math.round((h.confidence || 0) * 100);
+      const card = el('div', { class: `eo-card ${lc}` });
+      card.appendChild(el('div', { class: 'eo-card-top' }, [
+        el('span', { class: 'eo-axis' }, h.axis),
+        el('span', { class: `eo-badge ${lc}` }, h.level),
+      ]));
+      card.appendChild(el('div', { class: 'eo-meter' }, [
+        el('div', { class: 'eo-meter-label' }, [
+          el('span', { class: 'eo-meter-cap' }, 'Confidence'),
+          el('span', { class: 'eo-meter-val' }, pct + '%'),
+        ]),
+        el('div', { class: 'eo-meter-track' }, el('div', { class: `eo-meter-fill ${lc}`, style: `width:${pct}%` })),
+      ]));
+      const sensors = h.sensorsUsed || [];
+      const SHOWN = 3;
+      const chips = sensors.slice(0, SHOWN).map((s) => el('span', { class: 'eo-sensor' }, s));
+      if (sensors.length > SHOWN) {
+        chips.push(el('span', { class: 'eo-sensor eo-sensor-more', title: sensors.join(', ') }, `+${sensors.length - SHOWN}`));
       }
+      card.appendChild(el('div', { class: 'eo-sensors' }, chips));
+      if (h.divergenceFlag && h.divergenceFlag !== 'consensus' && h.divergenceFlag !== 'single') {
+        const isBlind = h.divergenceFlag === 'blindspot';
+        const label = isBlind ? `Only ${h.divergenceOutlier} sees this` : `Suspect feed: ${h.divergenceOutlier}`;
+        card.appendChild(el('div', { class: `eo-div ${isBlind ? 'warn' : 'danger'}` }, '⚠ ' + label));
+      }
+      card.appendChild(el('div', { class: 'eo-gap eo-foot' }, h.gapNote));
       cards.appendChild(card);
     }
     if (coverage) {

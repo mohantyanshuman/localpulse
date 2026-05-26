@@ -3,6 +3,33 @@
 All notable changes to LocalPulse are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); grouped by date.
 
+## 2026-05-26 (docs aligned to real system + Satellite Intelligence redesign)
+
+### Changed
+- **Capstone report (`scripts/content.py`) now matches the deployed code.** Removed
+  the fictional `/api/v1/*` versioned API, OpenAPI endpoint, Twilio voice webhook,
+  GPT-4o/Whisper, Pub/Sub, BigQuery and Cloud Armor; corrected to the real flat
+  `/api/*` surface, `/api/pulse` SSE, browser Web Speech voice, Gemini pipeline,
+  in-memory + Firestore-over-REST store, and the real `node --test` suite
+  (102 tests, all passing). Build-script SVG figures and STRIDE rows de-fictionalized.
+- **Pitch deck (`public/pitch.html`)** gained two slides covering the Earth-Observation
+  subsystem (Satellite Fusion Engine, self-learning World Engine, Forensic Warning
+  Certificate, Evacuation Route Clearance); slides renumbered to 16.
+
+### Added
+- **Capstone report §6.5 Earth-Observation subsystem** (Table 7: 13 adapters/hazard
+  axes; Figure 7: fusion → divergence → World Engine → ECDSA provenance), framed
+  precisely as classical ECDSA P-256 single-issuer hash chain (not post-quantum,
+  not a distributed ledger). Regenerated `public/report.html` + `CAPSTONE PROJECT REPORT.docx`.
+
+### Fixed
+- **Satellite Intelligence panel redesign.** Replaced the bare, non-theme-aware
+  hazard cards with a cohesive telemetry treatment: per-level status stripe + pill,
+  confidence meter, capped mono sensor chips, even card heights, a structured status
+  banner with the cryptographic-verification shield, and refreshed forecast cards.
+  Fully light/dark themed via CSS variables. Shared classes also upgrade the Route
+  Clearance and World Engine panels.
+
 ## 2026-05-24 (technical-effect upgrades for patentability)
 
 ### Added
