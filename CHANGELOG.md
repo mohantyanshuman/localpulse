@@ -29,6 +29,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); grouped by date.
   banner with the cryptographic-verification shield, and refreshed forecast cards.
   Fully light/dark themed via CSS variables. Shared classes also upgrade the Route
   Clearance and World Engine panels.
+- **Palette refinement + responsive system across all app surfaces.** Evolved the
+  brand tokens into a disciplined AA-contrast system (hover/ring tokens, deeper
+  dark-mode surfaces, sunken layer) and added a fluid foundation: responsive
+  `--maxw` that widens to 1680px on 4K so content never strands, fluid container/
+  card padding and base type (`clamp`), a type-baseline lift on ≥1920px displays
+  and projectors, 44px touch targets on coarse pointers, horizontal-overflow
+  guards, and extra grid columns on large screens. Verified in-browser on the
+  dashboard, responder console and voice page at 390 / 820 / 1366 / 2560 px in
+  both themes.
 
 ## 2026-05-24 (technical-effect upgrades for patentability)
 
