@@ -1,8 +1,8 @@
-# Phase 5 — Frontier Differentiators Implementation Plan
+# Phase 5: Frontier Differentiators Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:subagent-driven-development (Agent Teams). Steps use checkbox (`- [ ]`).
 
-**Goal:** Build five disjoint modules — physics-constrained propagation, conformal calibration, cross-sensor divergence, verifiable provenance, on-device offline inference — then the controller wires them into predict.js / fusion.js / server.js / app.js.
+**Goal:** Build five disjoint modules (physics-constrained propagation, conformal calibration, cross-sensor divergence, verifiable provenance, on-device offline inference), then the controller wires them into predict.js / fusion.js / server.js / app.js.
 
 **Conventions:** CommonJS, Node 20, `node --test`. Reuse `services/eo/http.js` (`getJson`, `haversineKm`), `services/eo/signal.js`, `services/eo/cache.js`. Each module is a NEW file with pure, unit-tested functions; **implementers do NOT touch predict.js, fusion.js, server.js, or app.js** (controller integrates to avoid conflicts) and run NO git.
 

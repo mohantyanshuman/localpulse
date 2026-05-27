@@ -1,4 +1,4 @@
-// LocalPulse — community mutual-aid matching.
+// LocalPulse: community mutual-aid matching.
 // Residents post a NEED ("need drinking water for 3"), an OFFER ("have a 4x4,
 // can ferry people from Chambaghat") or mark themselves SAFE. This engine
 // auto-matches each open need to the nearest open offer in the same resource

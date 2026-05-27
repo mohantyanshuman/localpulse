@@ -1,8 +1,8 @@
-// LocalPulse — Firestore persistence over REST (dependency-free).
+// LocalPulse: Firestore persistence over REST (dependency-free).
 // Auth uses the Cloud Run metadata server access token (the runtime service
 // account has roles/datastore.user). Two uses:
-//   1. Community reports — residents' submissions, durable + visible to all.
-//   2. Snapshot — the last good (LLM) ingest, so a cold start reloads real
+//   1. Community reports: residents' submissions, durable + visible to all.
+//   2. Snapshot: the last good (LLM) ingest, so a cold start reloads real
 //      multilingual data instantly without spending the Gemini budget.
 // Every call degrades to null/[]/false if Firestore or the token is unavailable
 // (e.g. local dev), so the app never breaks.
@@ -139,7 +139,7 @@ async function listPushSubs(limit = 500) {
 
 // --- Snapshot of the last good ingest (one JSON field), HMAC-signed so a
 // tampered/compromised persisted snapshot is detected and rejected on load
-// (tamper-evident integrity — defence in depth).
+// (tamper-evident integrity, defence in depth).
 const SNAP_SECRET = process.env.SYNC_SECRET || process.env.INGEST_TOKEN || 'localpulse-sync';
 const snapSig = (json) => crypto.createHmac('sha256', SNAP_SECRET).update(json).digest('hex');
 // --- Prediction log (conformal calibration): durable across cold starts.

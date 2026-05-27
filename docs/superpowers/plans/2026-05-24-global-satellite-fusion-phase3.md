@@ -1,4 +1,4 @@
-# Global Satellite Fusion — Phase 3 (Coverage + Calibration) Plan
+# Global Satellite Fusion: Phase 3 (Coverage + Calibration) Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:subagent-driven-development (Agent Teams). Steps use checkbox (`- [ ]`).
 
@@ -12,7 +12,7 @@
 
 ---
 
-## Track A (keyless) — storm + flood
+## Track A (keyless): storm + flood
 
 ### Task A1: Add `heat` axis to signal.js
 **Files:** Modify `services/eo/signal.js`; modify `test/eo/signal.test.js`.
@@ -35,7 +35,7 @@ const AXES = new Set(['fire', 'air', 'flood', 'vegetation', 'storm', 'power', 's
 
 Open-Meteo forecast (keyless): `https://api.open-meteo.com/v1/forecast?latitude=..&longitude=..&current=wind_speed_10m,wind_gusts_10m,precipitation&hourly=cape&forecast_days=1&timezone=auto`. Map wind gusts + CAPE to a storm magnitude.
 
-- [ ] **Step 1: Failing test** — `test/eo/storm.test.js`
+- [ ] **Step 1: Failing test:** `test/eo/storm.test.js`
 ```js
 const test = require('node:test');
 const assert = require('node:assert');
@@ -103,7 +103,7 @@ module.exports = { id: 'storm', axes: ['storm'], requires: [], ttlMs: 30 * 60 * 
 
 Open-Meteo Flood API (keyless): `https://flood-api.open-meteo.com/v1/flood?latitude=..&longitude=..&daily=river_discharge&forecast_days=7`. A discharge spike vs recent baseline = flood risk.
 
-- [ ] **Step 1: Failing test** — `test/eo/glofas.test.js`
+- [ ] **Step 1: Failing test:** `test/eo/glofas.test.js`
 ```js
 const test = require('node:test');
 const assert = require('node:assert');
@@ -166,14 +166,14 @@ module.exports = { id: 'glofas', axes: ['flood'], requires: [], ttlMs: 6 * 60 * 
 
 ---
 
-## Track B (Copernicus) — pollution + heat
+## Track B (Copernicus): pollution + heat
 
 ### Task B1: Sentinel-5P NO₂ adapter (air axis)
 **Files:** Create `services/eo/adapters/sentinel5p-no2.js` + `test/eo/sentinel5p-no2.test.js`.
 
 Same CDSE client; band `NO2` (tropospheric column, mol/m²). Typical clean ~5e-5, polluted ~2e-4+. **Evalscript MUST include dataMask output.**
 
-- [ ] **Step 1: Failing test** — `test/eo/sentinel5p-no2.test.js`
+- [ ] **Step 1: Failing test:** `test/eo/sentinel5p-no2.test.js`
 ```js
 const test = require('node:test');
 const assert = require('node:assert');
@@ -237,7 +237,7 @@ module.exports = {
 
 CDSE collection `sentinel-3-slstr`; thermal band `S8` is brightness temperature in Kelvin. Map hot surfaces to a heat magnitude. **Evalscript MUST include dataMask output.**
 
-- [ ] **Step 1: Failing test** — `test/eo/sentinel3.test.js`
+- [ ] **Step 1: Failing test:** `test/eo/sentinel3.test.js`
 ```js
 const test = require('node:test');
 const assert = require('node:assert');
@@ -320,7 +320,7 @@ module.exports = {
 - Every Copernicus evalscript includes the required `dataMask` output (the Phase 2 bug).
 - Confidence-weighted roll-up fixes the single-proxy over-alarm observed live.
 - File isolation: Track A → signal.js + storm/glofas adapters; Track B → sentinel5p-no2/sentinel3 adapters (B2 depends on A1's heat axis); Controller → fusion.js. Disjoint; controller registers + calibrates last.
-- Power-outage axis intentionally NOT implemented (no feasible accurate real-time source on this budget) — documented, not faked.
+- Power-outage axis intentionally NOT implemented (no feasible accurate real-time source on this budget); documented, not faked.
 
 ## Out of scope (documented, not faked)
 - NASA GPM/MODIS/VIIRS-night-lights point values (cookie-based URS auth + HDF5/sinusoidal granule processing, not viable on 512Mi/60s). Earthdata token retained for future cloud-DAAC/Harmony work.

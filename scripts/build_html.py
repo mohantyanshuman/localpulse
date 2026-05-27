@@ -366,25 +366,25 @@ FIG_UI_SCREENSHOTS = """
       <img src='/img/ui-dashboard-light.jpg' width='1600' height='1000' loading='lazy'
            decoding='async'
            alt='LocalPulse resident dashboard in the light theme: status summary cards and a live Leaflet map of incidents.' />
-      <figcaption>(a) Resident dashboard — light theme</figcaption>
+      <figcaption>(a) Resident dashboard, light theme</figcaption>
     </figure>
     <figure class='shot'>
       <img src='/img/ui-dashboard-dark.jpg' width='1600' height='1000' loading='lazy'
            decoding='async'
            alt='LocalPulse resident dashboard in the dark theme: the same status cards and live incident map rendered on a dark background.' />
-      <figcaption>(b) Resident dashboard — dark theme</figcaption>
+      <figcaption>(b) Resident dashboard, dark theme</figcaption>
     </figure>
     <figure class='shot'>
       <img src='/img/ui-satellite-light.jpg' width='1600' height='1000' loading='lazy'
            decoding='async'
            alt='LocalPulse Satellite Intelligence panel in the light theme: fused earth-observation hazard readings and signed provenance.' />
-      <figcaption>(c) Satellite Intelligence panel — light theme</figcaption>
+      <figcaption>(c) Satellite Intelligence panel, light theme</figcaption>
     </figure>
     <figure class='shot'>
       <img src='/img/ui-satellite-dark.jpg' width='1600' height='1000' loading='lazy'
            decoding='async'
            alt='LocalPulse Satellite Intelligence panel in the dark theme: the same fused earth-observation readings rendered on a dark background.' />
-      <figcaption>(d) Satellite Intelligence panel — dark theme</figcaption>
+      <figcaption>(d) Satellite Intelligence panel, dark theme</figcaption>
     </figure>
   </div>
   <figcaption class='fig-main'>Figure 8. Deployed user interface at localpulse.dmj.one. The same responsive, theme-aware layout is shown in light and dark themes: (a, b) the resident dashboard and (c, d) the redesigned Satellite Intelligence panel.</figcaption>
@@ -798,11 +798,11 @@ def render_html() -> str:
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>{title} — Capstone Report</title>
+<title>{title} · Capstone Report</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <meta name="description" content="LocalPulse capstone report by {author}, B.Tech CSE, Shoolini University, 2026." />
 <meta name="theme-color" content="#1f2a44" />
-<meta property="og:title" content="{title} — Capstone Report" />
+<meta property="og:title" content="{title} · Capstone Report" />
 <meta property="og:description" content="AI Crisis Management for Small Communities. Capstone by {author}, mentored by {mentor}." />
 <meta property="og:type" content="article" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />

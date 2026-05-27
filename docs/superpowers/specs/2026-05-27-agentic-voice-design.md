@@ -1,4 +1,4 @@
-# Agentic Voice Helpline — Design Spec
+# Agentic Voice Helpline: Design Spec
 
 Date: 2026-05-27
 Status: Approved (build)
@@ -6,7 +6,7 @@ Author: LocalPulse
 
 ## Problem
 
-The voice helpline (`POST /api/voice/intent` + `data/intents.js`) uses **zero LLM** —
+The voice helpline (`POST /api/voice/intent` + `data/intents.js`) uses **zero LLM**:
 it is keyword matching with a canned reply, lightly grounded with live data. It feels
 "dumb": no real understanding, no memory, no decisions, no ability to act. Callers must
 phrase things exactly, and it cannot answer "is the road to the shelter safe?" or act on
@@ -33,7 +33,7 @@ no OpenAI/Whisper. STT/TTS stay on-device via the browser Web Speech API (free).
 **Gemini function-calling agent loop**, stateless server, client-held conversation memory.
 
 Rejected alternatives: planner→executor (less adaptive); single mega-prompt RAG (not
-agentic — that is today's `/api/ask`).
+agentic; that is today's `/api/ask`).
 
 ## API
 
@@ -77,13 +77,13 @@ use the provided GPS coordinates automatically.
 ### Tools (Gemini function declarations), each backed by existing code
 
 Read-only:
-- `get_local_risk(lat, lng)` → `dss.assess(...)` merged with `eoFusion.fuse(lat,lng)` — personalized risk + recommendations.
+- `get_local_risk(lat, lng)` → `dss.assess(...)` merged with `eoFusion.fuse(lat,lng)`: personalized risk + recommendations.
 - `get_incidents(category?)` → `store.getIncidents()` (filtered, nearest-first when GPS present).
 - `get_hazards()` → `store.getHazards()` (weather, quakes, official alerts, air quality).
-- `get_satellite_assessment(lat, lng)` → `eoFusion.fuse(lat,lng)` — per-hazard levels/confidence.
-- `find_facilities(kind?, lat?, lng?)` → `store.getFacilities()` — nearest hospital/clinic/police/shelter (haversine).
-- `check_safe_route(fromLat, fromLng, toLat?, toLng?)` → `eoRoute.assessRoute(...)` — GO/CAUTION/NO_GO + nearest shelter snap.
-- `get_emergency_help(type)` → composes 112 + nearest relevant facility (hospital/police/fire) using GPS — for "ambulance/fire/police/help to my location".
+- `get_satellite_assessment(lat, lng)` → `eoFusion.fuse(lat,lng)`: per-hazard levels/confidence.
+- `find_facilities(kind?, lat?, lng?)` → `store.getFacilities()`: nearest hospital/clinic/police/shelter (haversine).
+- `check_safe_route(fromLat, fromLng, toLat?, toLng?)` → `eoRoute.assessRoute(...)`: GO/CAUTION/NO_GO + nearest shelter snap.
+- `get_emergency_help(type)` → composes 112 + nearest relevant facility (hospital/police/fire) using GPS, for "ambulance/fire/police/help to my location".
 
 Write (require spoken confirmation; auto-fill `lat/lng/place` from GPS):
 - `file_report(category, message, severity?)` → `persist.addReport` + `store.addCommunityReport(reportToIncident(...))` (same path as `/api/report`).
@@ -104,7 +104,7 @@ optional logging of a located alert is confirmed.
 
 1. Build first-turn **caller context** automatically (server-side, no model round-trip):
    reverse-geocoded place (from `geolocate.reverseGeocode`), current `dss` risk level, and
-   nearest hospital — so the agent starts informed ("automate fetching all information").
+   nearest hospital, so the agent starts informed ("automate fetching all information").
 2. Send `q` + `history` + caller context + tool declarations to Gemini.
 3. If the response contains function calls, execute them server-side (in parallel where
    independent), append `functionResponse` parts, and call again.
@@ -115,7 +115,7 @@ optional logging of a located alert is confirmed.
 - Daily cap `VOICE_DAILY_CAP` (default 400) like `assistant.js`; on cap → graceful message.
 - `VOICE_MAX_STEPS` per turn; `history` capped to last 8 turns; `q` <= 400 chars; per-call timeout (~18s); AbortController.
 - Tools are server-side only; write tools hit the same public endpoints the web forms use (no new attack surface), are confirmation-gated, length-clamped, and audit-logged (structured stdout).
-- **Graceful fallback** to the existing keyword bot (`data/intents.js`) when `GEMINI_API_KEY` is unset, the cap is hit, or any error/timeout occurs — voice keeps working free and offline-ish.
+- **Graceful fallback** to the existing keyword bot (`data/intents.js`) when `GEMINI_API_KEY` is unset, the cap is hit, or any error/timeout occurs, so voice keeps working free and offline-ish.
 - No realtime audio, no telephony, no persistent connections → ₹0.
 
 ## Client (`public/js/voice.js`)

@@ -1,4 +1,4 @@
-// LocalPulse service worker — offline resilience for slow phones / bad internet.
+// LocalPulse service worker: offline resilience for slow phones / bad internet.
 // Shell is cache-first; API responses are network-first with a cache fallback,
 // so the dashboard still shows the last-known status when the connection drops.
 const CACHE = 'localpulse-v5';
@@ -35,7 +35,7 @@ self.addEventListener('fetch', (e) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin !== location.origin) return; // let CDN/tiles/fonts pass through
-  // Never intercept the SSE stream — caching an event-stream stalls it.
+  // Never intercept the SSE stream; caching an event-stream stalls it.
   if (url.pathname === '/api/pulse' || (req.headers.get('accept') || '').includes('text/event-stream')) return;
 
   const isApi = url.pathname.startsWith('/api/');

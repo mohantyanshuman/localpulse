@@ -1,4 +1,4 @@
-// LocalPulse — single-file Cloud Run server.
+// LocalPulse: single-file Cloud Run server.
 // MVP/MLP: in-memory data, no persistence. Scale-to-zero friendly.
 // Load file-mounted secrets (Secret Manager volumes) into env BEFORE anything reads them.
 require('./services/secrets-bootstrap');
@@ -55,7 +55,7 @@ app.use((req, res, next) => {
   res.setHeader('Referrer-Policy', 'no-referrer');
   res.setHeader('Permissions-Policy', 'microphone=(self), camera=(), geolocation=(self)');
   res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
-  // CSP — allow tailwind cdn, leaflet, google fonts, prism (used in /pitch and /report)
+  // CSP: allow tailwind cdn, leaflet, google fonts, prism (used in /pitch and /report)
   res.setHeader(
     'Content-Security-Policy',
     [
@@ -122,7 +122,7 @@ app.get('/api/summary', (req, res) => {
   res.json(store.getSummary(lang));
 });
 
-// Ingestion status — handy for verifying live vs seed mode (passes the GFE).
+// Ingestion status: handy for verifying live vs seed mode (passes the GFE).
 app.get('/api/status', (_req, res) => {
   res.set('Cache-Control', 'no-store');
   res.json({ ...store.meta(), llm: !!process.env.GEMINI_API_KEY, ts: Date.now() });
@@ -277,7 +277,7 @@ app.get('/api/dss', async (req, res) => {
     return res.json(assessment);
   }
   res.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=120');
-  res.json(store.getAssessment() || { level: 'ok', score: 0, headline: 'Starting up — fetching live data.', recommendations: [], generatedAt: Date.now() });
+  res.json(store.getAssessment() || { level: 'ok', score: 0, headline: 'Starting up, fetching live data.', recommendations: [], generatedAt: Date.now() });
 });
 
 app.get('/api/i18n', (req, res) => {
@@ -418,7 +418,7 @@ app.get('/api/aid', async (_req, res) => {
 
 // --- Vulnerable-person priority registry (no-one-left-behind).
 // Privacy: coordinates coarsened to ~1 km; the GET returns only aggregate counts
-// and coarse clusters — never names, notes or contacts.
+// and coarse clusters, never names, notes or contacts.
 const VULN_NEEDS = ['mobility', 'elderly', 'infant', 'medical', 'oxygen', 'hearing', 'vision', 'pregnant'];
 app.post('/api/vulnerable', writeLimiter, async (req, res) => {
   const b = req.body || {};
@@ -489,7 +489,7 @@ app.post('/api/push/unsubscribe', async (req, res) => {
   res.json({ ok: true });
 });
 
-// Community reports (resident submissions) — for the responder console.
+// Community reports (resident submissions) for the responder console.
 app.get('/api/reports', (req, res) => {
   res.set('Cache-Control', 'no-store');
   const items = store.getIncidents().filter((i) => i.src === 'community').map((i) => ({ id: i.id, category: i.category, message: i.summary.en, lat: i.lat, lng: i.lng, updatedAt: i.updatedAt }));
@@ -499,7 +499,7 @@ app.get('/api/reports', (req, res) => {
 app.post('/api/voice/intent', (req, res) => {
   const { text = '' } = req.body || {};
   const lang = (req.body && SUPPORTED.includes(req.body.lang)) ? req.body.lang : pickLang(req);
-  const out = respond(text, lang); // { intent, response, lang } — localized base reply
+  const out = respond(text, lang); // { intent, response, lang }: localized base reply
   // Ground the reply in live data (free, no LLM call).
   const incTitles = (cat) => store.getIncidents().filter(i => i.category === cat).slice(0, 2).map(i => (i.title[lang] || i.title.en));
   const facNames = (kinds) => {
@@ -565,7 +565,7 @@ app.get('/api/pulse', (req, res) => {
   send('stat', stat());
 
   // Register for the shared real-time live feed (new items from all 40+ free
-  // sources, broadcast as they appear — no Gemini, so nothing is rate-limited).
+  // sources, broadcast as they appear; no Gemini, so nothing is rate-limited).
   livefeed.addClient(res, lang);
 
   let lastV = store.getVersion();
@@ -575,7 +575,7 @@ app.get('/api/pulse', (req, res) => {
     const v = store.getVersion();
     if (v !== lastV) {
       lastV = v;
-      // Something changed (new ingest or a community report) — push the freshest items live.
+      // Something changed (new ingest or a community report); push the freshest items live.
       store.getIncidents().slice(0, 3).forEach((i) => send('incident', incidentEvt(i)));
       send('stat', stat());
     } else {
@@ -652,7 +652,7 @@ app.use((err, req, res, _next) => {
 const server = app.listen(PORT, () => {
   process.stdout.write(JSON.stringify({ severity: 'NOTICE', ts: new Date().toISOString(), msg: 'LocalPulse listening', port: PORT, rev: REV, node: process.version }) + '\n');
   // Cold-start warm-up (non-blocking), in order of preference:
-  //   1. Reload the last good (LLM) snapshot from Firestore — instant real
+  //   1. Reload the last good (LLM) snapshot from Firestore: instant real
   //      multilingual data, ZERO Gemini spend.
   //   2. Only if no snapshot exists, do a free heuristic ingest so it's not blank.
   // Either way, load community reports. The scheduled /tasks/ingest is the only

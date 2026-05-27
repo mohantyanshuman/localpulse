@@ -57,7 +57,7 @@ function publicKeyJwk() {
 }
 
 // The signed message binds the content (canon), the model, the timestamp, and the
-// PRIOR receipt hash — chaining each warning to the last so the sequence is
+// PRIOR receipt hash, chaining each warning to the last so the sequence is
 // tamper-evident and non-repudiable (a warning cannot be reordered, backdated,
 // inserted or deleted without breaking the chain).
 function message(canon, model, ts, prevHash) { return `${canon}|${model}|${ts}|${prevHash}`; }

@@ -190,7 +190,7 @@ def set_titlepg(section) -> None:
 def setup_styles(doc) -> None:
     styles = doc.styles
 
-    # Normal — every body paragraph inherits from this
+    # Normal: every body paragraph inherits from this
     normal = styles["Normal"]
     _set_style_font(normal, BODY_FONT)
     normal.font.size = Pt(12)
@@ -202,7 +202,7 @@ def setup_styles(doc) -> None:
     pf.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
     pf.first_line_indent = Inches(0.5)
 
-    # Heading 1 — chapter
+    # Heading 1: chapter
     h1 = styles["Heading 1"]
     _set_style_font(h1, BODY_FONT)
     h1.font.size = Pt(16)
@@ -217,7 +217,7 @@ def setup_styles(doc) -> None:
     h1.paragraph_format.page_break_before = True
     h1.paragraph_format.keep_with_next = True
 
-    # Heading 2 — section
+    # Heading 2: section
     h2 = styles["Heading 2"]
     _set_style_font(h2, BODY_FONT)
     h2.font.size = Pt(14)
@@ -232,7 +232,7 @@ def setup_styles(doc) -> None:
     h2.paragraph_format.page_break_before = False
     h2.paragraph_format.keep_with_next = True
 
-    # Heading 3 — subsection / sub-caption
+    # Heading 3: subsection / sub-caption
     h3 = styles["Heading 3"]
     _set_style_font(h3, BODY_FONT)
     h3.font.size = Pt(12)
@@ -247,7 +247,7 @@ def setup_styles(doc) -> None:
     h3.paragraph_format.page_break_before = False
     h3.paragraph_format.keep_with_next = True
 
-    # Caption — table / figure caption
+    # Caption: table / figure caption
     if "ReportCaption" in [s.name for s in styles]:
         cap = styles["ReportCaption"]
     else:
@@ -282,7 +282,7 @@ def setup_styles(doc) -> None:
     code.paragraph_format.space_before = Pt(0)
     code.paragraph_format.space_after = Pt(2)
 
-    # Reference — hanging-indent numbered entries
+    # Reference: hanging-indent numbered entries
     if "RefEntry" in [s.name for s in styles]:
         ref = styles["RefEntry"]
     else:
@@ -319,7 +319,7 @@ def configure_section1_headers_footers(section) -> None:
     """Title page (suppressed) + roman footer for the rest of the front matter."""
     section.different_first_page_header_footer = True
 
-    # First page (title) — blank header and footer
+    # First page (title): blank header and footer
     fp_header = section.first_page_header
     fp_header.is_linked_to_previous = False
     for p in list(fp_header.paragraphs):
@@ -329,7 +329,7 @@ def configure_section1_headers_footers(section) -> None:
     for p in list(fp_footer.paragraphs):
         p.text = ""
 
-    # Default footer for the front matter — centred lower-roman page number
+    # Default footer for the front matter: centred lower-roman page number
     footer = section.footer
     footer.is_linked_to_previous = False
     p = footer.paragraphs[0] if footer.paragraphs else footer.add_paragraph()
@@ -343,7 +343,7 @@ def configure_section1_headers_footers(section) -> None:
 
 
 def configure_section2_headers_footers(section) -> None:
-    """Body — top-right header label, centred 'Page X of Y' footer."""
+    """Body: top-right header label, centred 'Page X of Y' footer."""
     section.different_first_page_header_footer = False
 
     header = section.header
@@ -804,10 +804,10 @@ def add_body(doc) -> None:
     )
 
     # Figure 8: real product-UI screenshots, stacked with sub-captions.
-    add_image(doc, "public/img/ui-dashboard-light.jpg", "(a) Resident dashboard — light theme")
-    add_image(doc, "public/img/ui-dashboard-dark.jpg", "(b) Resident dashboard — dark theme")
-    add_image(doc, "public/img/ui-satellite-light.jpg", "(c) Satellite Intelligence panel — light theme")
-    add_image(doc, "public/img/ui-satellite-dark.jpg", "(d) Satellite Intelligence panel — dark theme")
+    add_image(doc, "public/img/ui-dashboard-light.jpg", "(a) Resident dashboard, light theme")
+    add_image(doc, "public/img/ui-dashboard-dark.jpg", "(b) Resident dashboard, dark theme")
+    add_image(doc, "public/img/ui-satellite-light.jpg", "(c) Satellite Intelligence panel, light theme")
+    add_image(doc, "public/img/ui-satellite-dark.jpg", "(d) Satellite Intelligence panel, dark theme")
     add_figure_caption(
         doc,
         "Figure 8: Deployed User Interface at localpulse.dmj.one. The same "

@@ -1,4 +1,4 @@
-// LocalPulse — voice helpline as a natural, hands-free CALL.
+// LocalPulse voice helpline: a natural, hands-free CALL.
 // Tap once to start: it listens, answers with the agentic backend, then listens again
 // automatically (echo-safe: it never listens while speaking), like a real phone call,
 // until you hang up. Speech (STT + TTS) stays on-device via the Web Speech API; only the
@@ -161,11 +161,11 @@
     if (err === 'not-allowed' || err === 'service-not-allowed') { capBot.textContent = 'I need microphone permission to talk. Please allow it, then tap to start the call.'; endCall(); return; }
     if (err === 'audio-capture') { capBot.textContent = 'No microphone was found. Please check your device.'; endCall(); return; }
     if (err === 'no-speech' || err === 'aborted') { retryListen(400); return; }
-    // 'network' or other: the browser speech service is flaky — back off and keep the call alive.
+    // 'network' or other: the browser speech service is flaky, so back off and keep the call alive.
     state.errStreak += 1;
     const wait = Math.min(8000, 800 * Math.pow(2, state.errStreak - 1));
     if (state.errStreak <= 6) { callState.textContent = 'reconnecting…'; retryListen(wait); }
-    else { capBot.textContent = 'The speech service keeps dropping. I am still on the line — tap a suggestion, or end and retry the call.'; setPhase('idle'); }
+    else { capBot.textContent = 'The speech service keeps dropping. I am still on the line. Tap a suggestion, or end and retry the call.'; setPhase('idle'); }
   }
 
   function retryListen(ms) { if (!state.inCall) return; setTimeout(function () { if (state.inCall && state.phase !== 'thinking' && state.phase !== 'speaking') listenTurn(); }, ms || 500); }
@@ -198,7 +198,7 @@
     capBot.textContent = answer;
     if (meta) metaIntent.textContent = meta;
     appendTranscript('bot', answer);
-    // Speak the reply, then (if still on the call) listen again — a natural to-and-fro.
+    // Speak the reply, then (if still on the call) listen again, a natural to-and-fro.
     speak(answer, function () { if (state.inCall) beginListening(); });
   }
 

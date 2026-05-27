@@ -110,7 +110,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); grouped by date.
 
 ### Added
 - **Versioned delta-sync** (`/api/sync`): a monotonic state version drives a
-  conditional protocol — ~25-byte "unchanged" (or HTTP 304) when nothing changed,
+  conditional protocol: ~25-byte "unchanged" (or HTTP 304) when nothing changed,
   five requests collapsed into one, HMAC-signed payload. Client paints instantly
   from cache then syncs only the delta. *Technical effect: better network
   communication, far less bandwidth on poor links.*
@@ -143,7 +143,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); grouped by date.
 ## 2026-05-24 (differentiators + patent)
 
 ### Added
-- **Ask LocalPulse** — conversational RAG assistant (`services/assistant.js`):
+- **Ask LocalPulse**, a conversational RAG assistant (`services/assistant.js`):
   free-form multilingual Q&A answered strictly from the live fused situational
   data (incidents + hazards + forecast + facilities + personalized risk).
 - **Mutual-aid board** (`services/aid.js`): residents post a need / offer / "I'm
@@ -170,11 +170,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); grouped by date.
   (Open-Meteo, AQI shown on the dashboard), river-discharge/flood forecast
   (Open-Meteo GloFAS, conservative warnings), GDACS major-disaster alerts
   (strictly region-filtered to avoid false positives), NASA EONET nearby natural
-  events. No extra Gemini cost — structured facts processed by rules.
+  events. No extra Gemini cost; structured facts processed by rules.
 
 ### Changed
 - **Time-decay (no fear-mongering)**: a one-time event (e.g. a fire that
-  happened) now fades from the risk score — contribution halves every 12h and
+  happened) now fades from the risk score: contribution halves every 12h and
   events older than 36h drop out of "act now" advice. The dashboard counts only
   *current* incidents; older ones remain as dated history in the feed. When
   nothing current is happening it honestly says so.
@@ -186,7 +186,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); grouped by date.
   cross-checked by a Gemini model using the **Google Search tool** (real web
   search) and assigned a verdict (corroborated / unverified / contradicted),
   severity and confidence. Debunked reports are flagged "disputed" and excluded
-  from risk — stops misinformation from scaring anyone. Daily-capped.
+  from risk, which stops misinformation from scaring anyone. Daily-capped.
 - **Web Push alerts** (`services/push.js`, VAPID): residents subscribe ("Get
   alerts") and are notified on a genuine district-wide escalation or a
   corroborated high-severity report. Subscriptions in Firestore; dead ones pruned.
@@ -268,13 +268,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); grouped by date.
 
 ### Added
 - Real social/news ingestion pipeline (replaces simulated incidents):
-  - `services/sources.js` — Google News RSS (no key) + optional Reddit app-only OAuth.
-  - `services/brain.js` — Gemini Flash triage when `GEMINI_API_KEY` is set, free
+  - `services/sources.js`: Google News RSS (no key) + optional Reddit app-only OAuth.
+  - `services/brain.js`: Gemini Flash triage when `GEMINI_API_KEY` is set, free
     keyword heuristic otherwise. Classifies category + severity, writes summary.
-  - `services/ingest.js` — fetch → dedupe/cluster → classify → normalize → store,
+  - `services/ingest.js`: fetch → dedupe/cluster → classify → normalize → store,
     with a cooldown guard to protect the Gemini quota.
-  - `data/store.js` — in-memory live store; transparently falls back to seed data.
-  - `server.js` — `/api/incidents` + `/api/summary` now read live data; new
+  - `data/store.js`: in-memory live store; transparently falls back to seed data.
+  - `server.js`: `/api/incidents` + `/api/summary` now read live data; new
     `GET /api/status` and token-guarded `ALL /tasks/ingest` (Cloud Scheduler);
     boot warm-up; pulse ticker uses real counts.
   - Env: `GEMINI_API_KEY`, `GEMINI_MODEL`, `REDDIT_CLIENT_ID/SECRET/SUBS`,

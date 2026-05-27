@@ -8,12 +8,12 @@ Cache-Control: public, max-age=120, s-maxage=300, stale-while-revalidate=600
 ```
 
 `s-maxage=300` tells a shared cache (Cloudflare) to serve the response for 5 minutes and
-`stale-while-revalidate` to refresh in the background — so a user anywhere in the world
+`stale-while-revalidate` to refresh in the background, so a user anywhere in the world
 gets an instant cached answer and the origin (Cloud Run) only recomputes on a true miss,
 cutting global latency and origin wake-ups while preserving scale-to-zero. Precise
 ("sharpen") requests send `no-store` and are never cached.
 
-## The one manual step (Cloudflare — Claude cannot configure this)
+## The one manual step (Cloudflare; Claude cannot configure this)
 
 By default Cloudflare does not cache `GET` JSON responses even with `s-maxage`. Add a
 **Cache Rule** in the Cloudflare dashboard (Rules -> Cache Rules) for the zone `dmj.one`:

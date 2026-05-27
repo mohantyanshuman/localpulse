@@ -1,4 +1,4 @@
-// LocalPulse — live incident store.
+// LocalPulse: live incident store.
 // Holds incidents ingested from real public sources in memory. When empty
 // (cold start, ingestion failed, or no relevant items) it transparently falls
 // back to the curated seed data so the app is never blank. No persistence by
@@ -48,7 +48,7 @@ function restoreSnapshot(s) {
   return true;
 }
 
-// Monotonic state version — bumped on any change. Enables tiny delta-sync:
+// Monotonic state version, bumped on any change. Enables tiny delta-sync:
 // clients send their last version and get a full transfer only when it changed.
 let version = 1;
 function bumpVersion() { version += 1; }

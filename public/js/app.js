@@ -1,4 +1,4 @@
-// LocalPulse — shared client logic for /, /responder
+// LocalPulse: shared client logic for /, /responder
 (function () {
   'use strict';
 
@@ -326,7 +326,7 @@
       try {
         const pos = await new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, { timeout: 5000, maximumAge: 300000 }));
         payload.lat = pos.coords.latitude; payload.lng = pos.coords.longitude;
-      } catch (_) { /* no location — will receive district-wide alerts */ }
+      } catch (_) { /* no location: will receive district-wide alerts */ }
       const r = await fetch('/api/push/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const j = await r.json();
       try { localStorage.setItem('lp.pushid', j.id || '1'); } catch (_) {}
@@ -394,7 +394,7 @@
         try {
           const pos = await new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, { timeout: 4000, maximumAge: 60000 }));
           body.lat = pos.coords.latitude; body.lng = pos.coords.longitude;
-        } catch (_) { /* no location — server defaults to town centre */ }
+        } catch (_) { /* no location: server defaults to town centre */ }
       }
       try {
         const r = await fetchJson('/api/report', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -421,7 +421,7 @@
     es.addEventListener('incident', (e) => {
       try {
         const d = JSON.parse(e.data);
-        prepend('[' + new Date(d.ts).toLocaleTimeString() + '] ' + (d.src === 'community' ? '📍 ' : '') + String(d.cat || '').toUpperCase() + (d.sev ? '/' + d.sev : '') + ' — ' + (d.title || ''));
+        prepend('[' + new Date(d.ts).toLocaleTimeString() + '] ' + (d.src === 'community' ? '📍 ' : '') + String(d.cat || '').toUpperCase() + (d.sev ? '/' + d.sev : '') + ' · ' + (d.title || ''));
         setStatus('online');
       } catch (_) {}
     });
@@ -439,7 +439,7 @@
     es.addEventListener('incoming', (e) => {
       try {
         const d = JSON.parse(e.data);
-        prepend('[' + new Date(d.ts).toLocaleTimeString() + '] 🛰 LIVE · ' + (d.source || 'feed') + ' — ' + (d.title || ''));
+        prepend('[' + new Date(d.ts).toLocaleTimeString() + '] 🛰 LIVE · ' + (d.source || 'feed') + ' · ' + (d.title || ''));
         setStatus('online');
       } catch (_) {}
     });
@@ -525,7 +525,7 @@
       const li = el('li', { class: 'aid-item', 'data-kind': m.safe ? 'safe' : 'need' });
       li.appendChild(el('span', { class: 'aid-tag', 'data-kind': m.safe ? 'safe' : 'need' }, m.safe ? 'SAFE' : 'MISSING'));
       const b = el('div');
-      b.appendChild(el('div', null, m.name + (m.lastSeen ? ' — last seen ' + m.lastSeen : '')));
+      b.appendChild(el('div', null, m.name + (m.lastSeen ? ', last seen ' + m.lastSeen : '')));
       b.appendChild(el('div', { class: 'muted small' }, (m.safe ? 'Reported safe ✓ · ' : '') + formatAgo(m.createdAt) + ' ago' + (m.contact ? ' · ' + m.contact : '')));
       li.appendChild(b);
       list.appendChild(li);
@@ -580,7 +580,7 @@
       renderEO(data, false, null, verified);
     } catch {
       // Offline: recompute the headline level on-device AND re-verify the cached
-      // receipt with the cached public key — trustworthy with zero connectivity.
+      // receipt with the cached public key: trustworthy with zero connectivity.
       try {
         const cached = JSON.parse(localStorage.getItem('lp.eo') || 'null');
         if (cached && cached.data && window.EOOffline) {
@@ -712,7 +712,7 @@
     } catch { verdictEl.textContent = 'Could not assess the route (offline?).'; return; }
     const dest = (data.certificate && data.certificate.route && data.certificate.route.destinationName) || 'the nearest shelter';
     // Honest labels: never claim "safe". This is latency-aware decision-support.
-    const label = { GO: 'LOWEST ASSESSED RISK', CAUTION: 'ELEVATED RISK — PROCEED CAREFULLY', NO_GO: 'DO NOT TAKE THIS ROUTE' }[data.verdict] || data.verdict;
+    const label = { GO: 'LOWEST ASSESSED RISK', CAUTION: 'ELEVATED RISK, PROCEED CAREFULLY', NO_GO: 'DO NOT TAKE THIS ROUTE' }[data.verdict] || data.verdict;
     const age = data.dataAgeMin == null ? 'no fire pass' : (data.dataAgeMin < 60 ? `${data.dataAgeMin} min` : `${Math.round(data.dataAgeMin / 60)} h`);
     verdictEl.className = `eo-headline ${routeClass(data.verdict)}`;
     verdictEl.textContent = `${label} to ${dest} (${data.distanceKm} km): ${data.worst.reason}. ` +
@@ -768,7 +768,7 @@
     if (note) {
       note.textContent = anyVerified
         ? 'Lower Brier = better. The engine verifies past forecasts against what actually happened and recalibrates itself; accuracy improves as events accrue.'
-        : 'No forecasts have been verified against outcomes yet. Skill scores appear here as predicted events are later confirmed or refuted — honest, measurable self-learning.';
+        : 'No forecasts have been verified against outcomes yet. Skill scores appear here as predicted events are later confirmed or refuted: honest, measurable self-learning.';
     }
   }
 

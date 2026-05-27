@@ -42,7 +42,7 @@
 
   $('verify').addEventListener('click', verify);
   $('sample').addEventListener('click', async () => {
-    try { ta.value = await navigator.clipboard.readText(); } catch { ta.placeholder = 'Clipboard blocked — paste manually.'; }
+    try { ta.value = await navigator.clipboard.readText(); } catch { ta.placeholder = 'Clipboard blocked. Paste manually.'; }
   });
   $('load').addEventListener('click', () => {
     if (!navigator.geolocation) { fetchCert(); return; }

@@ -1,4 +1,4 @@
-# Global Satellite Fusion — Phase 2 Implementation Plan
+# Global Satellite Fusion: Phase 2 Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:subagent-driven-development (Agent Teams). Steps use checkbox (`- [ ]`) syntax.
 
@@ -12,7 +12,7 @@
 
 ---
 
-## Track A — Sentinel adapters
+## Track A: Sentinel adapters
 
 ### Task A1: Copernicus Sentinel Hub client (OAuth + Statistical API)
 
@@ -24,7 +24,7 @@ CDSE endpoints (free tier):
 - Token: `POST https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token` (form body `grant_type=client_credentials&client_id=..&client_secret=..`) → `{ access_token, expires_in }`.
 - Statistics: `POST https://sh.dataspace.copernicus.eu/api/v1/statistics` (Bearer token, JSON body) → `{ data: [{ interval, outputs: { data: { bands: { B0: { stats: { mean, ... } } } } } }] }`.
 
-- [ ] **Step 1: Write the failing test** — `test/eo/sentinelhub.test.js`
+- [ ] **Step 1: Write the failing test:** `test/eo/sentinelhub.test.js`
 
 ```js
 const test = require('node:test');
@@ -60,7 +60,7 @@ test('latestMean returns null on empty/garbage', () => {
 });
 ```
 
-- [ ] **Step 2: Run `npm test`** — expect FAIL (module not found).
+- [ ] **Step 2: Run `npm test`:** expect FAIL (module not found).
 
 - [ ] **Step 3: Implement `services/eo/sentinelhub.js`**
 
@@ -155,8 +155,8 @@ function latestMean(resp) {
 module.exports = { hasCreds, bboxAround, token, statistics, latestMean };
 ```
 
-- [ ] **Step 4: Run `npm test`** — expect PASS.
-- [ ] **Step 5: (no commit — controller commits)** Report DONE to team-lead.
+- [ ] **Step 4: Run `npm test`:** expect PASS.
+- [ ] **Step 5: (no commit; controller commits)** Report DONE to team-lead.
 
 ---
 
@@ -166,7 +166,7 @@ module.exports = { hasCreds, bboxAround, token, statistics, latestMean };
 
 Evalscript band: `AER_AI_354_388` (UV aerosol index; higher = more absorbing aerosol / smoke / dust). Collection `sentinel-5p-l2`.
 
-- [ ] **Step 1: Failing test** — `test/eo/sentinel5p.test.js`
+- [ ] **Step 1: Failing test:** `test/eo/sentinel5p.test.js`
 
 ```js
 const test = require('node:test');
@@ -185,7 +185,7 @@ test('toSignal returns null when no value', () => {
 });
 ```
 
-- [ ] **Step 2: `npm test`** — expect FAIL.
+- [ ] **Step 2: `npm test`:** expect FAIL.
 - [ ] **Step 3: Implement `services/eo/adapters/sentinel5p.js`**
 
 ```js
@@ -226,7 +226,7 @@ module.exports = {
 };
 ```
 
-- [ ] **Step 4: `npm test`** — expect PASS. Report DONE (no commit).
+- [ ] **Step 4: `npm test`:** expect PASS. Report DONE (no commit).
 
 ---
 
@@ -236,7 +236,7 @@ module.exports = {
 
 NDVI from B08/B04, collection `sentinel-2-l2a`. Low NDVI in normally-vegetated areas signals dryness/burn. Honest caveat: single-date NDVI has no baseline, so confidence is modest and it is a supporting axis.
 
-- [ ] **Step 1: Failing test** — `test/eo/sentinel2.test.js`
+- [ ] **Step 1: Failing test:** `test/eo/sentinel2.test.js`
 
 ```js
 const test = require('node:test');
@@ -256,7 +256,7 @@ test('toSignal returns null when no value', () => {
 });
 ```
 
-- [ ] **Step 2: `npm test`** — expect FAIL.
+- [ ] **Step 2: `npm test`:** expect FAIL.
 - [ ] **Step 3: Implement `services/eo/adapters/sentinel2.js`**
 
 ```js
@@ -299,7 +299,7 @@ module.exports = {
 };
 ```
 
-- [ ] **Step 4: `npm test`** — expect PASS. Report DONE (no commit).
+- [ ] **Step 4: `npm test`:** expect PASS. Report DONE (no commit).
 
 ---
 
@@ -309,7 +309,7 @@ module.exports = {
 
 VV backscatter (dB), collection `sentinel-1-grd`. Low VV (smooth water) indicates standing water → flood. SAR sees through cloud/night, covering the optical gap. Honest caveat: single-date water extent is approximate.
 
-- [ ] **Step 1: Failing test** — `test/eo/sentinel1.test.js`
+- [ ] **Step 1: Failing test:** `test/eo/sentinel1.test.js`
 
 ```js
 const test = require('node:test');
@@ -328,7 +328,7 @@ test('toSignal returns null when no value', () => {
 });
 ```
 
-- [ ] **Step 2: `npm test`** — expect FAIL.
+- [ ] **Step 2: `npm test`:** expect FAIL.
 - [ ] **Step 3: Implement `services/eo/adapters/sentinel1.js`**
 
 ```js
@@ -375,7 +375,7 @@ module.exports = {
 };
 ```
 
-- [ ] **Step 4: `npm test`** — expect PASS. Report DONE (no commit).
+- [ ] **Step 4: `npm test`:** expect PASS. Report DONE (no commit).
 
 ---
 
@@ -415,11 +415,11 @@ test('fuse skips Sentinel adapters when Copernicus creds are absent', async () =
 });
 ```
 
-- [ ] **Step 3: `npm test`** — expect PASS. Report DONE (no commit).
+- [ ] **Step 3: `npm test`:** expect PASS. Report DONE (no commit).
 
 ---
 
-## Track B — DSS + worldwide integration
+## Track B: DSS + worldwide integration
 
 ### Task B1: DSS consumes satellite EO signals
 
@@ -427,7 +427,7 @@ test('fuse skips Sentinel adapters when Copernicus creds are absent', async () =
 
 First **read `services/dss.js`** to learn the exact `assess(...)` signature and its return shape (it currently takes incidents, hazards, facilities, opts and returns `{ level, score, recommendations, headline, ... }`).
 
-- [ ] **Step 1: Write the failing test** — `test/eo/dss-eo.test.js`
+- [ ] **Step 1: Write the failing test:** `test/eo/dss-eo.test.js`
 
 ```js
 const test = require('node:test');
@@ -449,7 +449,7 @@ test('mergeEo is a no-op when eo is null', () => {
 });
 ```
 
-- [ ] **Step 2: `npm test`** — expect FAIL (`dss.mergeEo` not a function).
+- [ ] **Step 2: `npm test`:** expect FAIL (`dss.mergeEo` not a function).
 
 - [ ] **Step 3: Implement `mergeEo` in `services/dss.js`** and export it. Add near the existing exports:
 
@@ -485,7 +485,7 @@ module.exports.mergeEo = mergeEo;
 
 (Adapt to the actual recommendation shape found in dss.js: if recommendations are plain strings rather than objects, push the string `Satellite <axis> signal is <level> (<sensors>).` instead, and make the test's matcher already tolerates both via `r.text || r`.)
 
-- [ ] **Step 4: `npm test`** — expect PASS. Report DONE (no commit).
+- [ ] **Step 4: `npm test`:** expect PASS. Report DONE (no commit).
 
 ### Task B2: `/api/dss` and `/api/sync` surface the satellite assessment (location-aware)
 
@@ -493,7 +493,7 @@ module.exports.mergeEo = mergeEo;
 
 First **read the existing `/api/dss` (around server.js:143) and `/api/sync` (around server.js:160)** handlers and the `dss`, `eoFusion`, `geolocate` requires (already present from Phase 1).
 
-- [ ] **Step 1: Write the failing integration test** — `test/eo/dss-endpoint.test.js`
+- [ ] **Step 1: Write the failing integration test:** `test/eo/dss-endpoint.test.js`
 
 ```js
 const test = require('node:test');
@@ -522,7 +522,7 @@ test('GET /api/dss?lat&lng includes a satellite summary', async () => {
 test.after(() => app.close());
 ```
 
-- [ ] **Step 2: `npm test`** — expect FAIL (`satellite` not in dss response).
+- [ ] **Step 2: `npm test`:** expect FAIL (`satellite` not in dss response).
 
 - [ ] **Step 3: Modify the `/api/dss` handler in `server.js`.** After it computes the base assessment, when `lat`/`lng` are present, fuse EO for that point and merge:
 
@@ -542,7 +542,7 @@ Make the handler `async` if it is not already. Keep the existing caching headers
 
 - [ ] **Step 4:** In `/api/sync`, when the request carries `lat`/`lng`, attach the merged satellite summary to the sync payload's DSS section the same way (call `eoFusion.fuse` + `dss.mergeEo`). Keep it best-effort inside a try/catch so sync never fails on a satellite hiccup.
 
-- [ ] **Step 5: `npm test`** — expect PASS (all prior tests + the new one). Report DONE (no commit).
+- [ ] **Step 5: `npm test`:** expect PASS (all prior tests + the new one). Report DONE (no commit).
 
 ---
 
@@ -559,5 +559,5 @@ Make the handler `async` if it is not already. Keep the existing caching headers
 - `GET /api/dss?lat&lng` → response includes `satellite` summary.
 
 ## Out of scope (future)
-- Globalizing the Solan-specific community news ingestion (Google News queries, region keyword filters) to arbitrary worldwide locations — a separate design effort; the live community feed stays Solan-tuned while `/api/eo` + DSS satellite layer are global.
+- Globalizing the Solan-specific community news ingestion (Google News queries, region keyword filters) to arbitrary worldwide locations is a separate design effort; the live community feed stays Solan-tuned while `/api/eo` + DSS satellite layer are global.
 - GIBS imagery-derived adapters (night-lights power-outage), which need raster tile sampling rather than a point/statistical API.

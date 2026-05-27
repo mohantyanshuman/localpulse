@@ -1,4 +1,4 @@
-// LocalPulse — ingestion orchestrator.
+// LocalPulse: ingestion orchestrator.
 // fetch real posts -> dedupe/cluster -> classify (LLM or heuristic) ->
 // normalize into the incident shape the frontend already expects -> store.
 // A cooldown guard protects the (Gemini) wallet from being hammered.
@@ -50,7 +50,7 @@ function refreshAssessment() {
     if (a) {
       // Only alert everyone for a genuine DISTRICT-WIDE escalation (severe weather,
       // official alert, large quake). A single localized incident must not blast
-      // the whole town — that would just scare people who are nowhere near it.
+      // the whole town; that would just scare people who are nowhere near it.
       if (lastLevel !== null && LEVEL_RANK[a.level] > LEVEL_RANK[lastLevel] && LEVEL_RANK[a.level] >= 2 && a.areaWide) {
         push.sendToAll({ title: `LocalPulse: ${a.level === 'severe' ? 'Severe' : 'High'} risk in your district`, body: a.headline, url: '/', tag: 'lp-risk' })
           .then((r) => process.stdout.write(JSON.stringify({ severity: 'NOTICE', kind: 'push-risk', level: a.level, ...r, ts: Date.now() }) + '\n')).catch(() => {});

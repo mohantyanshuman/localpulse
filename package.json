@@ -2,7 +2,7 @@
   "name": "localpulse",
   "version": "1.0.0",
   "private": true,
-  "description": "LocalPulse — AI crisis management for small communities. Capstone project, B.Tech CSE Cloud Computing, Shoolini University.",
+  "description": "LocalPulse: AI crisis management for small communities. Capstone project, B.Tech CSE Cloud Computing, Shoolini University.",
   "main": "server.js",
   "type": "commonjs",
   "engines": {

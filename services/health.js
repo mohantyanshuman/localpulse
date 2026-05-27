@@ -1,4 +1,4 @@
-// LocalPulse — post-disaster syndromic early-warning.
+// LocalPulse: post-disaster syndromic early-warning.
 // After floods/quakes, secondary disease outbreaks (water-borne, vector-borne)
 // often cause more harm than the event itself. This scans recent community
 // reports + news incidents for clusters of symptom mentions and raises an early,

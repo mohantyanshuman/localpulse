@@ -1,4 +1,4 @@
-# Global Satellite Fusion — Phase 4 (Real-Time Predictions + UI) Plan
+# Global Satellite Fusion: Phase 4 (Real-Time Predictions + UI) Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:subagent-driven-development (Agent Teams). Steps use checkbox (`- [ ]`).
 
@@ -18,7 +18,7 @@
 
 The five predictors are **pure functions** (no network) so they are fully unit-tested; `forecast()` orchestrates the cached fetches and calls them.
 
-- [ ] **Step 1: Write the failing test** — `test/eo/predict.test.js`
+- [ ] **Step 1: Write the failing test:** `test/eo/predict.test.js`
 ```js
 const test = require('node:test');
 const assert = require('node:assert');
@@ -250,7 +250,7 @@ module.exports = { forecast, predictFlood, predictStorm, predictAir, predictHeat
 **Files:** Modify `public/index.html`, `public/js/app.js`, `public/css/app.css`.
 
 - [ ] In `index.html`, add a `<div id="eo-forecast"></div>` inside `#eo-panel` (after `#eo-cards`).
-- [ ] In `app.js` `renderEO(data)`, after rendering cards, render `data.predictions` into `#eo-forecast` using the `el()` text-node helper (NOT innerHTML): for each prediction show `headline`, a `likelihood` chip, `reasoning`, and ETA. The existing card loop already renders every axis, so heat/storm appear automatically — no change needed for them.
+- [ ] In `app.js` `renderEO(data)`, after rendering cards, render `data.predictions` into `#eo-forecast` using the `el()` text-node helper (NOT innerHTML): for each prediction show `headline`, a `likelihood` chip, `reasoning`, and ETA. The existing card loop already renders every axis, so heat/storm appear automatically, with no change needed for them.
 - [ ] Add minimal `.eo-forecast` / `.eo-pred` styles in `app.css`.
 - [ ] Manual check: `npm start`, `GET /` shows forecast block; `GET /api/eo?lat&lng` returns predictions.
 
@@ -264,4 +264,4 @@ module.exports = { forecast, predictFlood, predictStorm, predictAir, predictHeat
 
 ## Out of scope
 - ML/temporal models beyond the providers' own numerical forecasts (we fuse real forecast feeds, not a trained predictor).
-- Fire-spread bearing math (we use active-fire-nearby + wind/humidity, not per-fire vector geometry) — documented simplification.
+- Fire-spread bearing math (we use active-fire-nearby + wind/humidity, not per-fire vector geometry): documented simplification.

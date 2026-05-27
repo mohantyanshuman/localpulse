@@ -1,6 +1,6 @@
 // On-device offline inference + verification. Recomputes the headline level from
 // cached per-sensor signals with zero network, and cryptographically verifies the
-// provenance receipt with the cached ECDSA public key (WebCrypto) — fully offline,
+// provenance receipt with the cached ECDSA public key (WebCrypto), fully offline,
 // no shared secret. Canonicalization mirrors services/eo/provenance.js byte-for-byte.
 (function (root, factory) {
   const api = factory();

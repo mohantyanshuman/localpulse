@@ -1,4 +1,4 @@
-# Global Satellite Fusion Engine — Design
+# Global Satellite Fusion Engine: Design
 
 **Date:** 2026-05-24
 **Project:** LocalPulse
@@ -99,17 +99,17 @@ User taps "Sharpen to exact location"
 
 ### Components (each small, single-purpose, independently testable)
 
-- `services/eo/adapters/*.js` — one file per source, uniform `query(lat, lng)` returning
+- `services/eo/adapters/*.js`: one file per source, uniform `query(lat, lng)` returning
   `Signal[]`. Adding a satellite means adding one file.
-- `services/eo/fusion.js` — parallel orchestration, cross-validation, gap-coverage logic.
-- `services/eo/cache.js` — per-cell, per-source TTL cache (in-memory plus optional
+- `services/eo/fusion.js`: parallel orchestration, cross-validation, gap-coverage logic.
+- `services/eo/cache.js`: per-cell, per-source TTL cache (in-memory plus optional
   Firestore). The rate-limit and latency shield.
-- `services/geolocate.js` — edge-header coarse resolve plus reverse geocode (free
+- `services/geolocate.js`: edge-header coarse resolve plus reverse geocode (free
   Nominatim or BigDataCloud) for worldwide place names.
-- `data/incidents.js` — `BASE` becomes a per-request parameter, not a constant. Region
+- `data/incidents.js`: `BASE` becomes a per-request parameter, not a constant. Region
   keyword filters (currently Himachal) become derived from the resolved location.
-- `GET /api/eo` — new route. DSS and `/api/sync` extended to include the satellite layer.
-- Frontend — first-load coarse inference plus a "sharpen" control, and a new "Satellite
+- `GET /api/eo`: new route. DSS and `/api/sync` extended to include the satellite layer.
+- Frontend: first-load coarse inference plus a "sharpen" control, and a new "Satellite
   Intelligence" panel with per-hazard cards showing sensor provenance and confidence.
 
 ### Signal and assessment shapes

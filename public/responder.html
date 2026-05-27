@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0F172A">
-<title>Responder Console — LocalPulse</title>
+<title>Responder Console &middot; LocalPulse</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -51,10 +51,10 @@
 
 <main id="main" class="responder-shell">
   <aside class="responder-sidebar" aria-label="Counters">
-    <div class="op-kpi"><span class="op-kpi-num" id="kpi-incidents">—</span><span class="op-kpi-label">Active incidents</span></div>
-    <div class="op-kpi"><span class="op-kpi-num" id="kpi-shelters">—</span><span class="op-kpi-label">Relief points</span></div>
-    <div class="op-kpi"><span class="op-kpi-num" id="kpi-langs">—</span><span class="op-kpi-label">Languages</span></div>
-    <div class="op-kpi"><span class="op-kpi-num" id="kpi-sources">—</span><span class="op-kpi-label">Sources scanned</span></div>
+    <div class="op-kpi"><span class="op-kpi-num" id="kpi-incidents">&middot;</span><span class="op-kpi-label">Active incidents</span></div>
+    <div class="op-kpi"><span class="op-kpi-num" id="kpi-shelters">&middot;</span><span class="op-kpi-label">Relief points</span></div>
+    <div class="op-kpi"><span class="op-kpi-num" id="kpi-langs">&middot;</span><span class="op-kpi-label">Languages</span></div>
+    <div class="op-kpi"><span class="op-kpi-num" id="kpi-sources">&middot;</span><span class="op-kpi-label">Sources scanned</span></div>
     <div class="threat-meter">
       <div class="threat-meter-label">Town status</div>
       <div class="threat-bar"><span id="threat-fill"></span></div>
@@ -71,7 +71,7 @@
   <section class="responder-main">
     <section class="dss-panel" id="dss-panel" aria-live="polite" hidden>
       <div class="dss-head">
-        <span class="dss-level" id="dss-level" data-level="ok">—</span>
+        <span class="dss-level" id="dss-level" data-level="ok">&middot;</span>
         <div class="dss-headtext">
           <p class="dss-headline" id="dss-headline"></p>
           <span class="dss-weather muted small" id="dss-weather"></span>
@@ -100,7 +100,7 @@
       <article class="card op-card op-feed-card">
         <header class="card-head">
           <h2>Incident feed</h2>
-          <span class="muted small" id="incident-count">—</span>
+          <span class="muted small" id="incident-count">&middot;</span>
         </header>
         <ul class="incident-list incident-list-dense" id="incident-list"></ul>
       </article>
@@ -124,7 +124,7 @@
 </main>
 
 <footer class="appfoot">
-  <div>Responder console — operational view. Auth, RBAC, and audit log enabled in production. MLP shows synthetic data.</div>
+  <div>Responder console: the operational view. Sign-in, role access, and audit logging are on in production. This preview shows sample data.</div>
 </footer>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>

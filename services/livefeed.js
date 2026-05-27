@@ -1,10 +1,10 @@
-// LocalPulse — real-time live feed for the pulse stream.
+// LocalPulse: real-time live feed for the pulse stream.
 // A SINGLE shared poller (max-instances=1, so one per deployment) checks the 40+
 // FREE sources on a gentle cadence and broadcasts only NEW items to every
 // connected SSE client. Key choices:
 //   - Runs ONLY while at least one client is watching (no idle cost / no wasted
 //     polling); stops when the last client disconnects.
-//   - No language-model call per poll — raw headlines are streamed as-is, so the
+//   - No language-model call per poll; raw headlines are streamed as-is, so the
 //     (capped) Gemini budget is never touched and nothing is rate-limited. The
 //     scheduled ingest still does the AI classification/verification separately.
 //   - Polls free feeds every ~2.5 min, which they tolerate comfortably.

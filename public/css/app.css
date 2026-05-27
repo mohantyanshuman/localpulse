@@ -1,4 +1,4 @@
-/* LocalPulse — single stylesheet, mobile-first, WCAG-AAA-friendly contrast. */
+/* LocalPulse: single stylesheet, mobile-first, WCAG-AAA-friendly contrast. */
 :root {
   color-scheme: light;
   /* surfaces */
@@ -539,7 +539,7 @@ body.big-text .muted.small, body.big-text .small { font-size: 14px; }
   .card { break-inside: avoid; box-shadow: none; }
 }
 
-/* ── Satellite Intelligence / Route / World — shared hazard telemetry ───── */
+/* ── Satellite Intelligence / Route / World : shared hazard telemetry ───── */
 /* Per-level accent var drives stripe, pill, meter fill, and tint everywhere. */
 .eo-card.lv-ok,       .eo-headline.lv-ok       { --lv: var(--ok); }
 .eo-card.lv-elevated, .eo-headline.lv-elevated { --lv: var(--warn); }

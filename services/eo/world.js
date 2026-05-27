@@ -1,4 +1,4 @@
-// World Engine — a PER-REGION ensemble of self-learning forecast engines trained
+// World Engine: a PER-REGION ensemble of self-learning forecast engines trained
 // SIMULTANEOUSLY on real-time outcomes. Calibration is partitioned by geographic region
 // (coarse climate-zone buckets) because a given raw signal means different things in
 // different parts of the world (a "0.7 flood" in a monsoon delta vs a desert). Within

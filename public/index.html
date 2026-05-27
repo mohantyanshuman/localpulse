@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0F172A">
-<meta name="description" content="LocalPulse — verified status for your town. Built for slow phones, bad internet, small towns.">
-<title>LocalPulse — verified status for your town</title>
+<meta name="description" content="LocalPulse: verified status for your town. Built for slow phones, bad internet, small towns.">
+<title>LocalPulse: verified status for your town</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="manifest" href="/manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -14,7 +14,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="/css/app.css">
-<meta property="og:title" content="LocalPulse — verified status for your town">
+<meta property="og:title" content="LocalPulse: verified status for your town">
 <meta property="og:description" content="AI crisis management for small communities. Mobile-first, multilingual, voice-first.">
 <meta property="og:type" content="website">
 </head>
@@ -81,7 +81,7 @@
 
   <section class="dss-panel" id="dss-panel" aria-live="polite" hidden>
     <div class="dss-head">
-      <span class="dss-level" id="dss-level" data-level="ok">—</span>
+      <span class="dss-level" id="dss-level" data-level="ok">&middot;</span>
       <div class="dss-headtext">
         <p class="dss-headline" id="dss-headline"></p>
         <span class="dss-weather muted small" id="dss-weather"></span>
@@ -93,10 +93,10 @@
   </section>
 
   <section class="kpi-strip" id="kpi-strip" aria-label="Live counters">
-    <div class="kpi"><div class="kpi-num" id="kpi-incidents">—</div><div class="kpi-label" data-i18n="incidents">Incidents</div></div>
-    <div class="kpi"><div class="kpi-num" id="kpi-shelters">—</div><div class="kpi-label" data-i18n="shelters">Shelters</div></div>
-    <div class="kpi"><div class="kpi-num" id="kpi-langs">—</div><div class="kpi-label">Languages</div></div>
-    <div class="kpi"><div class="kpi-num" id="kpi-sources">—</div><div class="kpi-label">Sources scanned</div></div>
+    <div class="kpi"><div class="kpi-num" id="kpi-incidents">&middot;</div><div class="kpi-label" data-i18n="incidents">Incidents</div></div>
+    <div class="kpi"><div class="kpi-num" id="kpi-shelters">&middot;</div><div class="kpi-label" data-i18n="shelters">Shelters</div></div>
+    <div class="kpi"><div class="kpi-num" id="kpi-langs">&middot;</div><div class="kpi-label">Languages</div></div>
+    <div class="kpi"><div class="kpi-num" id="kpi-sources">&middot;</div><div class="kpi-label">Sources scanned</div></div>
   </section>
 
   <section class="grid-2col">
@@ -128,7 +128,7 @@
 
   <section class="card ask-card">
     <header class="card-head"><h2>Ask LocalPulse</h2><span class="badge">AI</span></header>
-    <p class="muted small">Ask anything about your area right now — answered only from live, verified data.</p>
+    <p class="muted small">Ask anything about your area right now. Answers come only from live, verified data.</p>
     <form id="ask-form" class="ask-form" novalidate>
       <input id="ask-input" type="text" maxlength="300" autocomplete="off" placeholder="e.g. Is the road to Shimla safe tonight?" aria-label="Ask about your area">
       <button class="btn btn-primary" type="submit">Ask</button>
@@ -160,7 +160,7 @@
 
   <section id="world-panel" class="card" aria-live="polite">
     <header class="card-head">
-      <h2 data-i18n="world.title">World Engine — self-learning accuracy</h2>
+      <h2 data-i18n="world.title">World Engine: accuracy that learns</h2>
       <button id="world-refresh" class="btn btn-ghost" type="button" data-i18n="world.refresh">Refresh skill</button>
     </header>
     <div id="world-cards" class="eo-cards"></div>
@@ -170,7 +170,7 @@
   <section class="card">
     <header class="card-head">
       <h2 data-i18n="incidents">Incidents</h2>
-      <span class="muted small" id="incident-count">—</span>
+      <span class="muted small" id="incident-count">&middot;</span>
     </header>
     <ul class="incident-list" id="incident-list"></ul>
   </section>
@@ -210,7 +210,7 @@
     <div class="care-grid">
       <div>
         <h3 class="care-h">Register someone who needs help to evacuate</h3>
-        <p class="muted small">Private &amp; anonymous — only an approximate area and the type of help are shared with responders, so the most vulnerable are reached first.</p>
+        <p class="muted small">Private and anonymous. Only an approximate area and the type of help are shared with responders, so the most vulnerable are reached first.</p>
         <form id="vuln-form" novalidate>
           <div class="vuln-needs">
             <label><input type="checkbox" name="needs" value="mobility"> Mobility / wheelchair</label>

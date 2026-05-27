@@ -1,9 +1,9 @@
-// LocalPulse — agentic verification of citizen reports.
+// LocalPulse: agentic verification of citizen reports.
 // When a resident submits a report, a Gemini model with the Google Search tool
 // (real agentic web search) cross-checks it against current news and official
 // sources and returns a verdict (corroborated / unverified / contradicted) with
-// a confidence and a short note. This closed loop — citizen report → agentic
-// corroboration → trust verdict → escalation — is what makes the feed
+// a confidence and a short note. This closed loop, citizen report to agentic
+// corroboration to trust verdict to escalation, is what makes the feed
 // trustworthy in a rumour-heavy crisis. A daily cap protects the model budget.
 
 const MODEL = process.env.GEMINI_MODEL || 'gemini-flash-lite-latest';

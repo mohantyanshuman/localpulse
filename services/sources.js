@@ -1,4 +1,4 @@
-// LocalPulse — real public news/social sources. Dependency-free (Node 20 fetch).
+// LocalPulse: real public news/social sources. Dependency-free (Node 20 fetch).
 // A broad registry of FREE, no-key feeds: Google News geo/topic queries scoped to
 // Himachal districts + direct RSS from national and regional outlets (English +
 // Hindi). Breadth matters for QUALITY: when many independent feeds report the same

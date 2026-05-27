@@ -1,9 +1,9 @@
 // Automatic confirmation of whether a forecast event materialized, using MULTIPLE
 // independent mechanisms rather than a single yes/no:
-//   1. Consensus magnitude — the fused multi-sensor estimate of what actually happened.
-//   2. Corroboration — how many INDEPENDENT sensors saw it (a lone-sensor blip is not a
+//   1. Consensus magnitude: the fused multi-sensor estimate of what actually happened.
+//   2. Corroboration: how many INDEPENDENT sensors saw it (a lone-sensor blip is not a
 //      confirmed event); raises/lowers confirmation confidence.
-//   3. Divergence flag — a 'suspect' axis (an implausible outlier feed) lowers confidence.
+//   3. Divergence flag: a 'suspect' axis (an implausible outlier feed) lowers confidence.
 // It returns both a binary occurrence AND a continuous "closeness" so the engine can
 // learn from HOW CLOSE a forecast was, not only whether it was right.
 const EVENT_MAG = 0.55;

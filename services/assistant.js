@@ -1,4 +1,4 @@
-// LocalPulse — conversational situational assistant (RAG over live data).
+// LocalPulse: conversational situational assistant (RAG over live data).
 // A resident asks a free-form question ("Is the road to Shimla safe tonight?",
 // "Where can my elderly mother get insulin?") and a Gemini model answers using
 // ONLY the live fused situational context (incidents + hazards + forecast +

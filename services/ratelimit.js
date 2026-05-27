@@ -6,7 +6,7 @@
 //
 // Note on identity: we prefer Cloudflare's CF-Connecting-IP, then the first X-Forwarded-For
 // hop. A client that reaches the origin directly could spoof these, which is exactly why
-// this complements — never replaces — the Cloudflare edge limiter.
+// this complements, never replaces, the Cloudflare edge limiter.
 
 function clientIp(req) {
   const cf = req.headers && req.headers['cf-connecting-ip'];

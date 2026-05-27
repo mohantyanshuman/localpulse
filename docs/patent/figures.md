@@ -3,7 +3,7 @@
 These correspond to the "Brief Description of the Drawings" in the specification. Each
 renders on GitHub. FIG. 3 syntax validated via Mermaid; all follow the same grammar.
 
-## FIG. 1 — System architecture
+## FIG. 1: System architecture
 ```mermaid
 flowchart LR
   subgraph Sources[Heterogeneous EO sources]
@@ -25,7 +25,7 @@ flowchart LR
   DEV --> OFF[On-device recompute + offline WebCrypto verify]
 ```
 
-## FIG. 3 — Divergence-gating (validated)
+## FIG. 3: Divergence-gating (validated)
 ```mermaid
 flowchart TD
   A[Signals for one hazard axis] --> B{>= 2 independent sensors?}
@@ -41,7 +41,7 @@ flowchart TD
   E --> I
 ```
 
-## FIG. 4 — Offline-verifiable provenance (sequence)
+## FIG. 4: Offline-verifiable provenance (sequence)
 ```mermaid
 sequenceDiagram
   participant Sv as Server
@@ -56,7 +56,7 @@ sequenceDiagram
   Dv->>Dv: render verified / unverified / stale state
 ```
 
-## FIG. 5 — On-device offline recomputation
+## FIG. 5: On-device offline recomputation
 ```mermaid
 flowchart TD
   A[Network fetch of /api/eo] -->|success| B[cache signals + receipt + public key]
@@ -67,7 +67,7 @@ flowchart TD
   B --> F
 ```
 
-## FIG. 6 — Conformal calibration loop
+## FIG. 6: Conformal calibration loop
 ```mermaid
 flowchart TD
   A[Forecast for cell + hazard] --> B[record predicted magnitude]
@@ -81,7 +81,7 @@ flowchart TD
   G --> I
 ```
 
-## FIG. 7 — Physics-constrained propagation
+## FIG. 7: Physics-constrained propagation
 ```mermaid
 flowchart LR
   A[Satellite-derived dryness] --> R[Rothermel rate-of-spread]
@@ -93,7 +93,7 @@ flowchart LR
   RR --> O2[flood onset factor + ETA shift]
 ```
 
-## FIG. 8 — Non-repudiable warning-certificate chain
+## FIG. 8: Non-repudiable warning-certificate chain
 ```mermaid
 flowchart LR
   G[Genesis hash] --> R1
@@ -111,7 +111,7 @@ flowchart LR
   H2 -. no server, no blockchain .-> V
 ```
 
-## FIG. 9 — Verifiable evacuation-route clearance (hyper-specialisation)
+## FIG. 9: Verifiable evacuation-route clearance (hyper-specialisation)
 ```mermaid
 flowchart TD
   O[Origin / user location] --> D[Pick nearest shelter as destination]
@@ -131,7 +131,7 @@ flowchart TD
   NG --> C
 ```
 
-## FIG. 10 — Self-improving outcome-verified loop (World Engine)
+## FIG. 10: Self-improving outcome-verified loop (World Engine)
 ```mermaid
 flowchart LR
   F[Fused signals] --> P[Probabilistic forecast]

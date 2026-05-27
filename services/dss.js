@@ -1,4 +1,4 @@
-// LocalPulse — Decision Support brain (spatially honest).
+// LocalPulse: Decision Support brain (spatially honest).
 //
 // A town is large: an incident in one corner must not blanket-scare the whole
 // town or be presented as town-wide risk. So we separate two kinds of signal:
@@ -87,7 +87,7 @@ function assess(incidents = [], hazards = {}, facilities = [], opts = {}) {
   for (const x of serious) {
     const where = x.km != null ? ` (~${x.km < 1 ? '<1' : Math.round(x.km)} km away)` : (x.i.place ? ` (${x.i.place})` : '');
     const ago = x.age < 1 ? 'just now' : x.age < 24 ? `${Math.round(x.age)}h ago` : `${Math.round(x.age / 24)}d ago`;
-    recs.push({ kind: x.i.category, level: x.i.severity, scope: userLoc ? 'local' : 'district', text: `${cap(x.i.category)}: ${titleOf(x.i)}${where} — ${ago}.` });
+    recs.push({ kind: x.i.category, level: x.i.severity, scope: userLoc ? 'local' : 'district', text: `${cap(x.i.category)}: ${titleOf(x.i)}${where}, ${ago}.` });
   }
 
   // Nearby active natural events (NASA EONET: wildfires, storms) as area context.
@@ -103,7 +103,7 @@ function assess(incidents = [], hazards = {}, facilities = [], opts = {}) {
   if (score >= 13) level = 'severe'; else if (score >= 7) level = 'high'; else if (score >= 3) level = 'elevated';
   const areaWide = areaScore >= 7 || (!!w && w.warnings.some((x) => x.level === 'high')) || alerts.length > 0 || !!bigQuake;
 
-  // Honest, non-alarmist headline — counts only CURRENT (recent) incidents.
+  // Honest, non-alarmist headline; counts only CURRENT (recent) incidents.
   const activeN = active.length;
   let headline;
   if (userLoc) {
@@ -114,19 +114,19 @@ function assess(incidents = [], hazards = {}, facilities = [], opts = {}) {
   } else {
     if (activeN === 0 && areaScore < 3) headline = 'No major hazards across the district right now.';
     else if (areaWide) headline = `A district-wide hazard is active. ${activeN} current incident(s) across the district.`;
-    else if (activeN === 0) headline = 'No current incidents — recent events have passed. Stay aware.';
-    else headline = `${activeN} current incident(s) across the district — most are localized. Use "near me" for risk at your location.`;
+    else if (activeN === 0) headline = 'No current incidents. Recent events have passed. Stay aware.';
+    else headline = `${activeN} current incident(s) across the district; most are localized. Use "near me" for risk at your location.`;
   }
 
   // ---- Cross-source early-warning: a fresh event that many INDEPENDENT feeds are
-  // already reporting is "emerging" — surfaced before any single official
+  // already reporting is "emerging", surfaced before any single official
   // confirmation. This is the value of fusing 40+ sources: corroboration velocity.
   const emerging = scoped
     .filter((x) => x.age <= 6 && (x.i.sources || 0) >= 2 && x.i.category !== 'rumor')
     .sort((a, b) => (b.i.sources || 0) - (a.i.sources || 0))
     .slice(0, 2)
     .map((x) => ({ category: x.i.category, title: titleOf(x.i), sources: x.i.sources, place: x.i.place }));
-  for (const e of emerging) recs.push({ kind: 'emerging', level: 'medium', scope: 'area', text: `Emerging: ${e.title} — corroborated by ${e.sources} independent sources in the last hours.` });
+  for (const e of emerging) recs.push({ kind: 'emerging', level: 'medium', scope: 'area', text: `Emerging: ${e.title}, corroborated by ${e.sources} independent sources in the last hours.` });
 
   // ---- Predictive nowcast (next 24-48h): forward-looking guidance, NOT added to
   // the current risk score (we don't scare people about a future that may not
@@ -136,8 +136,8 @@ function assess(incidents = [], hazards = {}, facilities = [], opts = {}) {
     const rainSoon = Math.max(w.precipTodayMm || 0, w.precipTomorrowMm || 0);
     const fl = hazards.flood;
     const floodRising = fl && typeof fl.dischargeMax === 'number' && fl.dischargeMax > Math.max(fl.dischargeNow || 0, 0.5) * 2 && fl.dischargeMax > 1;
-    if (rainSoon >= 50 || floodRising) forecast = { trend: 'rising', horizon: '24-48h', text: `Heavy rain (~${Math.round(rainSoon)} mm) forecast on hill terrain — landslide and flash-flood risk rising. Avoid slopes and riverbeds; keep water, a torch and a power bank ready.` };
-    else if (rainSoon >= 20) forecast = { trend: 'watch', horizon: '24-48h', text: `Moderate rain (~${Math.round(rainSoon)} mm) expected — local landslides or road slips possible. Plan travel accordingly.` };
+    if (rainSoon >= 50 || floodRising) forecast = { trend: 'rising', horizon: '24-48h', text: `Heavy rain (~${Math.round(rainSoon)} mm) forecast on hill terrain. Landslide and flash-flood risk rising. Avoid slopes and riverbeds; keep water, a torch and a power bank ready.` };
+    else if (rainSoon >= 20) forecast = { trend: 'watch', horizon: '24-48h', text: `Moderate rain (~${Math.round(rainSoon)} mm) expected. Local landslides or road slips possible. Plan travel accordingly.` };
     else forecast = { trend: 'stable', horizon: '24-48h', text: 'No major weather hazard expected over the next two days.' };
     if (forecast.trend !== 'stable') recs.push({ kind: 'forecast', level: forecast.trend === 'rising' ? 'high' : 'medium', scope: 'forecast', text: `Next 48h: ${forecast.text}` });
   }

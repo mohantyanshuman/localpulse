@@ -173,7 +173,7 @@ async function forecast(lat, lng, assessment) {
   // distribution-free interval from accrued nonconformity scores.
   const cell = cache.cellKey(lat, lng);
   // Worldwide + India official alerts near this point (GDACS + NDMA Sachet/IMD/CWC/...),
-  // cached per cell — the authoritative confirmer.
+  // cached per cell; the authoritative confirmer.
   const officialByAxis = await cache.memo(`official:${cell}`, 30 * 60 * 1000, () => officialalerts.alertsByAxis(lat, lng).catch(() => ({})));
   for (const h of (assessment && assessment.perHazard) || []) {
     if (['flood', 'storm', 'air', 'heat', 'fire'].includes(h.axis)) {

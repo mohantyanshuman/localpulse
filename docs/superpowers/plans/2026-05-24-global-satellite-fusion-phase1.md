@@ -1,4 +1,4 @@
-# Global Satellite Fusion Engine — Phase 1 Implementation Plan
+# Global Satellite Fusion Engine: Phase 1 Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -1098,7 +1098,7 @@ If `server.js` already exports something, add `server` to the export. The warm-u
 - [ ] **Step 3: Run test to verify it fails**
 
 Run: `npm test`
-Expected: FAIL — `/api/eo` returns 404 (route not yet added), so the first assertion `status === 200` fails.
+Expected: FAIL because `/api/eo` returns 404 (route not yet added), so the first assertion `status === 200` fails.
 
 - [ ] **Step 4: Add the require and route to `server.js`**
 
@@ -1198,7 +1198,7 @@ function renderEO(data) {
   const coverage = document.getElementById('eo-coverage');
   if (!headline || !cards) return;
   const place = (data.location && data.location.place) || 'your area';
-  headline.textContent = `${place}: ${data.level.toUpperCase()} — ${data.sensorsUsed.length} sensors reporting`;
+  headline.textContent = `${place}: ${data.level.toUpperCase()} · ${data.sensorsUsed.length} sensors reporting`;
   headline.className = `eo-headline ${eoLevelClass(data.level)}`;
   cards.innerHTML = '';
   for (const h of data.perHazard) {
@@ -1280,12 +1280,12 @@ Append:
 
 ```bash
 # Earth-observation fusion (Phase 1)
-# NASA FIRMS active fire — free MAP_KEY: https://firms.modaps.eosdis.nasa.gov/api/area/
+# NASA FIRMS active fire. Free MAP_KEY: https://firms.modaps.eosdis.nasa.gov/api/area/
 FIRMS_MAP_KEY=your_firms_map_key_here
 # Default coarse location when no Cloudflare geo headers are present (lat,lng)
 DEFAULT_LAT=20
 DEFAULT_LNG=0
-# Phase 2 (Copernicus/Sentinel) — leave blank until registered
+# Phase 2 (Copernicus/Sentinel): leave blank until registered
 COPERNICUS_CLIENT_ID=
 COPERNICUS_CLIENT_SECRET=
 ```
@@ -1332,7 +1332,7 @@ git commit -m "docs(eo): document satellite sources and env keys"
 
 **Placeholder scan:** No TBD/TODO. Every code step contains full code. The only conditional instruction (Task 10 `req.cid`) gives an explicit check-and-fallback.
 
-**Type consistency:** `mkSignal` fields (`axis,magnitude,confidence,freshness,sensor,distanceKm,detail`) are used identically across firms/openmeteo-air/power/seismic and consumed by `fuseSignals`. `fuse`/`fuseSignals`/`levelFromMagnitude` names match between fusion.js and its test. Endpoint returns `{...assessment, location}` and the frontend reads `level, perHazard[{axis,level,confidence,sensorsUsed,gapNote}], sensorsUsed, gapsCovered, location.place` — all present in the `EOAssessment` typedef and the endpoint payload.
+**Type consistency:** `mkSignal` fields (`axis,magnitude,confidence,freshness,sensor,distanceKm,detail`) are used identically across firms/openmeteo-air/power/seismic and consumed by `fuseSignals`. `fuse`/`fuseSignals`/`levelFromMagnitude` names match between fusion.js and its test. Endpoint returns `{...assessment, location}` and the frontend reads `level, perHazard[{axis,level,confidence,sensorsUsed,gapNote}], sensorsUsed, gapsCovered, location.place`, all present in the `EOAssessment` typedef and the endpoint payload.
 
 **Scope:** Focused on the EO engine end-to-end. Community-feature globalization and Sentinel adapters are deliberately deferred. Single coherent plan that ships working software.
 

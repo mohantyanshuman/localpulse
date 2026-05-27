@@ -1,4 +1,4 @@
-// LocalPulse — real-world hazard awareness. All free, no API key.
+// LocalPulse: real-world hazard awareness. All free, no API key.
 //   - Open-Meteo: live weather + 2-day forecast -> derived warnings (rain, snow,
 //     storm, heat, cold, wind). https://open-meteo.com (free, no key).
 //   - USGS: recent earthquakes near the town (Himachal is a high-seismic zone).
@@ -9,7 +9,7 @@
 
 const { BASE } = require('../data/incidents');
 
-// Himachal-distinctive terms only — bare names shared with other states
+// Himachal-distinctive terms only; bare names shared with other states
 // (Bilaspur, Hamirpur, Una) are excluded to avoid false positives. The issuing
 // authority is also checked: IMD Shimla / HP SDMA issue Himachal alerts.
 const REGION_KEYWORDS = (process.env.REGION_KEYWORDS ||
@@ -57,10 +57,10 @@ async function fetchWeather() {
   const tmin = (dy.temperature_2m_min && Math.min(...dy.temperature_2m_min)) || c.temperature_2m;
   const windMax = (dy.wind_speed_10m_max && Math.max(...dy.wind_speed_10m_max)) || c.wind_speed_10m;
 
-  if (maxPrecip >= 50) warnings.push({ level: 'high', kind: 'flood', text: `Heavy rain expected (${Math.round(maxPrecip)} mm). Flash-flood / landslide risk — avoid riverbeds and slopes.` });
+  if (maxPrecip >= 50) warnings.push({ level: 'high', kind: 'flood', text: `Heavy rain expected (${Math.round(maxPrecip)} mm). Flash-flood / landslide risk. Avoid riverbeds and slopes.` });
   else if (maxPrecip >= 20) warnings.push({ level: 'medium', kind: 'rain', text: `Significant rain expected (${Math.round(maxPrecip)} mm). Roads may be slippery; landslide-prone stretches at risk.` });
-  if (codes.some((x) => (x >= 71 && x <= 77) || (x >= 85 && x <= 86))) warnings.push({ level: 'medium', kind: 'snow', text: 'Snowfall likely — roads may close, power lines at risk. Keep warm supplies.' });
-  if (codes.some((x) => x >= 95)) warnings.push({ level: 'medium', kind: 'storm', text: 'Thunderstorm likely — stay indoors, avoid open areas and trees.' });
+  if (codes.some((x) => (x >= 71 && x <= 77) || (x >= 85 && x <= 86))) warnings.push({ level: 'medium', kind: 'snow', text: 'Snowfall likely. Roads may close, power lines at risk. Keep warm supplies.' });
+  if (codes.some((x) => x >= 95)) warnings.push({ level: 'medium', kind: 'storm', text: 'Thunderstorm likely. Stay indoors, avoid open areas and trees.' });
   if (tmax >= 40) warnings.push({ level: 'medium', kind: 'heat', text: `High heat (${Math.round(tmax)}°C). Hydrate; check on the elderly.` });
   if (tmin <= 0) warnings.push({ level: 'low', kind: 'cold', text: `Freezing temperatures (${Math.round(tmin)}°C). Cold-wave precautions advised.` });
   if (windMax >= 45) warnings.push({ level: 'medium', kind: 'wind', text: `Strong winds (${Math.round(windMax)} km/h). Secure loose objects.` });
@@ -108,7 +108,7 @@ async function fetchFlood() {
   return { dischargeNow: Math.round(now * 100) / 100, dischargeMax: Math.round(max * 100) / 100, warning };
 }
 
-// GDACS global disaster alerts (free, no key) — keep India-relevant orange/red.
+// GDACS global disaster alerts (free, no key): keep India-relevant orange/red.
 async function fetchGdacs() {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 10000);
@@ -123,7 +123,7 @@ async function fetchGdacs() {
       const title = pick('title');
       const hay = (title + ' ' + pick('description')).toLowerCase();
       // Strict: must name Himachal or an HP district (avoids "Indian Ocean/Ridge"
-      // false positives), and be a significant (orange/red) alert — not green.
+      // false positives), and be a significant (orange/red) alert, not green.
       if (!REGION_KEYWORDS.some((k) => hay.includes(k))) continue;
       if (/\bgreen\b/.test(hay) || !/\b(orange|red)\b/.test(hay)) continue;
       out.push({ title: title.slice(0, 200), category: 'GDACS', authority: 'GDACS', link: pick('link'), pubDate: pick('pubDate') });

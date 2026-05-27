@@ -1,4 +1,4 @@
-// LocalPulse — Web Push notifications (VAPID). Free, standards-based.
+// LocalPulse: Web Push notifications (VAPID). Free, standards-based.
 // Lets residents subscribe and get alerted when the town risk escalates or a
 // citizen report is corroborated. Subscriptions live in Firestore; dead ones
 // (404/410) are pruned automatically.

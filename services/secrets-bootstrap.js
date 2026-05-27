@@ -1,4 +1,4 @@
-// Secret bootstrap — load secrets provided as MOUNTED FILES, the leak-resistant way.
+// Secret bootstrap: load secrets provided as MOUNTED FILES, the leak-resistant way.
 //
 // Convention (Docker/Kubernetes/Cloud-Run + Secret Manager): for any environment
 // variable `FOO_FILE` whose value is a readable path, set `FOO` to the file's trimmed

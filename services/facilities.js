@@ -1,6 +1,6 @@
-// LocalPulse — real relief points & facilities from OpenStreetMap (Overpass API).
+// LocalPulse: real relief points & facilities from OpenStreetMap (Overpass API).
 // Free, no API key. Returns real hospitals, clinics, police stations, community
-// centres and schools near the configured town — the actual places residents go
+// centres and schools near the configured town: the actual places residents go
 // to in a crisis. Replaces the previous mock "shelters". Timeout-bounded; returns
 // [] on failure so the caller falls back to seed data.
 
@@ -9,7 +9,7 @@ const { BASE } = require('../data/incidents');
 const RADIUS_M = Number(process.env.FACILITIES_RADIUS_M || 25000);
 const ENDPOINT = process.env.OVERPASS_URL || 'https://overpass-api.de/api/interpreter';
 const KINDS = ['hospital', 'clinic', 'police', 'community_centre', 'school'];
-// Display priority — what a crisis user wants nearest hand first.
+// Display priority: what a crisis user wants nearest hand first.
 const RANK = { hospital: 0, police: 1, community_centre: 2, clinic: 3, shelter: 4, school: 5, facility: 6 };
 
 async function fetchFacilities() {

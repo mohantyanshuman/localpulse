@@ -1,4 +1,4 @@
-// LocalPulse — agentic voice helpline.
+// LocalPulse: agentic voice helpline.
 // A caller speaks naturally; this runs a Gemini (flash-lite) function-calling loop
 // that decides which live LocalPulse data to look up, reasons across satellite +
 // ground + official sources, uses the caller's GPS automatically, and can take real
@@ -163,7 +163,7 @@ const TOOLS = {
       const c = (Number.isFinite(ctx.lat) && Number.isFinite(ctx.lng)) ? { lat: ctx.lat, lng: ctx.lng } : null;
       return {
         emergencyNumber: '112',
-        callerLocation: ctx.place || (c ? `${c.lat.toFixed(4)}, ${c.lng.toFixed(4)}` : 'unknown — ask the caller'),
+        callerLocation: ctx.place || (c ? `${c.lat.toFixed(4)}, ${c.lng.toFixed(4)}` : 'unknown, ask the caller'),
         haveGps: !!c,
         nearest: c ? nearest(ctx.svc.store.getFacilities(), c.lat, c.lng, kinds) : [],
         note: 'LocalPulse is not an emergency dispatcher. Tell the caller to call 112 now; you can also log a located community alert if they confirm.',
@@ -346,7 +346,7 @@ async function converse(p, deps = {}) {
   }
 
   if (!answer && !capped && reserve()) {
-    // Out of steps (or only tool calls) — ask for a final spoken answer with tools off.
+    // Out of steps (or only tool calls): ask for a final spoken answer with tools off.
     const fin = await callModel({ contents, tools: null, system });
     answer = fin ? (fin.parts || []).map((x) => x.text).filter(Boolean).join(' ').trim() : '';
   }

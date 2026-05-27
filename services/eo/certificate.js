@@ -2,7 +2,7 @@
 // attesting WHAT hazard was warned, WHERE, WHEN, by which sensors, and at which ordinal
 // position in a tamper-evident chain. It embeds the issuer's public key so any third
 // party (citizen, responder, insurer, court) can verify it OFFLINE, with no server and
-// no distributed ledger — establishing non-repudiable disaster-warning accountability.
+// no distributed ledger, establishing non-repudiable disaster-warning accountability.
 const crypto = require('crypto');
 const provenance = require('./provenance');
 

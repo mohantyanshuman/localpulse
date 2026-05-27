@@ -1,4 +1,4 @@
-// LocalPulse — the triage "brain". Turns raw posts into structured incidents:
+// LocalPulse: the triage "brain". Turns raw posts into structured incidents:
 // relevance, category, severity, REAL coordinates, and content in all five
 // supported languages, plus an overall multilingual status summary.
 //
@@ -19,7 +19,7 @@ function hasLLM() {
   return !!process.env.GEMINI_API_KEY;
 }
 
-// Rough India bounding box — reject hallucinated coordinates outside it.
+// Rough India bounding box; reject hallucinated coordinates outside it.
 function validCoord(lat, lng) {
   return typeof lat === 'number' && typeof lng === 'number' &&
     lat >= 6 && lat <= 37 && lng >= 68 && lng <= 98;
@@ -47,7 +47,7 @@ async function geminiJson(prompt, ms = 45000) {
     try {
       return JSON.parse(txt);
     } catch {
-      // Truncated/!STOP responses (e.g. MAX_TOKENS) yield invalid JSON — salvage it.
+      // Truncated/!STOP responses (e.g. MAX_TOKENS) yield invalid JSON; salvage it.
       const salvaged = salvageJson(txt);
       if (!salvaged) {
         process.stderr.write(JSON.stringify({ severity: 'WARNING', kind: 'gemini-parse', finishReason: cand?.finishReason, len: txt.length }) + '\n');
@@ -123,7 +123,7 @@ function heuristicClassify(items) {
 }
 
 // Phase 1: fast, reliable ENGLISH-ONLY classification + geocoding. Small output,
-// so it doesn't truncate or time out — this is the critical path.
+// so it doesn't truncate or time out; this is the critical path.
 async function llmClassify(items) {
   const compact = items.slice(0, MAX_LLM_ITEMS).map((it, i) => ({ i, source: it.source, title: it.title, text: (it.text || '').slice(0, 240) }));
   const region = process.env.LOCATION_QUERY || 'Solan, Himachal Pradesh';
@@ -171,7 +171,7 @@ async function llmTranslate(result) {
   if (!strings.length) return result;
   const prompt = [
     'Translate each English string into Hindi(hi), Punjabi(pa), Tamil(ta), Bengali(bn). Keep the same order and count.',
-    'Return STRICT JSON {"hi":["..."],"pa":["..."],"ta":["..."],"bn":["..."]} — each array exactly the input length.',
+    'Return STRICT JSON {"hi":["..."],"pa":["..."],"ta":["..."],"bn":["..."]}: each array exactly the input length.',
     `INPUT (${strings.length} strings): ${JSON.stringify(strings)}`
   ].join('\n');
   const j = await geminiJson(prompt, 35000);
@@ -192,9 +192,9 @@ async function llmTranslate(result) {
 async function classifyBatch(items, useLLM = true) {
   if (!items.length) return { items: [], bullets: langObj([]) };
   if (useLLM && hasLLM()) {
-    const llm = await llmClassify(items); // phase 1 (en) — reliable
+    const llm = await llmClassify(items); // phase 1 (en), reliable
     if (llm && llm.items.length) {
-      try { return await llmTranslate(llm); } catch { return llm; } // phase 2 (translate) — best-effort
+      try { return await llmTranslate(llm); } catch { return llm; } // phase 2 (translate), best-effort
     }
   }
   return heuristicClassify(items);

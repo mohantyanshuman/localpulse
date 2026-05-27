@@ -1,4 +1,4 @@
-// Evacuation-route clearance — LATENCY-AWARE and FAIL-SAFE.
+// Evacuation-route clearance: LATENCY-AWARE and FAIL-SAFE.
 //
 // Honest premise: satellite observations are LATENT (active-fire detections can be
 // hours old; a fire moves kilometres in that time). A naive "no fire seen near the path
@@ -118,7 +118,7 @@ function freshnessConfidence(freshestFireAgeMin, sawFires) {
   if (!sawFires) return { confidence: 0.5, note: 'No active fire in the latest satellite pass, but satellite fire data can be hours old; absence is NOT a guarantee.' };
   if (freshestFireAgeMin <= FRESH_MIN) return { confidence: 0.85, note: `Fire data ~${Math.round(freshestFireAgeMin)} min old, forward-projected.` };
   if (freshestFireAgeMin <= STALE_MIN) return { confidence: 0.6, note: `Fire data ~${Math.round(freshestFireAgeMin / 60)} h old; danger zone projected forward, treat with caution.` };
-  return { confidence: 0.35, note: `Fire data >${Math.round(STALE_MIN / 60)} h old; cannot be relied on alone — verify visually.` };
+  return { confidence: 0.35, note: `Fire data >${Math.round(STALE_MIN / 60)} h old; cannot be relied on alone, verify visually.` };
 }
 
 async function assessRoute(from, to) {
@@ -145,7 +145,7 @@ async function assessRoute(from, to) {
   }
   if (!Number.isFinite(freshestFireAgeMin)) freshestFireAgeMin = null;
 
-  // 2) Near-real-time weather (precip, wind gust, humidity) — model nowcast, batched.
+  // 2) Near-real-time weather (precip, wind gust, humidity): model nowcast, batched.
   const lats = waypoints.map((w) => w.lat).join(',');
   const lngs = waypoints.map((w) => w.lng).join(',');
   const wj = await getJson(`https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lngs}&current=precipitation,wind_gusts_10m,relative_humidity_2m&timezone=auto`, 9000);
@@ -184,7 +184,7 @@ async function assessRoute(from, to) {
     sensorsUsed: ['NASA FIRMS (VIIRS, age-projected)', 'Open-Meteo nowcast', 'Open-Meteo Elevation'],
     activeFires: fires.length,
     generatedAt: Date.now(),
-    disclaimer: 'Decision-support from latency-aware projection of the latest available data — not a guarantee. Conditions can change faster than satellites observe; verify with your own eyes and official local orders.',
+    disclaimer: 'Decision-support from a latency-aware projection of the latest available data, not a guarantee. Conditions can change faster than satellites observe; verify with your own eyes and official local orders.',
   };
 }
 

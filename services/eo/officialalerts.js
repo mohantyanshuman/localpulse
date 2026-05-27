@@ -1,8 +1,8 @@
 // Official disaster alerts as an AUTHORITATIVE confirmation source, worldwide + India.
-//  - Worldwide: GDACS (Global Disaster Alert & Coordination System) — free, keyless,
+//  - Worldwide: GDACS (Global Disaster Alert & Coordination System): free, keyless,
 //    global CAP feed; matched to a point by latitude/longitude.
 //  - India: NDMA "Sachet" national CAP feed, which aggregates the official Indian
-//    channels — IMD (weather), CWC (floods), INCOIS (ocean/tsunami), FSI, SDMAs — matched
+//    channels: IMD (weather), CWC (floods), INCOIS (ocean/tsunami), FSI, SDMAs, matched
 //    to a point by the reverse-geocoded district/state name (Sachet items carry the area
 //    in their text and the issuing channel in the author field).
 // The World Engine uses these as a high-trust, agency-in-the-loop confirmer independent
