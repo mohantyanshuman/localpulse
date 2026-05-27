@@ -34,7 +34,7 @@
   <section class="voice-hero">
     <h1>Voice helpline <span class="muted">(demo)</span></h1>
     <p class="lead">For elderly residents without a smartphone, LocalPulse runs a phone line. Call in your language, ask about roads, shelters, power, water, medical help, or get connected to 112.</p>
-    <p class="prod-note">Production: Twilio Voice → OpenAI Whisper STT → intent classifier (LLM) → response → TTS. This page is a browser-only demo using Web Speech API; it never leaves your device.</p>
+    <p class="prod-note">Your speech stays on your device (browser Web Speech for listening and speaking). Your words go to an agent that reasons over live satellite, ground and official data, remembers the conversation, uses your location, and can act for you with your spoken confirmation. One model: Gemini Flash-Lite.</p>
   </section>
 
   <section class="voice-stage">
@@ -54,7 +54,7 @@
           <div class="caption-label">LocalPulse</div>
           <div class="caption-line caption-bot" id="cap-bot">—</div>
           <div class="caption-meta">
-            <span>Intent: <code id="meta-intent">—</code></span>
+            <span>Doing: <code id="meta-intent">—</code></span>
             <span>Lang: <code id="meta-lang">en</code></span>
           </div>
         </div>
@@ -81,7 +81,7 @@
       <ul class="lang-list">
         <li>English</li><li>हिन्दी</li><li>ਪੰਜਾਬੀ</li><li>தமிழ்</li><li>বাংলা</li>
       </ul>
-      <p class="muted small">In MLP, the browser does TTS + STT; the server only classifies intent. In production, the audio path runs on Twilio + Whisper for telephone callers (no smartphone needed).</p>
+      <p class="muted small">The browser handles speech on-device. The server runs an agentic loop: it decides which live data to fetch, remembers the whole call, uses your GPS, and can file a report, mark you safe, or register a missing person once you confirm.</p>
     </aside>
   </section>
 
@@ -92,7 +92,7 @@
 </main>
 
 <footer class="appfoot">
-  <div>Voice helpline · demo on this page · production target: Twilio Voice + OpenAI Whisper + GPT-4o + Polly TTS, with PSTN fallback.</div>
+  <div>Voice helpline · on-device speech with an agentic Gemini Flash-Lite backend over live crisis data.</div>
 </footer>
 
 <script src="/js/voice.js" defer></script>

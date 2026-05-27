@@ -3,6 +3,28 @@
 All notable changes to LocalPulse are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); grouped by date.
 
+## 2026-05-27 (agentic voice helpline)
+
+### Added
+- **Agentic voice helpline.** Replaced the keyword voice bot with a real multi-turn
+  Gemini (`gemini-flash-lite-latest`) function-calling agent (`services/voice-agent.js`,
+  `POST /api/voice/converse`). It decides which live tools to call (local risk, satellite
+  assessment, incidents, hazards, nearest facilities, safe-route, emergency help),
+  reasons across them, remembers the whole call, and answers in natural spoken sentences
+  in five languages. The client now sends conversation history and **high-accuracy GPS**,
+  so "send an ambulance to my location" resolves automatically without the caller reading
+  out coordinates, and surfaces which sources the agent consulted.
+- **In-call actions with spoken confirmation.** The agent can file a report, mark the
+  caller safe, or register a missing person, GPS auto-filled, but only after it describes
+  the action and the caller confirms (write tools refuse to commit without `confirmed`).
+- Stateless and budget-guarded: client-held history (scale-to-zero friendly), daily cap +
+  per-turn step cap + timeouts, and graceful fallback to the free keyword bot when the
+  model is unavailable. 9 new `node:test` cases (111 total, all passing).
+
+### Changed
+- Voice page copy corrected to the real architecture (on-device Web Speech + Gemini
+  Flash-Lite agent); removed the stale Twilio / OpenAI Whisper / GPT-4o / Polly claims.
+
 ## 2026-05-27 (real product screenshots in the pitch and report)
 
 ### Added

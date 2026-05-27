@@ -4,7 +4,18 @@
 
   const LANG_TAGS = { en: 'en-IN', hi: 'hi-IN', pa: 'pa-IN', ta: 'ta-IN', bn: 'bn-IN' };
   const STORAGE_LANG = 'lp.lang';
-  const state = { lang: detectLang(), listening: false, rec: null };
+  const state = { lang: detectLang(), listening: false, rec: null, history: [], coords: null };
+
+  // Acquire high-accuracy GPS once (on a user gesture) so the agent can act on
+  // "send help to my location" without the caller reading out coordinates.
+  function ensureLocation() {
+    if (state.coords || !navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      function (pos) { state.coords = { lat: pos.coords.latitude, lng: pos.coords.longitude }; },
+      function () { /* denied: the agent still works, location tools just stay unavailable */ },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+    );
+  }
 
   function detectLang() {
     try { const s = localStorage.getItem(STORAGE_LANG); if (s) return s; } catch (_) {}
@@ -38,6 +49,7 @@
 
   function startListening() {
     if (state.listening) return;
+    ensureLocation();
     const r = ensureRecognition();
     if (!r) { capBot.textContent = 'Speech recognition not supported on this browser. Try the suggested phrases instead.'; return; }
     state.rec = r;
@@ -66,17 +78,30 @@
     capUser.textContent = text;
     setCallState('thinking');
     appendTranscript('user', text);
+    const body = { q: text, history: state.history.slice(-8), lang: state.lang };
+    if (state.coords) { body.lat = state.coords.lat; body.lng = state.coords.lng; }
     try {
-      const r = await fetch('/api/voice/intent?lang=' + state.lang, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text })
+      const r = await fetch('/api/voice/converse', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
       });
       const j = await r.json();
-      capBot.textContent = j.response;
-      metaIntent.textContent = j.intent;
-      metaLang.textContent = j.lang;
-      appendTranscript('bot', j.response);
-      speak(j.response);
-    } catch (e) { capBot.textContent = 'Could not reach the helpline. Try again.'; setCallState('idle'); }
+      const answer = j.answer || 'Sorry, I could not work that out. For an emergency, call 112.';
+      capBot.textContent = answer;
+      if (Array.isArray(j.history)) state.history = j.history;
+      // Surface the heavy lifting: which live sources the agent consulted this turn.
+      metaIntent.textContent = (j.used && j.used.length) ? j.used.join(' · ') : (j.intent || j.mode || 'reasoning');
+      metaLang.textContent = j.lang || state.lang;
+      appendTranscript('bot', answer);
+      speak(answer);
+    } catch (e) {
+      // Network fallback to the simple intent endpoint so the line never goes dead.
+      try {
+        const r2 = await fetch('/api/voice/intent?lang=' + state.lang, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) });
+        const j2 = await r2.json();
+        capBot.textContent = j2.response; metaIntent.textContent = j2.intent; metaLang.textContent = j2.lang;
+        appendTranscript('bot', j2.response); speak(j2.response);
+      } catch (_) { capBot.textContent = 'Could not reach the helpline. For an emergency, call 112.'; setCallState('idle'); }
+    }
   }
 
   function appendTranscript(who, text) {
@@ -105,7 +130,7 @@
   }
 
   callBtn.addEventListener('click', () => { if (state.listening) stopListening(); else startListening(); });
-  document.querySelectorAll('.suggest').forEach(btn => { btn.addEventListener('click', () => handleUtterance(btn.dataset.text)); });
+  document.querySelectorAll('.suggest').forEach(btn => { btn.addEventListener('click', () => { ensureLocation(); handleUtterance(btn.dataset.text); }); });
   $('#clear-transcript').addEventListener('click', () => { while (transcriptEl.firstChild) transcriptEl.removeChild(transcriptEl.firstChild); });
 
   const sel = $('#lang-select');

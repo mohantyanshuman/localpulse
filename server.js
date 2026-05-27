@@ -19,6 +19,7 @@ const dss = require('./services/dss');
 const assistant = require('./services/assistant');
 const aid = require('./services/aid');
 const livefeed = require('./services/livefeed');
+const voiceAgent = require('./services/voice-agent');
 const eoFusion = require('./services/eo/fusion');
 const eoPredict = require('./services/eo/predict');
 const eoProvenance = require('./services/eo/provenance');
@@ -508,6 +509,36 @@ app.post('/api/voice/intent', (req, res) => {
   if (extra.length) { out.response += ' ' + extra.join('; ') + '.'; out.live = extra; }
   else if (out.intent !== 'emergency' && out.intent !== 'fallback') { out.response = (noData[lang] || noData.en); }
   res.json(out);
+});
+
+// --- Agentic voice helpline: a real multi-turn conversation. Gemini (flash-lite)
+// decides which live-data tools to call, uses the caller's GPS automatically, and can
+// take confirmed actions. Falls back to the free keyword bot when the model is
+// unavailable or the daily budget is spent, so the line never goes dead.
+app.post('/api/voice/converse', async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  const b = req.body || {};
+  const q = String(b.q || b.text || '').trim().slice(0, 400);
+  if (!q) return res.status(400).json({ error: { code: 'empty', message: 'Say something.' } });
+  const lang = SUPPORTED.includes(b.lang) ? b.lang : pickLang(req);
+  const lat = parseFloat(b.lat), lng = parseFloat(b.lng);
+  const history = Array.isArray(b.history) ? b.history.slice(-8) : [];
+  let out = null;
+  try {
+    out = await voiceAgent.converse({
+      q, history, lang,
+      lat: Number.isFinite(lat) ? lat : undefined,
+      lng: Number.isFinite(lng) ? lng : undefined,
+      place: typeof b.place === 'string' ? b.place.slice(0, 80) : undefined,
+    });
+  } catch { out = null; }
+  if (out) {
+    process.stdout.write(JSON.stringify({ severity: 'INFO', kind: 'voice-converse', used: out.used, pending: out.pendingAction ? out.pendingAction.kind : null, lang, ts: Date.now() }) + '\n');
+    return res.json({ mode: 'agent', ...out });
+  }
+  // Free keyword fallback (grounded), keeping the conversation shape uniform for the client.
+  const kw = respond(q, lang);
+  return res.json({ mode: 'keyword', answer: kw.response, intent: kw.intent, used: [], pendingAction: null, history: [...history, { role: 'user', text: q }, { role: 'model', text: kw.response }].slice(-8) });
 });
 
 // --- SSE pulse for live ticker (no persistence; synthetic ticks)
