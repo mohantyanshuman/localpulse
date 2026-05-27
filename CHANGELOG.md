@@ -3,6 +3,22 @@
 All notable changes to LocalPulse are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); grouped by date.
 
+## 2026-05-27 (real product screenshots in the pitch and report)
+
+### Added
+- **Live UI screenshots embedded in the pitch and capstone report.** Captured the
+  deployed dashboard and the redesigned Satellite Intelligence panel in both light
+  and dark themes (`public/img/ui-{dashboard,satellite}-{light,dark}.jpg`) and
+  embedded them so both documents now show the actual product, not hand-coded
+  mockups:
+  - Pitch deck: the "Meet LocalPulse" slide shows the dashboard (light + dark) in
+    browser frames; the Earth-Observation slide shows the real Satellite
+    Intelligence panel as visual proof. Responsive, lazy-loaded, captioned.
+  - Capstone report: new Figure 8 (Implementation chapter), a 2x2 grid of dashboard
+    and Satellite Intelligence panel in both themes, rendered in `report.html` and
+    embedded in the `.docx` (4 inline images). Build pipeline gained raster-image
+    figure support.
+
 ## 2026-05-26 (docs aligned to real system + Satellite Intelligence redesign)
 
 ### Changed

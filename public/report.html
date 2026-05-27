@@ -106,6 +106,42 @@
     font-size: 0.9em;
     margin-top: 0.6em;
   }
+  figure.shots {
+    margin: 1.6em 0;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    padding: 1em;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  figure.shots .shot-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1em;
+  }
+  figure.shots .shot { margin: 0; }
+  figure.shots .shot img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+  figure.shots .shot figcaption {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.85em;
+    margin-top: 0.4em;
+  }
+  figure.shots figcaption.fig-main {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.9em;
+    margin-top: 0.8em;
+  }
+  @media (max-width: 620px) {
+    figure.shots .shot-grid { grid-template-columns: 1fr; }
+  }
   .table-wrap { overflow-x: auto; margin: 1.2em 0; }
   table {
     width: 100%;
@@ -469,6 +505,11 @@
 <td>Figure 7</td>
 <td>Earth-Observation Fusion, Cross-Validation and Signed Provenance</td>
 <td>28</td>
+</tr>
+<tr>
+<td>Figure 8</td>
+<td>Deployed User Interface (Light and Dark Themes)</td>
+<td>21</td>
 </tr>
 </tbody></table></div></section>
 <section id='list-tables'><h2>List of Tables</h2><div class='table-wrap'>
@@ -1123,6 +1164,37 @@
 
     <figcaption>Figure 5. Responder console wireframe (tablet, 1024x640).</figcaption>
   </figure>
+  
+<figure class='shots'>
+  <div class='shot-grid'>
+    <figure class='shot'>
+      <img src='/img/ui-dashboard-light.jpg' width='1600' height='1000' loading='lazy'
+           decoding='async'
+           alt='LocalPulse resident dashboard in the light theme: status summary cards and a live Leaflet map of incidents.' />
+      <figcaption>(a) Resident dashboard — light theme</figcaption>
+    </figure>
+    <figure class='shot'>
+      <img src='/img/ui-dashboard-dark.jpg' width='1600' height='1000' loading='lazy'
+           decoding='async'
+           alt='LocalPulse resident dashboard in the dark theme: the same status cards and live incident map rendered on a dark background.' />
+      <figcaption>(b) Resident dashboard — dark theme</figcaption>
+    </figure>
+    <figure class='shot'>
+      <img src='/img/ui-satellite-light.jpg' width='1600' height='1000' loading='lazy'
+           decoding='async'
+           alt='LocalPulse Satellite Intelligence panel in the light theme: fused earth-observation hazard readings and signed provenance.' />
+      <figcaption>(c) Satellite Intelligence panel — light theme</figcaption>
+    </figure>
+    <figure class='shot'>
+      <img src='/img/ui-satellite-dark.jpg' width='1600' height='1000' loading='lazy'
+           decoding='async'
+           alt='LocalPulse Satellite Intelligence panel in the dark theme: the same fused earth-observation readings rendered on a dark background.' />
+      <figcaption>(d) Satellite Intelligence panel — dark theme</figcaption>
+    </figure>
+  </div>
+  <figcaption class='fig-main'>Figure 8. Deployed user interface at localpulse.dmj.one. The same responsive, theme-aware layout is shown in light and dark themes: (a, b) the resident dashboard and (c, d) the redesigned Satellite Intelligence panel.</figcaption>
+</figure>
+
   <h3>5.5 Real-time Update Loop</h3>
   <p>Real-time delivery uses Server-Sent Events from the Express server. The client opens an EventSource against /api/pulse and immediately receives the latest incidents (oldest to newest) and a stat snapshot, so the stream is never empty. A shared live-feed poller then broadcasts new items from all forty-plus free sources as they appear, emitting three event types: incident, stat and a periodic ping heartbeat that keeps the connection and the status line alive. The handler registers each client with the live-feed module and cleans up on connection close, and compression is explicitly disabled for this path so buffering never stalls delivery. No model is called on the stream, so it is never rate-limited.</p>
 <p>Cheap polling complements the stream. A returning client calls /api/sync with the version it last saw; the server replies 304 Not Modified when nothing has changed and a compact delta otherwise, which keeps a phone on a weak connection from re-downloading the whole state on every refresh.</p>

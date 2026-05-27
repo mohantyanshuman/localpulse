@@ -125,6 +125,7 @@ FIGURES = [
     ("Figure 5", "Responder Console Wireframe (tablet, 1024x768)", "22"),
     ("Figure 6", "Cloud Run Deployment Topology in asia-east1", "38"),
     ("Figure 7", "Earth-Observation Fusion, Cross-Validation and Signed Provenance", "28"),
+    ("Figure 8", "Deployed User Interface (Light and Dark Themes)", "21"),
 ]
 
 # -- Section: List of Tables ------------------------------------------------

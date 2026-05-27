@@ -590,6 +590,29 @@ def add_figure_placeholder(doc, label: str, caption: str) -> None:
     add_figure_caption(doc, f"{label}: {caption}")
 
 
+def add_image(doc, rel_path: str, sub_caption: str, *, width_in: float = 6.0) -> None:
+    """Embed a picture centred on the page, with an italic sub-caption below."""
+    p = doc.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p.paragraph_format.first_line_indent = Inches(0)
+    p.paragraph_format.space_before = Pt(6)
+    p.paragraph_format.space_after = Pt(2)
+    p.paragraph_format.keep_with_next = True
+    run = p.add_run()
+    run.add_picture(str(ROOT / rel_path), width=Inches(width_in))
+
+    cap = doc.add_paragraph()
+    cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    cap.paragraph_format.first_line_indent = Inches(0)
+    cap.paragraph_format.space_after = Pt(8)
+    cap.paragraph_format.keep_with_next = True
+    cr = cap.add_run(sub_caption)
+    _set_run_font(cr, BODY_FONT)
+    cr.font.size = Pt(10)
+    cr.italic = True
+    cr.font.color.rgb = RGBColor.from_string(GREY_TEXT_HEX)
+
+
 # ---------------------------------------------------------------------------
 # section assemblers
 # ---------------------------------------------------------------------------
@@ -778,6 +801,19 @@ def add_body(doc) -> None:
     )
     add_figure_placeholder(
         doc, "Figure 5", "Responder Console Wireframe (tablet, 1024x768)"
+    )
+
+    # Figure 8: real product-UI screenshots, stacked with sub-captions.
+    add_image(doc, "public/img/ui-dashboard-light.jpg", "(a) Resident dashboard — light theme")
+    add_image(doc, "public/img/ui-dashboard-dark.jpg", "(b) Resident dashboard — dark theme")
+    add_image(doc, "public/img/ui-satellite-light.jpg", "(c) Satellite Intelligence panel — light theme")
+    add_image(doc, "public/img/ui-satellite-dark.jpg", "(d) Satellite Intelligence panel — dark theme")
+    add_figure_caption(
+        doc,
+        "Figure 8: Deployed User Interface at localpulse.dmj.one. The same "
+        "responsive, theme-aware layout is shown in light and dark themes: "
+        "(a, b) the resident dashboard and (c, d) the redesigned Satellite "
+        "Intelligence panel."
     )
 
     add_heading(doc, "5.5 Real-time Update Loop", level=2)

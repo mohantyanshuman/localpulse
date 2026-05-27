@@ -358,6 +358,39 @@ FIG_EO = """
 </svg>
 """
 
+# Real product-UI screenshots (served same-origin from /img/; CSP img-src 'self').
+FIG_UI_SCREENSHOTS = """
+<figure class='shots'>
+  <div class='shot-grid'>
+    <figure class='shot'>
+      <img src='/img/ui-dashboard-light.jpg' width='1600' height='1000' loading='lazy'
+           decoding='async'
+           alt='LocalPulse resident dashboard in the light theme: status summary cards and a live Leaflet map of incidents.' />
+      <figcaption>(a) Resident dashboard — light theme</figcaption>
+    </figure>
+    <figure class='shot'>
+      <img src='/img/ui-dashboard-dark.jpg' width='1600' height='1000' loading='lazy'
+           decoding='async'
+           alt='LocalPulse resident dashboard in the dark theme: the same status cards and live incident map rendered on a dark background.' />
+      <figcaption>(b) Resident dashboard — dark theme</figcaption>
+    </figure>
+    <figure class='shot'>
+      <img src='/img/ui-satellite-light.jpg' width='1600' height='1000' loading='lazy'
+           decoding='async'
+           alt='LocalPulse Satellite Intelligence panel in the light theme: fused earth-observation hazard readings and signed provenance.' />
+      <figcaption>(c) Satellite Intelligence panel — light theme</figcaption>
+    </figure>
+    <figure class='shot'>
+      <img src='/img/ui-satellite-dark.jpg' width='1600' height='1000' loading='lazy'
+           decoding='async'
+           alt='LocalPulse Satellite Intelligence panel in the dark theme: the same fused earth-observation readings rendered on a dark background.' />
+      <figcaption>(d) Satellite Intelligence panel — dark theme</figcaption>
+    </figure>
+  </div>
+  <figcaption class='fig-main'>Figure 8. Deployed user interface at localpulse.dmj.one. The same responsive, theme-aware layout is shown in light and dark themes: (a, b) the resident dashboard and (c, d) the redesigned Satellite Intelligence panel.</figcaption>
+</figure>
+"""
+
 
 # ---------------------------------------------------------------------------
 # section renderers
@@ -530,6 +563,7 @@ def render_implementation():
     {FIG_RESPONDER}
     <figcaption>Figure 5. Responder console wireframe (tablet, 1024x640).</figcaption>
   </figure>
+  {FIG_UI_SCREENSHOTS}
   <h3>5.5 Real-time Update Loop</h3>
   {paras(C.IMPL_REALTIME)}
   <h3>5.6 AI Summarisation Pipeline</h3>
@@ -867,6 +901,42 @@ def render_html() -> str:
     color: var(--muted);
     font-size: 0.9em;
     margin-top: 0.6em;
+  }}
+  figure.shots {{
+    margin: 1.6em 0;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    padding: 1em;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }}
+  figure.shots .shot-grid {{
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1em;
+  }}
+  figure.shots .shot {{ margin: 0; }}
+  figure.shots .shot img {{
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }}
+  figure.shots .shot figcaption {{
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.85em;
+    margin-top: 0.4em;
+  }}
+  figure.shots figcaption.fig-main {{
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.9em;
+    margin-top: 0.8em;
+  }}
+  @media (max-width: 620px) {{
+    figure.shots .shot-grid {{ grid-template-columns: 1fr; }}
   }}
   .table-wrap {{ overflow-x: auto; margin: 1.2em 0; }}
   table {{

@@ -298,6 +298,38 @@
   }
   .status-row .dot { width: 6px; height: 6px; background: var(--pulse); border-radius: 999px; box-shadow: 0 0 10px var(--pulse); }
 
+  /* product screenshot in a browser frame */
+  .shot {
+    border-radius: 14px;
+    border: 1px solid var(--line-2);
+    background: var(--ink-2);
+    overflow: hidden;
+    box-shadow:
+      0 24px 50px -22px rgba(0,0,0,.7),
+      0 0 0 1px rgba(255,255,255,.03) inset,
+      0 0 50px -16px rgba(255,107,53,.16);
+  }
+  .shot-bar {
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px 11px;
+    background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+    border-bottom: 1px solid var(--line);
+  }
+  .shot-bar .tl { width: 8px; height: 8px; border-radius: 999px; background: rgba(255,255,255,.16); }
+  .shot-bar .tl:nth-child(1) { background: rgba(255,107,53,.55); }
+  .shot-url {
+    margin-left: 8px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 10px; letter-spacing: .04em;
+    color: var(--muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .shot img {
+    display: block;
+    width: 100%; height: auto;
+    aspect-ratio: 8 / 5;
+  }
+
   /* arrow connector */
   .conn {
     position: relative; height: 1px; background: linear-gradient(90deg, transparent, var(--line-2), transparent);
@@ -493,35 +525,26 @@
             </ul>
           </div>
 
-          <div class="anim anim-3 flex justify-center">
-            <div class="phone" aria-hidden="true">
-              <div class="phone-screen">
-                <div class="status-row"><span>9:41</span><span class="flex items-center gap-1"><span class="dot"></span> LIVE</span></div>
-                <div class="px-3.5 pt-2">
-                  <div class="pulse-mark text-[10px] mb-2"><span class="pulse-dot"></span><span>LocalPulse</span></div>
-                  <div class="text-[11px] text-mist-300 mb-1">Solan, HP</div>
-                  <div class="font-display font-semibold text-base leading-tight mb-3">Flood watch <span class="text-pulse-500">active</span></div>
-                  <div class="space-y-2">
-                    <div class="rounded-lg border border-white/10 p-2.5">
-                      <div class="text-[10px] text-pulse-500 mb-0.5">ROADS</div>
-                      <div class="text-[11px] leading-snug">NH-5 closed near Salogra. Detour via Kandaghat.</div>
-                    </div>
-                    <div class="rounded-lg border border-white/10 p-2.5">
-                      <div class="text-[10px] text-pulse-500 mb-0.5">SHELTER</div>
-                      <div class="text-[11px] leading-snug">Govt. School, Sec-2 open. Capacity 120.</div>
-                    </div>
-                    <div class="rounded-lg border border-white/10 p-2.5">
-                      <div class="text-[10px] text-pulse-500 mb-0.5">POWER</div>
-                      <div class="text-[11px] leading-snug">Restored in Anhech. Patchy in Chambaghat.</div>
-                    </div>
-                  </div>
-                  <div class="mt-3 rounded-lg bg-pulse-500/15 border border-pulse-500/30 p-2.5 text-[11px]">
-                    <div class="font-medium text-pulse-300">Tap to call helpline</div>
-                    <div class="text-[10px] text-mist-300">Hindi &middot; Punjabi &middot; English</div>
-                  </div>
+          <div class="anim anim-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <figure class="shot m-0">
+                <div class="shot-bar" aria-hidden="true">
+                  <span class="tl"></span><span class="tl"></span><span class="tl"></span>
+                  <span class="shot-url">localpulse.dmj.one &middot; light</span>
                 </div>
-              </div>
+                <img src="/img/ui-dashboard-light.jpg" width="1600" height="1000" loading="lazy" decoding="async"
+                     alt="LocalPulse dashboard in light theme: app bar, hero, active-risk banner, key metrics and live map." />
+              </figure>
+              <figure class="shot m-0">
+                <div class="shot-bar" aria-hidden="true">
+                  <span class="tl"></span><span class="tl"></span><span class="tl"></span>
+                  <span class="shot-url">localpulse.dmj.one &middot; dark</span>
+                </div>
+                <img src="/img/ui-dashboard-dark.jpg" width="1600" height="1000" loading="lazy" decoding="async"
+                     alt="The same LocalPulse dashboard in dark theme, showing it is fully theme-aware." />
+              </figure>
             </div>
+            <p class="body-sm mt-3 text-center">Live at <span class="text-mist-100">localpulse.dmj.one</span> &middot; light &amp; dark, fully responsive.</p>
           </div>
         </div>
       </div>
@@ -700,42 +723,27 @@
               <svg class="w-6 h-6 accent" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9 9 0 100-18 9 9 0 000 18zM3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18"/></svg>
               <div class="font-display font-semibold text-xl">Satellite Fusion Engine</div>
             </div>
-            <p class="body-sm mb-5">Thirteen worldwide sensors are cross-validated for each hazard, so one rogue feed cannot raise a false alarm. Disagreement attenuates confidence; agreement amplifies it.</p>
+            <p class="body-sm mb-4">Thirteen worldwide sensors &mdash; NASA FIRMS, Sentinel-1/2/3/5P, GLOFAS, USGS, NASA POWER, Open-Meteo, cyclone tracks &mdash; are cross-validated for each hazard, so one rogue feed cannot raise a false alarm. Disagreement attenuates confidence; agreement amplifies it.</p>
 
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
-              <div class="card px-3 py-2.5 text-center">
-                <div class="text-[10px] accent font-medium mb-0.5">FIRE</div>
-                <div class="text-[11px] text-mist-100">NASA FIRMS</div>
-              </div>
-              <div class="card px-3 py-2.5 text-center">
-                <div class="text-[10px] accent font-medium mb-0.5">RADAR &middot; OPTICAL</div>
-                <div class="text-[11px] text-mist-100">Sentinel-1/2/3</div>
-              </div>
-              <div class="card px-3 py-2.5 text-center">
-                <div class="text-[10px] accent font-medium mb-0.5">AIR</div>
-                <div class="text-[11px] text-mist-100">Sentinel-5P</div>
-              </div>
-              <div class="card px-3 py-2.5 text-center">
-                <div class="text-[10px] accent font-medium mb-0.5">FLOOD</div>
-                <div class="text-[11px] text-mist-100">GLOFAS</div>
-              </div>
-              <div class="card px-3 py-2.5 text-center">
-                <div class="text-[10px] accent font-medium mb-0.5">SEISMIC</div>
-                <div class="text-[11px] text-mist-100">USGS</div>
-              </div>
-              <div class="card px-3 py-2.5 text-center">
-                <div class="text-[10px] accent font-medium mb-0.5">WEATHER</div>
-                <div class="text-[11px] text-mist-100">NASA POWER</div>
-              </div>
-              <div class="card px-3 py-2.5 text-center">
-                <div class="text-[10px] accent font-medium mb-0.5">AIR QUALITY</div>
-                <div class="text-[11px] text-mist-100">Open-Meteo</div>
-              </div>
-              <div class="card px-3 py-2.5 text-center">
-                <div class="text-[10px] accent font-medium mb-0.5">STORM</div>
-                <div class="text-[11px] text-mist-100">Cyclone track</div>
-              </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+              <figure class="shot m-0">
+                <div class="shot-bar" aria-hidden="true">
+                  <span class="tl"></span><span class="tl"></span><span class="tl"></span>
+                  <span class="shot-url">Satellite Intelligence &middot; light</span>
+                </div>
+                <img src="/img/ui-satellite-light.jpg" width="1600" height="1000" loading="lazy" decoding="async"
+                     alt="LocalPulse Satellite Intelligence panel in light theme, showing fused Earth-observation feeds in context." />
+              </figure>
+              <figure class="shot m-0">
+                <div class="shot-bar" aria-hidden="true">
+                  <span class="tl"></span><span class="tl"></span><span class="tl"></span>
+                  <span class="shot-url">Satellite Intelligence &middot; dark</span>
+                </div>
+                <img src="/img/ui-satellite-dark.jpg" width="1600" height="1000" loading="lazy" decoding="async"
+                     alt="The same Satellite Intelligence panel in dark theme, fully theme-aware and responsive." />
+              </figure>
             </div>
+            <p class="body-sm mb-4">Live at <span class="text-mist-100">localpulse.dmj.one</span> &middot; light &amp; dark, fully responsive.</p>
 
             <div class="h-eyebrow mb-2">Confidence-weighted output</div>
             <div class="flex flex-wrap items-center gap-2">
