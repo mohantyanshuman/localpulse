@@ -10,7 +10,9 @@
   const LANG_TAGS = { en: 'en-IN', hi: 'hi-IN', pa: 'pa-IN', ta: 'ta-IN', bn: 'bn-IN' };
   const STORAGE_LANG = 'lp.lang';
   // phase: 'idle' | 'listening' | 'thinking' | 'speaking'
-  const state = { lang: detectLang(), inCall: false, phase: 'idle', rec: null, coords: null, history: [], errStreak: 0 };
+  const state = { lang: detectLang(), inCall: false, phase: 'idle', rec: null, coords: null, history: [], errStreak: 0, idleWatch: null, lastVoiceTs: 0, turnTimer: null, finalizing: false, transcript: '' };
+  const TURN_SILENCE_MS = 2500;   // pause after speech that ends the caller's turn
+  const IDLE_HANGUP_MS = 10000;   // dead air that disconnects the call
 
   function detectLang() {
     try { const s = localStorage.getItem(STORAGE_LANG); if (s) return s; } catch (_) {}
@@ -60,7 +62,9 @@
     return r;
   }
 
+  function clearTurnTimer() { if (state.turnTimer) { clearTimeout(state.turnTimer); state.turnTimer = null; } }
   function stopRec() {
+    clearTurnTimer();
     if (state.rec) { try { state.rec.onresult = state.rec.onerror = state.rec.onend = null; state.rec.stop(); } catch (_) {} state.rec = null; }
   }
 
@@ -72,35 +76,83 @@
       capBot.textContent = 'Voice is not supported on this browser. Try Chrome, or tap a suggestion on the right.';
       return;
     }
-    state.inCall = true; state.errStreak = 0;
+    state.inCall = true; state.errStreak = 0; state.lastVoiceTs = Date.now();
     setButton();
+    if (state.idleWatch) clearInterval(state.idleWatch);
+    state.idleWatch = setInterval(checkIdle, 1000); // hang up on 10s of dead air
     capBot.textContent = 'Connected. Go ahead, I am listening.';
-    speak('Hello, this is LocalPulse. I am here with you. How can I help?', listenTurn);
+    speak('Hello, this is LocalPulse. I am here with you. How can I help?', beginListening);
   }
   function endCall() {
     state.inCall = false;
+    if (state.idleWatch) { clearInterval(state.idleWatch); state.idleWatch = null; }
     stopRec();
     try { window.speechSynthesis.cancel(); } catch (_) {}
     setPhase('idle'); setButton();
     capUser.textContent = 'Call ended. Tap to start again.';
   }
 
+  // Start a fresh listening window for the caller's next turn (resets the dead-air clock).
+  function beginListening() { if (!state.inCall) return; state.lastVoiceTs = Date.now(); listenTurn(); }
+
+  // Disconnect after 10s of genuine dead air while listening. Speech and fillers reset the
+  // clock; this never counts while the assistant is thinking or speaking.
+  function checkIdle() {
+    if (!state.inCall || state.phase !== 'listening') return;
+    if (Date.now() - state.lastVoiceTs >= IDLE_HANGUP_MS) idleDisconnect();
+  }
+  function idleDisconnect() {
+    stopRec();
+    const bye = 'I will let you go for now. Call back any time, and please stay safe.';
+    capBot.textContent = bye;
+    speak(bye, endCall);
+  }
+
   function listenTurn() {
     if (!state.inCall || state.phase === 'listening') return;
     const r = newRecognition();
     if (!r) { endCall(); return; }
+    // Continuous + interim so brief pauses and fillers ("umm", "uh") never cut the caller
+    // off; the turn ends only after a real pause (TURN_SILENCE_MS) in their speech.
+    r.continuous = true;
+    r.interimResults = true;
     state.rec = r;
+    state.finalizing = false;
+    state.transcript = '';
     setPhase('listening');
     capUser.textContent = '…';
     r.onresult = function (ev) {
       state.errStreak = 0;
-      const text = ev.results[0][0].transcript;
-      stopRec();
-      processUtterance(text);
+      state.lastVoiceTs = Date.now();
+      clearTurnTimer();
+      let interim = '';
+      for (let i = ev.resultIndex; i < ev.results.length; i += 1) {
+        const res = ev.results[i];
+        if (res.isFinal) state.transcript += res[0].transcript + ' ';
+        else interim += res[0].transcript;
+      }
+      const shown = (state.transcript + interim).trim();
+      if (shown) capUser.textContent = shown;
+      state.turnTimer = setTimeout(endOfTurn, TURN_SILENCE_MS);
     };
     r.onerror = function (ev) { handleSpeechError(ev.error); };
-    r.onend = function () { if (state.inCall && state.phase === 'listening') retryListen(600); };
+    r.onend = function () {
+      if (state.finalizing || !state.inCall) return;
+      // Browser ended the stream on its own: finalize if we heard words, else keep listening
+      // (the dead-air watchdog still governs whether to hang up).
+      if (state.transcript.trim()) endOfTurn();
+      else if (state.phase === 'listening') retryListen(300);
+    };
     try { r.start(); } catch (_) { retryListen(800); }
+  }
+
+  function endOfTurn() {
+    if (state.finalizing) return;
+    state.finalizing = true;
+    const text = state.transcript.trim();
+    stopRec();
+    if (text) processUtterance(text);
+    else if (state.inCall) listenTurn();
   }
 
   function handleSpeechError(err) {
@@ -147,7 +199,7 @@
     if (meta) metaIntent.textContent = meta;
     appendTranscript('bot', answer);
     // Speak the reply, then (if still on the call) listen again — a natural to-and-fro.
-    speak(answer, function () { if (state.inCall) listenTurn(); });
+    speak(answer, function () { if (state.inCall) beginListening(); });
   }
 
   function appendTranscript(who, text) {

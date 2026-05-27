@@ -14,6 +14,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); grouped by date.
 - **Resilient to the browser speech service's flaky "network" errors:** inside a call the
   mic retries with exponential backoff instead of dropping the call; permission/mic
   failures end gracefully with a clear message.
+- **Natural turn-taking.** Listening uses continuous + interim recognition, so brief
+  pauses and fillers ("umm", "uh") no longer cut the caller off; a turn ends only after a
+  real ~2.5s pause in speech. A dead-air watchdog hangs up after 10s of genuine silence
+  (speech resets the clock; it never counts while the assistant is thinking or speaking).
 
 ### Added
 - **In-app per-IP token-bucket rate limiting** (`services/ratelimit.js`), a second layer
