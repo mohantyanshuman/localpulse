@@ -10,7 +10,7 @@
 // caller can fall back to the free keyword bot when Gemini is unavailable.
 
 const MODEL = process.env.GEMINI_MODEL || 'gemini-flash-lite-latest';
-const DAILY_CAP = Number(process.env.VOICE_DAILY_CAP || 400);
+let DAILY_CAP = Number(process.env.VOICE_DAILY_CAP || 300);
 const MAX_STEPS = Number(process.env.VOICE_MAX_STEPS || 4);
 const MAX_HISTORY = 8;
 
@@ -18,10 +18,15 @@ const LANG_NAME = { en: 'English', hi: 'Hindi', pa: 'Punjabi', ta: 'Tamil', bn: 
 
 let day = '';
 let count = 0;
-function budgetOk() {
+// Reserve ONE model call against the daily budget. Counted per actual Gemini call
+// (a single turn may make up to MAX_STEPS+1 calls), not per turn, so the cap reflects
+// real spend.
+function reserve() {
   const d = new Date().toISOString().slice(0, 10);
   if (d !== day) { day = d; count = 0; }
-  return count < DAILY_CAP;
+  if (count >= DAILY_CAP) return false;
+  count += 1;
+  return true;
 }
 
 // Lazily require the real services so the module loads cheaply and tests can inject.
@@ -237,13 +242,14 @@ function toolDeclarations() { return [{ functionDeclarations: Object.values(TOOL
 
 function systemInstruction(lang, ctx) {
   return [
-    `You are LocalPulse, a calm, decisive crisis-support voice assistant for ${process.env.LOCATION_QUERY || 'Solan, Himachal Pradesh'}, India.`,
-    `Speak in ${LANG_NAME[lang] || 'English'}. Reply in 1 to 3 short, natural spoken sentences. No markdown, no lists, no emojis. It is read aloud.`,
-    'Decide which tools to call to answer with real live data; you may call several. Never invent incidents, facilities or numbers.',
-    "When the caller says 'my location', 'here', 'me', or 'send help to me', use their GPS coordinates automatically (already provided) without asking them to read out coordinates.",
-    'If the situation is life-threatening, first tell them to call 112, then give the nearest facility and their location.',
-    'To take an action (file_report, post_im_safe, register_missing), FIRST tell the caller exactly what you will do and ask them to confirm. Only call the action with confirmed=true after they clearly agree. Never act without confirmation.',
-    ctx && ctx.contextLine ? `Caller context: ${ctx.contextLine}` : '',
+    `You are LocalPulse, a warm, calm, reassuring human-sounding helpline companion for ${process.env.LOCATION_QUERY || 'Solan, Himachal Pradesh'}, India. This is a LIVE phone call.`,
+    `Speak in ${LANG_NAME[lang] || 'English'}. Talk like a caring person on the phone: short, natural spoken turns of 1 to 3 sentences, warm and comforting, never robotic. Acknowledge how the caller feels, reassure them, and stay with them. No markdown, no lists, no emojis, no stage directions.`,
+    'Be genuinely useful with real live data: decide which tools to call (you may call several) and naturally weave in what the satellites and sensors are showing right now. Never invent incidents, facilities or numbers.',
+    "When the caller says 'my location', 'here', or 'me', use their GPS coordinates automatically; never ask them to read out coordinates.",
+    'If the situation is life-threatening, gently but clearly tell them to call 112 right now, then give the nearest facility and their location, and keep them calm.',
+    'To take an action (file a report, mark them safe, register a missing person), first say plainly what you will do and ask them to confirm; only call the action with confirmed=true after they clearly agree. Never act without confirmation.',
+    'Keep the call flowing: usually end your turn by gently checking that they are okay or asking what else they need, so it feels like a real, caring conversation.',
+    ctx && ctx.contextLine ? `Live caller context you already know: ${ctx.contextLine}.` : '',
   ].filter(Boolean).join(' ');
 }
 
@@ -303,8 +309,6 @@ async function converse(p, deps = {}) {
   if (!q) return null;
   // No model available and no test transport -> signal fallback to the free keyword bot.
   if (!deps.callModel && !process.env.GEMINI_API_KEY) return null;
-  if (!budgetOk()) return { answer: 'The helpline is very busy right now. For an emergency call 112. Otherwise please try again shortly.', history: clampHistory(p.history), used: [], pendingAction: null };
-  count += 1;
 
   const svc = deps.services || realServices();
   const ctx = await buildContext({ lat: p && p.lat, lng: p && p.lng, place: p && p.place, lang, svc });
@@ -316,10 +320,12 @@ async function converse(p, deps = {}) {
   const used = [];
   let pendingAction = null;
   let answer = '';
+  let capped = false;
 
   for (let step = 0; step < MAX_STEPS; step += 1) {
+    if (!reserve()) { capped = true; break; }
     const content = await callModel({ contents, tools: toolDeclarations(), system });
-    if (!content) return deps.callModel ? null : fallbackAnswer(history, q, lang);
+    if (!content) return null; // model failure -> endpoint falls back to the keyword bot
     contents.push(content);
     const calls = (content.parts || []).filter((x) => x.functionCall).map((x) => x.functionCall);
     if (!calls.length) {
@@ -339,19 +345,24 @@ async function converse(p, deps = {}) {
     contents.push({ role: 'user', parts: responses });
   }
 
-  if (!answer) {
+  if (!answer && !capped && reserve()) {
     // Out of steps (or only tool calls) — ask for a final spoken answer with tools off.
     const fin = await callModel({ contents, tools: null, system });
     answer = fin ? (fin.parts || []).map((x) => x.text).filter(Boolean).join(' ').trim() : '';
   }
-  if (!answer) answer = 'I could not work that out just now. For an emergency call 112, or check the live status on screen.';
+  if (!answer) {
+    answer = capped
+      ? 'I am sorry, the helpline is very busy right now. For an emergency please call 112, and do try me again in a moment.'
+      : 'I could not quite work that out just now. For an emergency call one one two, or tell me again in a few words.';
+  }
   answer = answer.slice(0, 700);
   const outHistory = [...history, { role: 'user', text: q }, { role: 'model', text: answer }].slice(-MAX_HISTORY);
   return { answer, history: outHistory, used, pendingAction };
 }
 
-function fallbackAnswer(history, q, _lang) {
-  return null; // real-mode model failure -> let the endpoint fall back to the keyword bot
-}
-
-module.exports = { converse, TOOLS, toolDeclarations, systemInstruction, _MODEL: MODEL };
+module.exports = {
+  converse, TOOLS, toolDeclarations, systemInstruction, _MODEL: MODEL,
+  // test hooks for the per-call daily budget
+  _setCap: (n) => { DAILY_CAP = Number(n); },
+  _resetBudget: () => { count = 0; day = ''; },
+};

@@ -20,6 +20,7 @@ const assistant = require('./services/assistant');
 const aid = require('./services/aid');
 const livefeed = require('./services/livefeed');
 const voiceAgent = require('./services/voice-agent');
+const { rateLimit } = require('./services/ratelimit');
 const eoFusion = require('./services/eo/fusion');
 const eoPredict = require('./services/eo/predict');
 const eoProvenance = require('./services/eo/provenance');
@@ -33,6 +34,11 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 const START_TS = Date.now();
 const REV = process.env.K_REVISION || 'local';
+
+// Per-IP token-bucket limits (defence in depth behind the Cloudflare edge). Early-reject
+// expensive routes before any LLM call or DB write. Tunable via env.
+const voiceLimiter = rateLimit({ capacity: Number(process.env.RL_VOICE_BURST || 6), refillPerSec: Number(process.env.RL_VOICE_RPS || 0.1), code: 'voice_rate_limited' });
+const writeLimiter = rateLimit({ capacity: Number(process.env.RL_WRITE_BURST || 6), refillPerSec: Number(process.env.RL_WRITE_RPS || 0.1), code: 'write_rate_limited' });
 
 app.disable('x-powered-by');
 // Compress everything except the SSE stream (compression buffers event-streams,
@@ -330,7 +336,7 @@ app.get('/api/sync', async (req, res) => {
   res.json(body);
 });
 
-app.post('/api/report', async (req, res) => {
+app.post('/api/report', writeLimiter, async (req, res) => {
   const body = req.body || {};
   const message = String(body.message || '').trim().slice(0, 500);
   if (!message) return res.status(400).json({ error: { code: 'empty', message: 'Description required.' } });
@@ -393,7 +399,7 @@ app.post('/api/ask', async (req, res) => {
 });
 
 // --- Community mutual-aid board (need / offer / I'm-safe), with auto-matching.
-app.post('/api/aid', async (req, res) => {
+app.post('/api/aid', writeLimiter, async (req, res) => {
   const b = req.body || {};
   const kind = ['need', 'offer', 'safe'].includes(b.kind) ? b.kind : 'need';
   const message = String(b.message || '').trim().slice(0, 300);
@@ -414,7 +420,7 @@ app.get('/api/aid', async (_req, res) => {
 // Privacy: coordinates coarsened to ~1 km; the GET returns only aggregate counts
 // and coarse clusters — never names, notes or contacts.
 const VULN_NEEDS = ['mobility', 'elderly', 'infant', 'medical', 'oxygen', 'hearing', 'vision', 'pregnant'];
-app.post('/api/vulnerable', async (req, res) => {
+app.post('/api/vulnerable', writeLimiter, async (req, res) => {
   const b = req.body || {};
   const needs = (Array.isArray(b.needs) ? b.needs : []).filter((n) => VULN_NEEDS.includes(n)).slice(0, 6);
   if (!needs.length) return res.status(400).json({ error: { code: 'no_needs', message: 'Select at least one need.' } });
@@ -441,7 +447,7 @@ app.get('/api/vulnerable', async (_req, res) => {
 });
 
 // --- Missing-persons reunification: matched against "I'm safe" beacons.
-app.post('/api/missing', async (req, res) => {
+app.post('/api/missing', writeLimiter, async (req, res) => {
   const b = req.body || {};
   const name = String(b.name || '').trim().slice(0, 80);
   if (!name) return res.status(400).json({ error: { code: 'no_name', message: 'Name is required.' } });
@@ -515,7 +521,7 @@ app.post('/api/voice/intent', (req, res) => {
 // decides which live-data tools to call, uses the caller's GPS automatically, and can
 // take confirmed actions. Falls back to the free keyword bot when the model is
 // unavailable or the daily budget is spent, so the line never goes dead.
-app.post('/api/voice/converse', async (req, res) => {
+app.post('/api/voice/converse', voiceLimiter, async (req, res) => {
   res.set('Cache-Control', 'no-store');
   const b = req.body || {};
   const q = String(b.q || b.text || '').trim().slice(0, 400);

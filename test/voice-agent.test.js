@@ -130,6 +130,19 @@ test('emergency help uses the caller GPS automatically', async () => {
   assert.match(res.answer, /112/);
 });
 
+test('budget is counted per Gemini call and caps the turn', async () => {
+  agent._resetBudget();
+  agent._setCap(2);
+  let calls = 0;
+  const callModel = async ({ tools }) => { calls += 1; return tools ? fc('get_hazards', {}) : text('done'); };
+  const { svc } = mockSvc();
+  const res = await agent.converse({ q: 'keep looping', ...LOC }, { callModel, services: svc });
+  assert.strictEqual(calls, 2, 'must make exactly cap-many model calls, not more');
+  assert.match(res.answer, /busy|112/i);
+  agent._setCap(300);
+  agent._resetBudget();
+});
+
 test('daily budget exhaustion returns a graceful message (no crash)', async () => {
   // Drive the shared counter past the cap by forcing it via many cheap calls is slow;
   // instead assert the happy path returns a well-formed object (cap path is covered by code).

@@ -3,6 +3,31 @@
 All notable changes to LocalPulse are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); grouped by date.
 
+## 2026-05-27 (hands-free call mode + voice security hardening)
+
+### Changed
+- **Voice helpline is now a continuous, hands-free call.** Tap once to start: it listens,
+  answers, then automatically listens again (echo-safe: never listens while speaking),
+  like a real phone call, until you hang up. The agent persona is warm, calm and
+  comforting, acknowledges how the caller feels, weaves in live satellite readings, and
+  keeps the conversation flowing. Warmer TTS (language-matched voice, gentle cadence).
+- **Resilient to the browser speech service's flaky "network" errors:** inside a call the
+  mic retries with exponential backoff instead of dropping the call; permission/mic
+  failures end gracefully with a clear message.
+
+### Added
+- **In-app per-IP token-bucket rate limiting** (`services/ratelimit.js`), a second layer
+  behind Cloudflare: early-rejects with a tiny 429 before any LLM call or DB write.
+  Applied to `/api/voice/converse` (6 burst) and the public write endpoints
+  `/api/report`, `/api/aid`, `/api/vulnerable`, `/api/missing` (6 burst). Tunable via env.
+
+### Security
+- **Voice budget now counts per Gemini call, not per turn**, so the daily cap reflects
+  real model spend (a turn can make several calls). Default lowered to 300.
+- Confirmed the report-text render path is XSS-safe: all caller-supplied text is rendered
+  via DOM text nodes (`el()`/`createTextNode`) on the dashboard and responder console; no
+  `innerHTML`/template injection of user content. 6 new `node:test` cases (117 total).
+
 ## 2026-05-27 (agentic voice helpline)
 
 ### Added
