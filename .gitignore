@@ -20,5 +20,6 @@ scripts/__pycache__/
 /*.png
 /*.jpg
 /*.jpeg
+/linkedin/
 *.tmp.xml
 sachet_tmp.xml
