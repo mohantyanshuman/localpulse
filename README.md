@@ -156,3 +156,5 @@ Built for the slow phone, the bad internet, the small town.
 ## License
 
 MIT. See `LICENSE`.
+
+&copy; 2026 [dmj.one](https://dmj.one)
